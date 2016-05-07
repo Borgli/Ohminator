@@ -17,6 +17,39 @@ class Ohminator:
     yt_lock = threading.RLock()
     yt_cooldown = time.time()
 
+    async def play_game_intro(self, before, after, intro):
+        if after.voice_channel is None or after.is_afk:
+            return
+
+        if after.voice_channel.name != 'Supreme Ohhhhhmmmmmmm':
+            for member in after.voice_channel.voice_members:
+                if member.name in ohm.black_list:
+                    return
+
+        if ohm.current_voice is None:
+            ohm.current_voice = await client.join_voice_channel(after.voice_channel)
+
+        elif ohm.current_voice.channel != after.voice_channel:
+            await ohm.current_voice.disconnect()
+
+            if after.voice_channel is not None:
+                try:
+                    ohm.current_voice = await client.join_voice_channel(after.voice_channel)
+                except:
+                    return
+
+            else:
+                return
+
+        if ohm.active_player is not None and ohm.active_player.is_playing():
+            return
+
+        try:
+            ohm.active_player = ohm.current_voice.create_ffmpeg_player(intro)
+            ohm.active_player.start()
+        except Exception as e:
+            print(e)
+
 class Stats:
     total_time_spent = None
     time_in_channels = dict()
@@ -264,36 +297,8 @@ async def on_voice_state_update(before, after):
 @client.event
 async def on_member_update(before, after):
     if (before.game is None or before.game.name != 'Rocket League') and (after.game is not None and after.game.name == 'Rocket League'):
-        if after.voice_channel is None or after.is_afk:
-            return
-
-        if after.voice_channel.name != 'Supreme Ohhhhhmmmmmmm':
-            for member in after.voice_channel.voice_members:
-                if member.name in ohm.black_list:
-                    return
-
-        if ohm.current_voice is None:
-            ohm.current_voice = await client.join_voice_channel(after.voice_channel)
-
-        elif ohm.current_voice.channel != after.voice_channel:
-            await ohm.current_voice.disconnect()
-
-            if after.voice_channel is not None:
-                try:
-                    ohm.current_voice = await client.join_voice_channel(after.voice_channel)
-                except:
-                    return
-
-            else:
-                return
-
-        if ohm.active_player is not None and ohm.active_player.is_playing():
-            return
-
-        try:
-            ohm.active_player = ohm.current_voice.create_ffmpeg_player('WhatRocketLeague.wav')
-            ohm.active_player.start()
-        except Exception as e:
-            print(e)
+        await ohm.play_game_intro(before, after, 'WhatRocketLeague.wav')
+    elif (before.game is None or before.game.name != 'RuneScape') and (after.game is not None and after.game.name == 'RuneScape'):
+        await ohm.play_game_intro(before, after, 'RuneScape.wav')
 
 client.run('MTc2NDMzMTMwMzM1NTAyMzM3.CgvoFg.FLaupAZZ5OviZ1Fb7gAO_Aq-sLo')

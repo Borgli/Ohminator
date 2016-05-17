@@ -1,4 +1,5 @@
 import discord
+import discord.errors
 import asyncio
 import youtube_dl
 import threading
@@ -6,13 +7,14 @@ import urllib.request
 import os
 import random
 import time
-
+import re
 
 class Ohminator:
     current_voice = None
     active_player = None
     intro_names = {'runarl', 'Rune', 'Chimeric', 'Johngel', 'Christian Berseth',
-                   'Jan Ivar Ugelstad', 'Christian F. Vegard', 'Martin', 'Kristoffer Skau', 'Ginker'}
+                   'Jan Ivar Ugelstad', 'Christian F. Vegard', 'Martin', 'Kristoffer Skau', 'Ginker', 'aekped',
+                                                                                                      'sondrehav'}
     black_list = {'Christian Berseth', 'Chimeric', 'Johngel'}
     yt_lock = threading.RLock()
     yt_cooldown = time.time()
@@ -99,6 +101,13 @@ async def on_message(message):
         await asyncio.sleep(5)
         await client.send_message(message.channel, 'Done sleeping')
     """
+    try:
+        content = compile(message.content, '<string>', 'eval')
+        await client.send_message(message.channel,
+                                  '{}: {}'.format(message.author.name, eval(content)))
+    except:
+        pass
+
     if message.content.startswith('!yt'):
         link = message.content[4:]
         if message.author.voice_channel is None:
@@ -150,7 +159,8 @@ async def on_message(message):
                                   '!yt [youtube link]\t\t-\tPlays audio from YouTube in voice channel of caller.\n'
                                   '!stahp\t\t\t\t\t\t-\tStops any playing sound.\n'
                                   '!joined\t\t\t\t\t\t-\tTells you when you joined Ohm!\n'
-                                  '!roll [lowest] [highest]\t\t\t\t\t-\tRoll a number between lowest and highest'.format(message.author.name))
+                                  '!roll [lowest] [highest]\t\t\t\t\t-\tRoll a number between lowest and highest.\n'
+                                  '!intro\t\t\t\t\t\t-\t Plays your intro.\n'.format(message.author.name))
 
     elif message.content.startswith('!ohminator'):
         await client.delete_message(message)
@@ -242,6 +252,90 @@ async def on_message(message):
             await client.send_message(message.channel, '{} stopped the player!'.format(message.author.name))
             ohm.active_player.stop()
 
+    elif message.content.startswith('!intro'):
+        await client.delete_message(message)
+        if message.author.voice_channel is None or message.author.is_afk:
+            return
+        if message.author.name is not None and message.author.name in ohm.intro_names:
+            if ohm.current_voice is None:
+                ohm.current_voice = await client.join_voice_channel(message.author.voice_channel)
+
+            elif ohm.current_voice.channel != message.author.voice_channel:
+                await ohm.current_voice.disconnect()
+
+                if message.author.voice_channel is not None:
+                    try:
+                        ohm.current_voice = await client.join_voice_channel(message.author.voice_channel)
+                    except:
+                        return
+                else:
+                    return
+
+            if ohm.active_player is not None and ohm.active_player.is_playing():
+                ohm.active_player.stop()
+
+            try:
+                if message.author.name == 'runarl':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/sjabling.wav')
+                elif message.author.name == 'Johngel':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christer/Christer.wav')
+                elif message.author.name == 'Chimeric':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Marius/MarijusJingjeee.wav')
+                elif message.author.name == 'Christian Berseth':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christian Berseth/last_one_niggu.wav')
+                elif message.author.name == 'Jan Ivar Ugelstad':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Jan Ivar Ugelstad/discord EEEEEEE.wav')
+                elif message.author.name == 'Christian F. Vegard':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player(
+                        'Christian F. Vegard/ChristianVJingle.wav')
+                elif message.author.name == 'Martin':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Martin/MartinHathJing.wav')
+                elif message.author.name == 'Kristoffer Skau':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player(
+                        'Kristoffer Skau/SpaceDanceJingleMOARBASS.wav')
+                elif message.author.name == 'aekped':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('aekped/Igotothegrave.wav')
+                elif message.author.name == 'Ginker':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Ginker/Jimi.mp3')
+                elif message.author.name == 'sondrehav':
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('sondrehav/hey.mp3')
+                else:
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Rune/Jizzcuzzi.wav')
+                ohm.active_player.start()
+            except Exception as e:
+                print(e)
+
+    elif message.content.startswith('!member'):
+        await client.delete_message(message)
+        await client.send_message(message.channel, 'Not a member yet?\nBecome a member today for a limited time offer of 5$/month.\nEnjoy perks as unlimited YouTube plays, YouTube priority and access to the !spam command!')
+
+    elif message.content.startswith('!spam'):
+        await client.delete_message(message)
+        await client.send_message(message.channel, '{}: Please pay 5$ to unlock the !spam command.'.format(message.author.name))
+
+    elif message.content.startswith('!ohmprofile'):
+        await client.delete_message(message)
+        try:
+            link = message.content[12:]
+            #filename = 'Pictures/{}'.format(re.search(r'\/(\w+\.\w+)$'))
+            #urllib.request.urlretrieve(link, filename=filename)
+            file_name, header = urllib.request.urlretrieve(link)
+            fp = open(file_name, 'rb')
+            client.edit_profile(avatar=fp.read())
+        except:
+            await client.send_message(message.channel,
+                                      '{}: Link invalid.'.format(message.author.name))
+
+        #client.user.avatar_url = link
+    elif message.content.startswith('!ohmage'):
+        await client.delete_message(message)
+        await client.send_message(message.channel, '{}: Ohm was created {}!'.format(message.author.name,
+                                                                                              message.server.created_at))
+
+    elif message.content.startswith('fuck'):
+        await client.send_message(message.channel, 'No, fuck you, {}!'.format(message.author.name))
+
+
 
 @client.event
 async def on_voice_state_update(before, after):
@@ -254,8 +348,11 @@ async def on_voice_state_update(before, after):
                 if member.name in ohm.black_list:
                     return
 
-        if ohm.current_voice is None:
-            ohm.current_voice = await client.join_voice_channel(after.voice_channel)
+        if ohm.current_voice is None or not ohm.current_voice.is_connected():
+            try:
+                ohm.current_voice = await client.join_voice_channel(after.voice_channel)
+            except discord.errors.ClientException:
+                ohm.current_voice = client.voice_client_in(after.server)
 
         elif ohm.current_voice.channel != after.voice_channel:
             await ohm.current_voice.disconnect()
@@ -288,16 +385,26 @@ async def on_voice_state_update(before, after):
                 ohm.active_player = ohm.current_voice.create_ffmpeg_player('Martin/MartinHathJing.wav')
             elif before.name == 'Kristoffer Skau':
                 ohm.active_player = ohm.current_voice.create_ffmpeg_player('Kristoffer Skau/SpaceDanceJingleMOARBASS.wav')
+            elif before.name == 'aekped':
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('aekped/Igotothegrave.wav')
+            elif before.name == 'Ginker':
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Ginker/Jimi.mp3')
+            elif before.name == 'sondrehav':
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('sondrehav/hey.mp3')
             else:
-                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Rune/Bee_Gees_walk.wav')
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Rune/Jizzcuzzi.wav')
             ohm.active_player.start()
         except Exception as e:
             print(e)
 
 @client.event
 async def on_member_update(before, after):
+    return
+    if before.name in ohm.black_list:
+        return
     if (before.game is None or before.game.name != 'Rocket League') and (after.game is not None and after.game.name == 'Rocket League'):
-        await ohm.play_game_intro(before, after, 'WhatRocketLeague.wav')
+        return
+        #await ohm.play_game_intro(before, after, 'WhatRocketLeague.wav')
     elif (before.game is None or before.game.name != 'RuneScape') and (after.game is not None and after.game.name == 'RuneScape'):
         await ohm.play_game_intro(before, after, 'RuneScape.wav')
 

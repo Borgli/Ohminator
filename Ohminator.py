@@ -15,7 +15,7 @@ class Ohminator:
     intro_names = {'runarl', 'Rune', 'Chimeric', 'Johngel', 'Christian Berseth',
                    'Jan Ivar Ugelstad', 'Christian F. Vegard', 'Martin', 'Kristoffer Skau', 'Ginker', 'aekped',
                                                                                                       'sondrehav'}
-    black_list = {'Christian Berseth', 'Chimeric', 'Johngel'}
+    black_list = {'Christian Berseth', 'Chimeric'}
     yt_lock = threading.RLock()
     yt_cooldown = time.time()
 
@@ -276,7 +276,7 @@ async def on_message(message):
 
             try:
                 if message.author.name == 'runarl':
-                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/sjabling.wav')
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/hello.its.me.wav')
                 elif message.author.name == 'Johngel':
                     ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christer/Christer.wav')
                 elif message.author.name == 'Chimeric':
@@ -370,7 +370,7 @@ async def on_voice_state_update(before, after):
 
         try:
             if before.name == 'runarl':
-                ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/sjabling.wav')
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/hello.its.me.wav')
             elif before.name == 'Johngel':
                 ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christer/Christer.wav')
             elif before.name == 'Chimeric':

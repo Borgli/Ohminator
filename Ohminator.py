@@ -8,6 +8,7 @@ import os
 import random
 import time
 import re
+#import uvloop
 
 class Ohminator:
     current_voice = None
@@ -71,6 +72,8 @@ class OhmUser(discord.User):
         self.member = member
         self.stats = Stats()
 
+#eventloop = uvloop.new_event_loop()
+#asyncio.set_event_loop(eventloop)
 client = discord.Client()
 ohm = Ohminator()
 
@@ -278,9 +281,9 @@ async def on_message(message):
                 if message.author.name == 'runarl':
                     ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/hello.its.me.wav')
                 elif message.author.name == 'Johngel':
-                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christer/Christer.wav')
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Johngel/Christer.wav')
                 elif message.author.name == 'Chimeric':
-                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Marius/MarijusJingjeee.wav')
+                    ohm.active_player = ohm.current_voice.create_ffmpeg_player('Chimeric/intro.wav')
                 elif message.author.name == 'Christian Berseth':
                     ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christian Berseth/last_one_niggu.wav')
                 elif message.author.name == 'Jan Ivar Ugelstad':
@@ -353,6 +356,8 @@ async def on_voice_state_update(before, after):
                 ohm.current_voice = await client.join_voice_channel(after.voice_channel)
             except discord.errors.ClientException:
                 ohm.current_voice = client.voice_client_in(after.server)
+            except Exception:
+                return
 
         elif ohm.current_voice.channel != after.voice_channel:
             await ohm.current_voice.disconnect()
@@ -372,9 +377,9 @@ async def on_voice_state_update(before, after):
             if before.name == 'runarl':
                 ohm.active_player = ohm.current_voice.create_ffmpeg_player('runarl/hello.its.me.wav')
             elif before.name == 'Johngel':
-                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christer/Christer.wav')
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Johngel/Christer.wav')
             elif before.name == 'Chimeric':
-                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Marius/MarijusJingjeee.wav')
+                ohm.active_player = ohm.current_voice.create_ffmpeg_player('Chimeric/intro.wav')
             elif before.name == 'Christian Berseth':
                 ohm.active_player = ohm.current_voice.create_ffmpeg_player('Christian Berseth/last_one_niggu.wav')
             elif before.name == 'Jan Ivar Ugelstad':

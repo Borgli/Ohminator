@@ -2,8 +2,12 @@ import discord
 import asyncio
 import time
 import random
+import discord.errors
+import uvloop
 
-client = discord.Client()
+eventloop = uvloop.new_event_loop()
+asyncio.set_event_loop(eventloop)
+client = discord.Client(loop=eventloop)
 
 class Ohminator:
     current_voice = None
@@ -33,19 +37,12 @@ async def on_ready():
     print(client.user.id)
     print('------')
 
-async def move_to_voice_channel(user):
+async def move_to_voice_channel(before, after):
     # Check where the bot is currently and move it as necessary
-    if client.is_voice_connected(user.server):
-        voice_client = client.voice_client_in(user.server)
-        # If the bot is connected to the same one as the author we don't need to change it.
-        if voice_client == user.voice_channel:
-            ohm.current_voice = voice_client
-        else:
-            await voice_client.disconnect()
-            ohm.current_voice = await client.join_voice_channel(user.voice_channel)
-    else:
-        ohm.current_voice = await client.join_voice_channel(user.voice_channel)
-
+    try:
+        ohm.current_voice = await client.join_voice_channel(after.voice_channel)
+    except discord.errors.ClientException:
+        ohm.current_voice = client.voice_client_in(after.server)
 
 async def play_intro(name):
     try:
@@ -74,7 +71,7 @@ async def play_yt(message):
         await client.send_message(message.channel, '{}: Something is already playing!'.format(message.author.name))
         return
 
-    await move_to_voice_channel(message.author)
+    await move_to_voice_channel(message.author, message.author)
 
     try:
         ohm.active_player = await ohm.current_voice.create_ytdl_player(link)
@@ -176,7 +173,7 @@ async def on_voice_state_update(before, after):
                 if member.name in ohm.black_list:
                     return
 
-        await move_to_voice_channel(after)
+        await move_to_voice_channel(before, after)
 
         if ohm.active_player is not None and ohm.active_player.is_playing():
             ohm.active_player.stop()

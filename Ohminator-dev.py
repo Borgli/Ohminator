@@ -48,7 +48,6 @@ class Ohminator:
 
 ohm = Ohminator()
 cb = cleverbot.Cleverbot()
-db_client = dropbox.Dropbox('7U5I0mCP7FkAAAAAAAAFgwN5HsLHjXvy_ihGitPRcNncEeO2aRPFsO1o9j1HZtN3')
 
 @client.event
 async def on_ready():
@@ -82,6 +81,9 @@ async def on_message(message):
         try:
             if voice_client is None:
                 voice_client = await client.join_voice_channel(message.author.voice_channel)
+            elif voice_client.channel is None:
+                await voice_client.disconnect()
+                voice_client = await client.join_voice_channel(message.author.voice_channel)
             elif voice_client.channel != message.author.voice_channel:
                 await voice_client.move_to(message.author.voice_channel)
         except:
@@ -102,11 +104,14 @@ async def on_message(message):
                 else:
                     break
 
-            #seconds = int(to_convert[0])
-            #if seconds > 59:
+            seconds = int(to_convert[0])
 
-
-            option = '-ss {}:{}:{}'.format(to_convert[2], to_convert[1], to_convert[0])
+            if seconds > 59:
+                m, s = divmod(seconds, 60)
+                h, m = divmod(m, 60)
+                option = '-ss {}:{}:{}'.format(h, m, s)
+            else:
+                option = '-ss {}:{}:{}'.format(to_convert[2], to_convert[1], to_convert[0])
             print(option)
         except:
             option = None
@@ -140,6 +145,9 @@ async def on_message(message):
             try:
                 if voice_client is None:
                     voice_client = await client.join_voice_channel(message.author.voice_channel)
+                elif voice_client.channel is None:
+                    await voice_client.disconnect()
+                    voice_client = await client.join_voice_channel(message.author.voice_channel)
                 elif voice_client.channel != message.author.voice_channel:
                     await voice_client.move_to(message.author.voice_channel)
             except Exception as e:
@@ -152,11 +160,9 @@ async def on_message(message):
                 ohm.active_player.stop()
 
             try:
-                if message.author.name in ohm.test_list:
-                    intro_list = os.listdir('{}/intros'.format(message.author.name))
-                    ohm.active_player = voice_client.create_ffmpeg_player('{}/intros/{}'.format(message.author.name, random.choice(intro_list)))
-                else:
-                    ohm.active_player = voice_client.create_ffmpeg_player('{}/intro.wav'.format(message.author.name))
+                intro_list = os.listdir('{}/intros'.format(message.author.name))
+                ohm.active_player = voice_client.create_ffmpeg_player(
+                    '{}/intros/{}'.format(message.author.name, random.choice(intro_list)))
                 ohm.active_player.start()
             except Exception as e:
                 print(e)
@@ -273,9 +279,14 @@ async def on_message(message):
 
     elif message.content.startswith('!myintros'):
         await client.delete_message(message)
-        intro_list = str(os.listdir('{}/intros'.format(message.author.name)))
+        intro_list = os.listdir('{}/intros'.format(message.author.name))
+        intro_print = str()
+        index_cnt = 1
+        for intro in intro_list:
+            intro_print += '\n**[{}]**:\t{}'.format(index_cnt, intro)
+            index_cnt += 1
         await client.send_message(message.channel,
-                                  '{}: Intro list:\n{}'.format(message.author.name, intro_list))
+                                  '{}: Intro list:{}'.format(message.author.mention, intro_print))
 
     elif message.content.startswith('!deleteintro'):
         await client.delete_message(message)
@@ -292,6 +303,9 @@ async def on_message(message):
 
         try:
             intro_list = os.listdir('{}/intros'.format(message.author.name))
+            await client.send_message(message.channel,
+                                      '{}: Deleting intro {} at index {}'.format(
+                                          message.author.name, intro_list[intro_index-1], intro_index-1))
             os.remove('{}/intros/{}'.format(message.author.name, intro_list[intro_index-1]))
         except:
             await client.send_message(message.channel,
@@ -306,6 +320,13 @@ async def on_message(message):
             file_name = find_name.pop()
         except:
             await client.send_message(message.channel,'{}: Invalid file.'.format(message.author.name))
+            return
+        intro_list = os.listdir('{}/intros'.format(message.author.name))
+        if (len(intro_list)+1) > 5:
+            await client.send_message(message.channel,
+                                      '{}: You have reached the maximum number of intros. '
+                                      'Please delete an intro before uploading a new one'.format(
+                                          message.author.name))
             return
         url += '?dl=1&pv=1'
         '''
@@ -359,6 +380,9 @@ async def on_voice_state_update(before, after):
         try:
             if voice_client is None:
                 voice_client = await client.join_voice_channel(after.voice_channel)
+            elif voice_client.channel is None:
+                await voice_client.disconnect()
+                voice_client = await client.join_voice_channel(after.voice_channel)
             elif voice_client.channel != after.voice_channel:
                 await voice_client.move_to(after.voice_channel)
         except Exception as e:
@@ -369,7 +393,9 @@ async def on_voice_state_update(before, after):
             ohm.active_player.stop()
 
         try:
-            ohm.active_player = voice_client.create_ffmpeg_player('{}/intro.wav'.format(after.name))
+            intro_list = os.listdir('{}/intros'.format(after.name))
+            ohm.active_player = voice_client.create_ffmpeg_player(
+                '{}/intros/{}'.format(after.name, random.choice(intro_list)))
             ohm.active_player.start()
         except Exception as e:
             print(e)

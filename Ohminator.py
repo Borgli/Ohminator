@@ -305,7 +305,7 @@ async def on_message(message):
             intro_list = os.listdir('{}/intros'.format(message.author.name))
             await client.send_message(message.channel,
                                       '{}: Deleting intro {} at index {}'.format(
-                                          message.author.name, intro_list[intro_index-1], intro_index-1))
+                                          message.author.name, intro_list[intro_index-1], intro_index))
             os.remove('{}/intros/{}'.format(message.author.name, intro_list[intro_index-1]))
         except:
             await client.send_message(message.channel,
@@ -367,7 +367,7 @@ async def on_message(message):
         '''
 @client.event
 async def on_voice_state_update(before, after):
-    if after.voice_channel is None or after.is_afk:
+    if after is None or after.voice_channel is None or after.is_afk:
         return
     if before.name is not None and before.name in ohm.intro_names \
             and before.voice_channel != after.voice_channel:

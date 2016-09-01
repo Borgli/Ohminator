@@ -160,30 +160,30 @@ async def on_message(message):
             await client.send_message(ohm.bot_spam, '{} stopped the player!'.format(message.author.name))
             ohm.active_player.stop()
 
-    elif message.content.startswith('!introlist') or message.content.startswith('!listintros'):
-        await client.delete_message(message)
-        name_of_member = message.content[12:]
-        if name_of_member is "":
-            await client.send_message(ohm.bot_spam,
-                                      '{}: Please provide a member!'.format(
-                                          message.author.name))
-            return
-        try:
-            intro_list = os.listdir('{}/intros'.format(name_of_member))
-        except:
-            await client.send_message(ohm.bot_spam,
-                                      '{}: Member "{}" does not have access to intros!'.format(
-                                          message.author.name, name_of_member))
-            return
-
-        intro_print = str()
-        index_cnt = 1
-        for intro in intro_list:
-            intro_print += '\n**[{}]**:\t{}'.format(index_cnt, intro)
-            index_cnt += 1
-        await client.send_message(ohm.bot_spam,
-                                  '{}: Here is the intro list of "{}":{}'.format(message.author.mention, name_of_member,
-                                                                                 intro_print))
+    # elif message.content.startswith('!introlist') or message.content.startswith('!listintros'):
+    #     await client.delete_message(message)
+    #     name_of_member = message.content[12:]
+    #     if name_of_member is "":
+    #         await client.send_message(ohm.bot_spam,
+    #                                   '{}: Please provide a member!'.format(
+    #                                       message.author.name))
+    #         return
+    #     try:
+    #         intro_list = os.listdir('{}/intros'.format(name_of_member))
+    #     except:
+    #         await client.send_message(ohm.bot_spam,
+    #                                   '{}: Member "{}" does not have access to intros!'.format(
+    #                                       message.author.name, name_of_member))
+    #         return
+    #
+    #     intro_print = str()
+    #     index_cnt = 1
+    #     for intro in intro_list:
+    #         intro_print += '\n**[{}]**:\t{}'.format(index_cnt, intro)
+    #         index_cnt += 1
+    #     await client.send_message(ohm.bot_spam,
+    #                               '{}: Here is the intro list of "{}":{}'.format(message.author.mention, name_of_member,
+    #                                                                              intro_print))
 
     elif message.content.startswith('!intro'):
         await client.delete_message(message)
@@ -212,49 +212,50 @@ async def on_message(message):
 
             try:
                 if message.content.startswith('!introof'):
-                    match = re.match(r'!introof ([a-zA-Z\s]+)(\d*)', message.content)
-                    if match is None:
-                        await client.send_message(ohm.bot_spam,
-                                                  '{}: USAGE: !introof [name of member] [(index of intro)]!'.format(
-                                                      message.author.name))
-                        return
-                    name_of_member = match.group(1).strip()
-                    if name_of_member is "":
-                        await client.send_message(ohm.bot_spam,
-                                                  '{}: Please provide a member!'.format(
-                                                      message.author.name))
-                        return
-
-                    try:
-                        intro_list = os.listdir('{}/intros'.format(name_of_member))
-                    except:
-                        await client.send_message(ohm.bot_spam,
-                                                  '{}: Member "{}" does not have access to intros!'.format(
-                                                      message.author.name, name_of_member))
-                        raise NameError
-
-                    if len(match.groups()) > 2:
-                        try:
-                            given_index = int(match.group(2))
-                            if given_index < 1:
-                                # Because lists in python interprets negative indices as positive ones
-                                # I give the intro index a high number to trigger the IndexError.
-                                intro_index = 256
-                            else:
-                                intro_index = given_index-1
-                        except ValueError:
-                            intro_index = intro_list.index(random.choice(intro_list))
-                    else:
-                        intro_index = intro_list.index(random.choice(intro_list))
-
-                    try:
-                        ohm.active_player = voice_client.create_ffmpeg_player(
-                            '{}/intros/{}'.format(name_of_member, intro_list[intro_index]), after=ohm.after_intro)
-                    except:
-                        await client.send_message(ohm.bot_spam,
-                                                  '{}: Member "{}" does not have an intro!'.format(
-                                                      message.author.name, name_of_member))
-                        raise NameError
+                    # match = re.match(r'!introof ([a-zA-Z\s]+)(\d*)', message.content)
+                    # if match is None:
+                    #     await client.send_message(ohm.bot_spam,
+                    #                               '{}: USAGE: !introof [name of member] [(index of intro)]!'.format(
+                    #                                   message.author.name))
+                    #     return
+                    # name_of_member = match.group(1).strip()
+                    # if name_of_member is "":
+                    #     await client.send_message(ohm.bot_spam,
+                    #                               '{}: Please provide a member!'.format(
+                    #                                   message.author.name))
+                    #     return
+                    #
+                    # try:
+                    #     intro_list = os.listdir('{}/intros'.format(name_of_member))
+                    # except:
+                    #     await client.send_message(ohm.bot_spam,
+                    #                               '{}: Member "{}" does not have access to intros!'.format(
+                    #                                   message.author.name, name_of_member))
+                    #     raise NameError
+                    #
+                    # if len(match.groups()) > 2:
+                    #     try:
+                    #         given_index = int(match.group(2))
+                    #         if given_index < 1:
+                    #             # Because lists in python interprets negative indices as positive ones
+                    #             # I give the intro index a high number to trigger the IndexError.
+                    #             intro_index = 256
+                    #         else:
+                    #             intro_index = given_index-1
+                    #     except ValueError:
+                    #         intro_index = intro_list.index(random.choice(intro_list))
+                    # else:
+                    #     intro_index = intro_list.index(random.choice(intro_list))
+                    #
+                    # try:
+                    #     ohm.active_player = voice_client.create_ffmpeg_player(
+                    #         '{}/intros/{}'.format(name_of_member, intro_list[intro_index]), after=ohm.after_intro)
+                    # except:
+                    #     await client.send_message(ohm.bot_spam,
+                    #                               '{}: Member "{}" does not have an intro!'.format(
+                    #                                   message.author.name, name_of_member))
+                    #     raise NameError
+                    pass
 
                 else:
                     intro_list = os.listdir('{}/intros'.format(message.author.name))

@@ -1,5 +1,6 @@
 import discord
 import discord.channel
+import discord.errors
 import asyncio
 import random
 import cleverbot
@@ -489,4 +490,15 @@ async def on_voice_state_update(before, after):
             print(e)
 
 client.loop.create_task(should_clear_now_playing())
-client.run('MTc2NDMzMTMwMzM1NTAyMzM3.CgvoFg.FLaupAZZ5OviZ1Fb7gAO_Aq-sLo')
+
+def run_client():
+    try:
+        client.run('MTc2NDMzMTMwMzM1NTAyMzM3.CgvoFg.FLaupAZZ5OviZ1Fb7gAO_Aq-sLo')
+        return False
+    except discord.errors.ConnectionClosed:
+        return True
+
+connection_error = True
+while connection_error:
+    connection_error = run_client()
+

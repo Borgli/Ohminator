@@ -13,6 +13,7 @@ class Ohminator:
     active_player = None
     intro_player = None
     intro_playing = False
+    intro_counter = 0
     intro_was_stopped = False
     intro_names = {'runarl', 'Rune', 'Chimeric', 'Johngel', 'Christian Berseth',
                    'Jan Ivar Ugelstad', 'Christian F. Vegard', 'Martin', 'Kristoffer Skau', 'Ginker', 'aekped',
@@ -42,14 +43,15 @@ class Ohminator:
     bot_spam = None
 
     clear_now_playing = asyncio.Event()
+    intro_finished = asyncio.Event()
+    intro_counter_lock = asyncio.Lock()
 
     def after_yt(self):
         client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         print("YoutTube-video finished playing.")
 
     def after_intro(self):
-        if ohm.intro_was_stopped is False:
-            ohm.active_player.resume()
+        client.loop.call_soon_threadsafe(self.intro_finished.set)
         print("Intro finished playing.")
 
     def print_queue(self):
@@ -65,6 +67,17 @@ class Ohminator:
 
 ohm = Ohminator()
 cb = cleverbot.Cleverbot()
+
+async def resume_playing_sound():
+    while not client.is_closed:
+        await ohm.intro_finished.wait()
+        await ohm.intro_counter_lock.acquire()
+        ohm.intro_counter -= 1
+        if ohm.intro_counter == 0:
+            ohm.active_player.resume()
+        ohm.intro_counter_lock.release()
+        ohm.intro_finished.clear()
+
 
 async def should_clear_now_playing():
     while not client.is_closed:
@@ -156,6 +169,15 @@ async def on_message(message):
             await client.send_message(ohm.bot_spam, '{} stopped the player!'.format(message.author.name))
             ohm.active_player.stop()
 
+    elif message.content.startswith('!introstop'):
+        await client.delete_message(message)
+        if ohm.intro_player is None or not ohm.intro_player.is_playing:
+            await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
+        else:
+            await client.send_message(ohm.bot_spam, '{} stopped the player!'.format(message.author.name))
+            ohm.intro_player.stop()
+            print("Intro was stopped!")
+
     elif message.content.startswith('!intro'):
         await client.delete_message(message)
         if message.author.voice_channel is None or message.author.is_afk:
@@ -241,16 +263,25 @@ async def on_voice_state_update(before, after):
 
         if ohm.active_player is not None and ohm.active_player.is_playing():
             ohm.active_player.pause()
-            #ohm.intro_playing = True
+
+        if ohm.intro_player is not None and ohm.intro_player.is_playing():
+            await ohm.intro_counter_lock.acquire()
+            ohm.intro_counter -= 1
+            ohm.intro_player.stop()
+            ohm.intro_counter_lock.release()
 
         try:
             intro_list = os.listdir('{}/intros'.format(after.name))
             ohm.intro_player = voice_client.create_ffmpeg_player(
                 '{}/intros/{}'.format(after.name, random.choice(intro_list)), after=ohm.after_intro)
             ohm.intro_player.start()
+            await ohm.intro_counter_lock.acquire()
+            ohm.intro_counter += 1
+            ohm.intro_counter_lock.release()
         except Exception as e:
             print(e)
 
 client.loop.create_task(should_clear_now_playing())
+client.loop.create_task(resume_playing_sound())
 client.run('MTc2NDMzMTMwMzM1NTAyMzM3.CgvoFg.FLaupAZZ5OviZ1Fb7gAO_Aq-sLo')
 

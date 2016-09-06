@@ -74,7 +74,8 @@ async def resume_playing_sound():
         await ohm.intro_counter_lock.acquire()
         ohm.intro_counter -= 1
         if ohm.intro_counter == 0:
-            ohm.active_player.resume()
+            if ohm.active_player is not None:
+                ohm.active_player.resume()
         ohm.intro_counter_lock.release()
         ohm.intro_finished.clear()
 

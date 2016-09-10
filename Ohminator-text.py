@@ -28,6 +28,7 @@ class Ohminator:
 
     help_message = '{}: List of commands: \n' \
                    '**!help** or **!command**\t\t\t-\tPrints out this menu.\n' \
+                   '**!soundhelp**\t\t\t-\tPrints out the sound command menu.\n' \
                    '**!yt** *[youtube link]*\t\t\t-\t  Plays audio from YouTube or other sources in voice channel of caller.\n' \
                    '**!stop**\t\t\t\t\t\t\t\t  -\tStops any playing sound.\n' \
                    '**!joined**\t\t\t\t\t\t\t\t -\tTells you when you joined Ohm!\n' \

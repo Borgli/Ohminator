@@ -82,6 +82,8 @@ async def play_next_yt():
             await client.send_message(ohm.bot_spam,
                                       'Now playing: {}\nIt is {} seconds long'.format(ohm.active_player.title, ohm.active_player.duration))
             ohm.active_player.start()
+        else:
+            ohm.active_player.stop()
         ohm.play_next.clear()
 
 async def resume_playing_sound():
@@ -220,7 +222,7 @@ async def on_message(message):
             ohm.active_player.stop()
             await client.send_message(ohm.bot_spam, '{} skipped the song!'.format(message.author.name))
             await client.change_status(discord.Game())
-            client.loop.call_soon_threadsafe(ohm.play_next.set)
+            await ohm.play_next.set()
 
     elif message.content.startswith('!q'):
         await client.delete_message(message)
@@ -253,9 +255,9 @@ async def on_message(message):
     elif message.content.startswith('!introstop'):
         await client.delete_message(message)
         if ohm.intro_player is None or not ohm.intro_player.is_playing:
-            await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
+            await client.send_message(ohm.bot_spam, '{}: No active intro!'.format(message.author.name))
         else:
-            await client.send_message(ohm.bot_spam, '{} stopped the player!'.format(message.author.name))
+            await client.send_message(ohm.bot_spam, '{} stopped the intro!'.format(message.author.name))
             ohm.intro_player.stop()
             print("Intro was stopped!")
 

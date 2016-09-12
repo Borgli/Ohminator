@@ -51,7 +51,6 @@ class Ohminator:
     after_yt_lock = asyncio.Lock()
 
     def after_yt(self):
-        client.loop.call_soon_threadsafe(self.after_yt_lock.acquire)
         client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         client.loop.call_soon_threadsafe(self.play_next.set)
         print("YouTube-video finished playing.")
@@ -83,7 +82,6 @@ async def play_next_yt():
             await client.send_message(ohm.bot_spam,
                                       'Now playing: {}\nIt is {} seconds long'.format(ohm.active_player.title, ohm.active_player.duration))
             ohm.active_player.start()
-        ohm.after_yt_lock.release()
         ohm.play_next.clear()
 
 async def resume_playing_sound():

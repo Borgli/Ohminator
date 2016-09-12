@@ -48,11 +48,12 @@ class Ohminator:
     clear_now_playing = asyncio.Event()
     intro_finished = asyncio.Event()
     intro_counter_lock = asyncio.Lock()
+    after_yt_lock = asyncio.Lock()
 
     def after_yt(self):
+        client.loop.call_soon_threadsafe(self.after_yt_lock.acquire)
         client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         client.loop.call_soon_threadsafe(self.play_next.set)
-
         print("YouTube-video finished playing.")
 
     def after_intro(self):
@@ -82,8 +83,7 @@ async def play_next_yt():
             await client.send_message(ohm.bot_spam,
                                       'Now playing: {}\nIt is {} seconds long'.format(ohm.active_player.title, ohm.active_player.duration))
             ohm.active_player.start()
-        else:
-            ohm.active_player.stop()
+        ohm.after_yt_lock.release()
         ohm.play_next.clear()
 
 async def resume_playing_sound():
@@ -152,7 +152,7 @@ async def on_message(message):
 
         voice_client = client.voice_client_in(message.author.server)
 
-        if ohm.active_player is not None and (not ohm.active_player.is_done() or ohm.active_player.is_playing):
+        if ohm.active_player is not None and (not ohm.active_player.is_done() or ohm.active_player.is_playing()):
             try:
                 if voice_client is None:
                     voice_client = await client.join_voice_channel(message.author.voice_channel)
@@ -167,7 +167,7 @@ async def on_message(message):
             try:
                 player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
                 await client.send_message(ohm.bot_spam,
-                                          '{}: {} has been added to the queue.\nIt is {} seconds long.'.format(message.author.name, player.title, player.duration))
+                                          '{}: {} has been added to the queue.'.format(message.author.name, player.title, player.duration))
                 ohm.yt_playlist.append(player)
             except:
                 await client.send_message(ohm.bot_spam,
@@ -240,7 +240,7 @@ async def on_message(message):
         await client.delete_message(message)
         if len(ohm.yt_playlist) > 0:
             await client.send_message(ohm.bot_spam,
-                                      '{}: The next song is {}.'.format(message.author.name, ohm.yt_playlist[0].title))
+                                      '{}: The next song is {}. It is {} seconds long'.format(message.author.name, ohm.yt_playlist[0].title, ohm.yt_playlist[0].duration))
         else:
             await client.send_message(ohm.bot_spam, '{}: There is no next song as the queue is empty!'.format(message.author.name))
 
@@ -249,7 +249,8 @@ async def on_message(message):
         if ohm.active_player is None or not ohm.active_player.is_playing:
             await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
         else:
-            await client.send_message(ohm.bot_spam, '{} stopped the player!'.format(message.author.name))
+            await client.send_message(ohm.bot_spam, '{} stopped the player and cleared the queue!'.format(message.author.name))
+            ohm.yt_playlist.clear()
             ohm.active_player.stop()
 
     elif message.content.startswith('!introstop'):

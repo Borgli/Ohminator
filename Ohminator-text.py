@@ -21,7 +21,7 @@ class Ohminator:
     intro_was_stopped = False
     intro_names = {'runarl', 'Rune', 'Chimeric', 'Johngel', 'Christian Berseth',
                    'Jan Ivar Ugelstad', 'Christian F. Vegard', 'Martin', 'Kristoffer Skau', 'Ginker', 'aekped',
-                                                                                                      'sondrehav'}
+                                                                                                      'sondrehav', "Synspeckter"}
     black_list = {'Christian Berseth', 'Chimeric'}
 
     test_list = {'Rune', 'Chimeric', 'Christian Berseth', 'Martin'}

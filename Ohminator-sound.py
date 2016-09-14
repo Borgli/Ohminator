@@ -31,7 +31,9 @@ class Ohminator:
                    '**!skip**\t\t\t\t\t\t\t\t  -\tSkips to the next playing in the queue if one exists.\n' \
                    '**!q**\t\t\t\t\t\t\t\t  -\tLists the playlist queue.\n' \
                    '**!next**\t\t\t\t\t\t\t\t  -\tDisplays the next song in the queue.\n' \
+                   '\n**Intro commands:**\n' \
                    '**!intro** *[(index)]*\t\t\t\t\t\t\t\t\t-\tPlays one of your intros at random. Can play intro at given index.\n' \
+                   '**!introstop**\t\t\t\t\t\t\t\t  -\tStops playing the currently playing intro.\n' \
                    '**!myintros**\t\t\t\t\t\t\t\t\t-\tLists all of your intros.\n' \
                    '**!deleteintro** *[index]*\t\t\t\t\t\t\t\t\t-\tDeletes intro at given index.\n' \
                    '**!upload** *[url]*\t\t\t\-\tUploads a intro. File must be .wav and must be downloaded from Dropbox.\n' \
@@ -118,7 +120,7 @@ async def on_message(message):
         link = message.content[4:]
         await client.delete_message(message)
 
-        if message.author.voice_channel is None or message.author.is_afk:
+        if message.author.voice_channel is None or message.author.voice.is_afk:
             await client.send_message(ohm.bot_spam,
                                       '{}: Please join a voice channel to play your link!'.format(message.author.name))
             return
@@ -149,6 +151,33 @@ async def on_message(message):
             option = None
 
         voice_client = client.voice_client_in(message.author.server)
+
+        if ohm.intro_player is not None and ohm.intro_player.is_playing():
+            if len(ohm.yt_playlist) > 0:
+                try:
+                    player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
+                    await client.send_message(ohm.bot_spam,
+                                              '{}: {} has been added to the queue.'.format(message.author.name,
+                                                                                           player.title,
+                                                                                           player.duration))
+                    ohm.yt_playlist.append(player)
+                except:
+                    await client.send_message(ohm.bot_spam,
+                                              '{}: Your link could not be played!'.format(message.author.name))
+            else:
+                try:
+                    ohm.active_player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
+                    await client.change_status(discord.Game(name=ohm.active_player.title))
+                    await client.send_message(ohm.bot_spam,
+                                              '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,
+                                                                                                    ohm.active_player.title,
+                                                                                                    ohm.active_player.duration))
+                    ohm.active_player.start()
+                    ohm.active_player.pause()
+                except:
+                    await client.send_message(ohm.bot_spam,
+                                              '{}: Your link could not be played!'.format(message.author.name))
+            return
 
         if ohm.active_player is not None and (not ohm.active_player.is_done() or ohm.active_player.is_playing()):
             try:
@@ -198,29 +227,27 @@ async def on_message(message):
 
     elif message.content.startswith('!pause'):
         await client.delete_message(message)
-        if ohm.active_player is None or not ohm.active_player.is_playing:
-            await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
+        if ohm.active_player is None or not ohm.active_player.is_playing():
+            await client.send_message(ohm.bot_spam, '{}: Nothing to pause!'.format(message.author.name))
         else:
             await client.send_message(ohm.bot_spam, '{} paused the player!'.format(message.author.name))
             ohm.active_player.pause()
 
     elif message.content.startswith('!resume'):
         await client.delete_message(message)
-        if ohm.active_player is None or not ohm.active_player.is_playing:
-            await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
+        if ohm.active_player is None or not ohm.active_player.is_playing():
+            await client.send_message(ohm.bot_spam, '{}: Nothing to resume!'.format(message.author.name))
         else:
             await client.send_message(ohm.bot_spam, '{} resumed the player!'.format(message.author.name))
             ohm.active_player.resume()
 
     elif message.content.startswith('!skip'):
         await client.delete_message(message)
-        if ohm.active_player is None or not ohm.active_player.is_playing:
-            await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
+        if ohm.active_player is None or not ohm.active_player.is_playing():
+            await client.send_message(ohm.bot_spam, '{}: Nothing to skip!'.format(message.author.name))
         else:
-            ohm.active_player.stop()
             await client.send_message(ohm.bot_spam, '{} skipped the song!'.format(message.author.name))
-            await client.change_status(discord.Game())
-            await ohm.play_next.set()
+            ohm.active_player.stop()
 
     elif message.content.startswith('!q'):
         await client.delete_message(message)
@@ -244,8 +271,8 @@ async def on_message(message):
 
     elif message.content.startswith('!stahp') or message.content.startswith('!stop'):
         await client.delete_message(message)
-        if ohm.active_player is None or not ohm.active_player.is_playing:
-            await client.send_message(ohm.bot_spam, '{}: No active player!'.format(message.author.name))
+        if ohm.active_player is None or not ohm.active_player.is_playing():
+            await client.send_message(ohm.bot_spam, '{}: No active player to stop!'.format(message.author.name))
         else:
             await client.send_message(ohm.bot_spam, '{} stopped the player and cleared the queue!'.format(message.author.name))
             ohm.yt_playlist.clear()
@@ -253,8 +280,8 @@ async def on_message(message):
 
     elif message.content.startswith('!introstop'):
         await client.delete_message(message)
-        if ohm.intro_player is None or not ohm.intro_player.is_playing:
-            await client.send_message(ohm.bot_spam, '{}: No active intro!'.format(message.author.name))
+        if ohm.intro_player is None or not ohm.intro_player.is_playing():
+            await client.send_message(ohm.bot_spam, '{}: No active intro to stop!'.format(message.author.name))
         else:
             await client.send_message(ohm.bot_spam, '{} stopped the intro!'.format(message.author.name))
             ohm.intro_player.stop()
@@ -262,7 +289,7 @@ async def on_message(message):
 
     elif message.content.startswith('!intro'):
         await client.delete_message(message)
-        if message.author.voice_channel is None or message.author.is_afk:
+        if message.author.voice_channel is None or message.author.voice.is_afk:
             return
 
         if message.author.name is not None and message.author.name in ohm.intro_names:
@@ -283,7 +310,13 @@ async def on_message(message):
                 return
 
             if ohm.active_player is not None and ohm.active_player.is_playing():
-                ohm.active_player.stop()
+                ohm.active_player.pause()
+
+            if ohm.intro_player is not None and ohm.intro_player.is_playing():
+                # await ohm.intro_counter_lock.acquire()
+                # ohm.intro_counter -= 1
+                ohm.intro_player.stop()
+                # ohm.intro_counter_lock.release()
 
             try:
                 intro_list = os.listdir('{}/intros'.format(message.author.name))
@@ -325,7 +358,7 @@ async def on_message(message):
 
 @client.event
 async def on_voice_state_update(before, after):
-    if after.voice_channel is None or after.is_afk:
+    if after.voice_channel is None or after.voice.is_afk:
         return
     if before.name is not None and before.name in ohm.intro_names \
             and before.voice_channel != after.voice_channel:
@@ -351,10 +384,10 @@ async def on_voice_state_update(before, after):
             ohm.active_player.pause()
 
         if ohm.intro_player is not None and ohm.intro_player.is_playing():
-            await ohm.intro_counter_lock.acquire()
-            ohm.intro_counter -= 1
+            #await ohm.intro_counter_lock.acquire()
+            #ohm.intro_counter -= 1
             ohm.intro_player.stop()
-            ohm.intro_counter_lock.release()
+            #ohm.intro_counter_lock.release()
 
         try:
             intro_list = os.listdir('{}/intros'.format(after.name))

@@ -6,8 +6,10 @@ import random
 import cleverbot
 import re
 import os
+import pickle
 
 client = discord.Client()
+
 
 class Ohminator:
     active_player = None
@@ -17,7 +19,7 @@ class Ohminator:
     intro_was_stopped = False
     intro_names = {'runarl', 'Rune', 'Chimeric', 'Johngel', 'Christian Berseth',
                    'Jan Ivar Ugelstad', 'Christian F. Vegard', 'Martin', 'Kristoffer Skau', 'Ginker', 'aekped',
-                                                                                                      'sondrehav', 'Synspeckter'}
+                   'sondrehav', 'Synspeckter'}
     black_list = {'Christian Berseth', 'Chimeric'}
 
     test_list = {'Rune', 'Chimeric', 'Christian Berseth', 'Martin'}
@@ -46,11 +48,17 @@ class Ohminator:
     play_next = asyncio.Event()
 
     bot_spam = None
+    ohminator = None
 
     clear_now_playing = asyncio.Event()
     intro_finished = asyncio.Event()
     intro_counter_lock = asyncio.Lock()
     after_yt_lock = asyncio.Lock()
+
+    queue_exists = asyncio.Condition(loop=client.loop)
+    pinned_message_bot_spam = None
+    pinned_message_ohm = None
+    now_playing = ""
 
     def after_yt(self):
         client.loop.call_soon_threadsafe(self.clear_now_playing.set)
@@ -72,8 +80,10 @@ class Ohminator:
                 print_line += ', {}'.format(entry.name)
         return print_line
 
+
 ohm = Ohminator()
 cb = cleverbot.Cleverbot()
+
 
 async def play_next_yt():
     while not client.is_closed:
@@ -81,10 +91,13 @@ async def play_next_yt():
         if len(ohm.yt_playlist) > 0:
             ohm.active_player = ohm.yt_playlist.pop(0)
             await client.change_status(discord.Game(name=ohm.active_player.title))
+            ohm.now_playing = ohm.active_player.title
             await client.send_message(ohm.bot_spam,
-                                      'Now playing: {}\nIt is {} seconds long'.format(ohm.active_player.title, ohm.active_player.duration))
+                                      'Now playing: {}\nIt is {} seconds long'.format(ohm.active_player.title,
+                                                                                      ohm.active_player.duration))
             ohm.active_player.start()
         ohm.play_next.clear()
+
 
 async def resume_playing_sound():
     while not client.is_closed:
@@ -102,7 +115,34 @@ async def should_clear_now_playing():
     while not client.is_closed:
         await ohm.clear_now_playing.wait()
         await client.change_status(discord.Game())
+        ohm.now_playing = ""
         ohm.clear_now_playing.clear()
+
+
+async def manage_pinned_messages():
+    await client.wait_until_ready()
+    await asyncio.sleep(10, loop=client.loop)
+    while not client.is_closed:
+        cnt = 1
+        queue = str()
+        for play in ohm.yt_playlist:
+            queue += "{}: {}\n".format(cnt, play.title)
+            cnt += 1
+
+        if ohm.pinned_message_bot_spam is None and ohm.pinned_message_ohm is None:
+            ohm.pinned_message_bot_spam = await client.send_message(ohm.bot_spam,
+                                                                    '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
+            await client.pin_message(ohm.pinned_message_bot_spam)
+            ohm.pinned_message_ohm = await client.send_message(ohm.ohminator,
+                                                               '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
+            await client.pin_message(ohm.pinned_message_ohm)
+
+        else:
+            await client.edit_message(ohm.pinned_message_bot_spam, '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
+            await client.edit_message(ohm.pinned_message_ohm, '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
+
+        await asyncio.sleep(5, loop=client.loop)
+
 
 @client.event
 async def on_ready():
@@ -113,6 +153,9 @@ async def on_ready():
     print(discord.__version__)
     print('------')
     ohm.bot_spam = discord.utils.find(lambda c: c.name == 'bot-spam', client.get_all_channels())
+    ohm.ohminator = client.get_channel("161459844354670592")
+
+
 
 @client.event
 async def on_message(message):
@@ -150,6 +193,11 @@ async def on_message(message):
         except:
             option = None
 
+        #if option is None:
+        #    option = '--yes-playlist'
+        #else:
+        #    option += ' --yes-playlist'
+
         voice_client = client.voice_client_in(message.author.server)
 
         if ohm.intro_player is not None and ohm.intro_player.is_playing():
@@ -168,6 +216,7 @@ async def on_message(message):
                 try:
                     ohm.active_player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
                     await client.change_status(discord.Game(name=ohm.active_player.title))
+                    ohm.now_playing = ohm.active_player.title
                     await client.send_message(ohm.bot_spam,
                                               '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,
                                                                                                     ohm.active_player.title,
@@ -194,7 +243,8 @@ async def on_message(message):
             try:
                 player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
                 await client.send_message(ohm.bot_spam,
-                                          '{}: {} has been added to the queue.'.format(message.author.name, player.title, player.duration))
+                                          '{}: {} has been added to the queue.'.format(message.author.name,
+                                                                                       player.title, player.duration))
                 ohm.yt_playlist.append(player)
             except:
                 await client.send_message(ohm.bot_spam,
@@ -217,6 +267,7 @@ async def on_message(message):
         try:
             ohm.active_player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
             await client.change_status(discord.Game(name=ohm.active_player.title))
+            ohm.now_playing = ohm.active_player.title
             await client.send_message(ohm.bot_spam,
                                       '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,
                                                                                             ohm.active_player.title,
@@ -257,7 +308,8 @@ async def on_message(message):
             for play in ohm.yt_playlist:
                 queue += "{}: {}\n".format(cnt, play.title)
                 cnt += 1
-            await client.send_message(ohm.bot_spam, '{}: Here is the current queue:\n{}'.format(message.author.name, queue.strip()))
+            await client.send_message(ohm.bot_spam,
+                                      '{}: Here is the current queue:\n{}'.format(message.author.name, queue.strip()))
         else:
             await client.send_message(ohm.bot_spam, '{}: There is nothing in the queue!'.format(message.author.name))
 
@@ -265,16 +317,21 @@ async def on_message(message):
         await client.delete_message(message)
         if len(ohm.yt_playlist) > 0:
             await client.send_message(ohm.bot_spam,
-                                      '{}: The next song is {}. It is {} seconds long'.format(message.author.name, ohm.yt_playlist[0].title, ohm.yt_playlist[0].duration))
+                                      '{}: The next song is {}. It is {} seconds long'.format(message.author.name,
+                                                                                              ohm.yt_playlist[0].title,
+                                                                                              ohm.yt_playlist[
+                                                                                                  0].duration))
         else:
-            await client.send_message(ohm.bot_spam, '{}: There is no next song as the queue is empty!'.format(message.author.name))
+            await client.send_message(ohm.bot_spam,
+                                      '{}: There is no next song as the queue is empty!'.format(message.author.name))
 
     elif message.content.startswith('!stahp') or message.content.startswith('!stop'):
         await client.delete_message(message)
         if ohm.active_player is None or not ohm.active_player.is_playing():
             await client.send_message(ohm.bot_spam, '{}: No active player to stop!'.format(message.author.name))
         else:
-            await client.send_message(ohm.bot_spam, '{} stopped the player and cleared the queue!'.format(message.author.name))
+            await client.send_message(ohm.bot_spam,
+                                      '{} stopped the player and cleared the queue!'.format(message.author.name))
             ohm.yt_playlist.clear()
             ohm.active_player.stop()
 
@@ -327,7 +384,7 @@ async def on_message(message):
                         # I give the intro index a high number to trigger the IndexError.
                         intro_index = 256
                     else:
-                        intro_index = given_index-1
+                        intro_index = given_index - 1
                 except ValueError:
                     intro_index = intro_list.index(random.choice(intro_list))
 
@@ -384,10 +441,10 @@ async def on_voice_state_update(before, after):
             ohm.active_player.pause()
 
         if ohm.intro_player is not None and ohm.intro_player.is_playing():
-            #await ohm.intro_counter_lock.acquire()
-            #ohm.intro_counter -= 1
+            # await ohm.intro_counter_lock.acquire()
+            # ohm.intro_counter -= 1
             ohm.intro_player.stop()
-            #ohm.intro_counter_lock.release()
+            # ohm.intro_counter_lock.release()
 
         try:
             intro_list = os.listdir('{}/intros'.format(after.name))
@@ -400,8 +457,9 @@ async def on_voice_state_update(before, after):
         except Exception as e:
             print(e)
 
+
+client.loop.create_task(manage_pinned_messages())
 client.loop.create_task(play_next_yt())
 client.loop.create_task(should_clear_now_playing())
 client.loop.create_task(resume_playing_sound())
 client.run('MTc2NDMzMTMwMzM1NTAyMzM3.CgvoFg.FLaupAZZ5OviZ1Fb7gAO_Aq-sLo')
-

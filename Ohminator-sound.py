@@ -80,16 +80,62 @@ class Ohminator:
                 print_line += ', {}'.format(entry.name)
         return print_line
 
-
 ohm = Ohminator()
 cb = cleverbot.Cleverbot()
 
+
+class PlaylistObject:
+    link = ""
+    server = None
+    option = ""
+    title = ""
+    duration = None
+
+    def __init__(self, link, server):
+        self.link = link
+        self.server = server
+
+        try:
+            outstring = re.findall(r'\?t=(.*)', self.link)
+            timestamps = re.findall(r'(\d+)', outstring.pop())
+
+            to_convert = [0, 0, 0]
+            stamp_i = len(timestamps) - 1
+            for index in range(len(to_convert)):
+                if stamp_i >= 0:
+                    to_convert[index] = timestamps[stamp_i]
+                    stamp_i -= 1
+                else:
+                    break
+
+            seconds = int(to_convert[0])
+
+            if seconds > 59:
+                m, s = divmod(seconds, 60)
+                h, m = divmod(m, 60)
+                self.option = '-ss {}:{}:{}'.format(h, m, s)
+            else:
+                self.option = '-ss {}:{}:{}'.format(to_convert[2], to_convert[1], to_convert[0])
+            print(self.option)
+        except:
+            self.option = None
+
+    async def init_player(self):
+        voice_client = client.voice_client_in(self.server)
+        player = await voice_client.create_ytdl_player(self.link, options=self.option)
+        self.title = player.title
+        self.duration = player.duration
+
+    async def get_new_player(self):
+        voice_client = client.voice_client_in(self.server)
+        player = await voice_client.create_ytdl_player(self.link, options=self.option, after=ohm.after_yt)
+        return player
 
 async def play_next_yt():
     while not client.is_closed:
         await ohm.play_next.wait()
         if len(ohm.yt_playlist) > 0:
-            ohm.active_player = ohm.yt_playlist.pop(0)
+            ohm.active_player = await ohm.yt_playlist.pop(0).get_new_player()
             await client.change_status(discord.Game(name=ohm.active_player.title))
             ohm.now_playing = ohm.active_player.title
             await client.send_message(ohm.bot_spam,
@@ -130,16 +176,38 @@ async def manage_pinned_messages():
             cnt += 1
 
         if ohm.pinned_message_bot_spam is None and ohm.pinned_message_ohm is None:
-            ohm.pinned_message_bot_spam = await client.send_message(ohm.bot_spam,
-                                                                    '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
+            try:
+                with open('pickle/pinned_message_bot_spam.pickle', 'r+b') as f:
+                    ohm.pinned_message_bot_spam = pickle.load(f)
+                    f.close()
+                with open('pickle/pinned_message_ohm.pickle', 'r+b') as f:
+                    ohm.pinned_message_ohm = pickle.load(f)
+                    f.close()
+            except Exception as e:
+                print(e)
+                ohm.pinned_message_bot_spam = await client.send_message(ohm.bot_spam,
+                                                                        '**Now playing:** {}\n**Current queue:**\n{}\n'.format(
+                                                                            ohm.now_playing, queue.strip()))
+
+                ohm.pinned_message_ohm = await client.send_message(ohm.ohminator,
+                                                                   '**Now playing:** {}\n**Current queue:**\n{}\n'.format(
+                                                                       ohm.now_playing, queue.strip()))
             await client.pin_message(ohm.pinned_message_bot_spam)
-            ohm.pinned_message_ohm = await client.send_message(ohm.ohminator,
-                                                               '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
             await client.pin_message(ohm.pinned_message_ohm)
 
         else:
-            await client.edit_message(ohm.pinned_message_bot_spam, '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
-            await client.edit_message(ohm.pinned_message_ohm, '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing, queue.strip()))
+            await client.edit_message(ohm.pinned_message_bot_spam,
+                                      '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing,
+                                                                                             queue.strip()))
+            await client.edit_message(ohm.pinned_message_ohm,
+                                      '**Now playing:** {}\n**Current queue:**\n{}\n'.format(ohm.now_playing,
+                                                                                             queue.strip()))
+            with open('pickle/pinned_message_bot_spam.pickle', 'w+b') as f:
+                pickle.dump(ohm.pinned_message_bot_spam, f)
+                f.close()
+            with open('pickle/pinned_message_ohm.pickle', 'w+b') as f:
+                pickle.dump(ohm.pinned_message_ohm, f)
+                f.close()
 
         await asyncio.sleep(5, loop=client.loop)
 
@@ -156,10 +224,9 @@ async def on_ready():
     ohm.ohminator = client.get_channel("161459844354670592")
 
 
-
 @client.event
 async def on_message(message):
-    if message.content.startswith('!yt'):
+    if message.content.lower().startswith('!yt'):
         link = message.content[4:]
         await client.delete_message(message)
 
@@ -193,9 +260,9 @@ async def on_message(message):
         except:
             option = None
 
-        #if option is None:
+        # if option is None:
         #    option = '--yes-playlist'
-        #else:
+        # else:
         #    option += ' --yes-playlist'
 
         voice_client = client.voice_client_in(message.author.server)
@@ -203,7 +270,8 @@ async def on_message(message):
         if ohm.intro_player is not None and ohm.intro_player.is_playing():
             if len(ohm.yt_playlist) > 0:
                 try:
-                    player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
+                    player = PlaylistObject(link, message.author.server)
+                    await player.init_player()
                     await client.send_message(ohm.bot_spam,
                                               '{}: {} has been added to the queue.'.format(message.author.name,
                                                                                            player.title,
@@ -214,7 +282,10 @@ async def on_message(message):
                                               '{}: Your link could not be played!'.format(message.author.name))
             else:
                 try:
-                    ohm.active_player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
+
+                    temp = PlaylistObject(link, message.author.server)
+                    await temp.init_player()
+                    ohm.active_player = await temp.get_new_player()
                     await client.change_status(discord.Game(name=ohm.active_player.title))
                     ohm.now_playing = ohm.active_player.title
                     await client.send_message(ohm.bot_spam,
@@ -241,10 +312,12 @@ async def on_message(message):
                                           '{}: Could not connect to voice channel!'.format(message.author.name))
                 return
             try:
-                player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
+                player = PlaylistObject(link, message.author.server)
+                await player.init_player()
                 await client.send_message(ohm.bot_spam,
                                           '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                       player.title, player.duration))
+                                                                                       player.title,
+                                                                                       player.duration))
                 ohm.yt_playlist.append(player)
             except:
                 await client.send_message(ohm.bot_spam,
@@ -265,7 +338,9 @@ async def on_message(message):
             return
 
         try:
-            ohm.active_player = await voice_client.create_ytdl_player(link, options=option, after=ohm.after_yt)
+            temp = PlaylistObject(link, message.author.server)
+            await temp.init_player()
+            ohm.active_player = await temp.get_new_player()
             await client.change_status(discord.Game(name=ohm.active_player.title))
             ohm.now_playing = ohm.active_player.title
             await client.send_message(ohm.bot_spam,
@@ -273,7 +348,8 @@ async def on_message(message):
                                                                                             ohm.active_player.title,
                                                                                             ohm.active_player.duration))
             ohm.active_player.start()
-        except:
+        except Exception as e:
+            print(e)
             await client.send_message(ohm.bot_spam, '{}: Your link could not be played!'.format(message.author.name))
 
     elif message.content.startswith('!pause'):

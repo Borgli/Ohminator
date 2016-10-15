@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import discord.errors
 import pickle
 import re
 from PlaylistElement import PlaylistElement
@@ -48,9 +49,13 @@ class Playlist:
                 else:
                     self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
                                                                                   '**Now playing:** {}\n**Current queue:**\n{}\n'.format(
+                                                                                         self.now_playing, queue.strip()))
+                try:
+                    await self.client.pin_message(self.pinned_message_bot_spam)
+                except discord.errors.HTTPException:
+                    self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
+                                                                                  '**Now playing:** {}\n**Current queue:**\n{}\n'.format(
                                                                                       self.now_playing, queue.strip()))
-                await self.client.pin_message(self.pinned_message_bot_spam)
-
             else:
                 await self.client.edit_message(self.pinned_message_bot_spam,
                                                '**Now playing:** {}\n**Current queue:**\n{}\n'.format(self.now_playing,
@@ -98,7 +103,7 @@ class Playlist:
             await self.play_next.wait()
             if len(self.yt_playlist) > 0:
                 self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
-                await self.client.change_presence(game=discord.Game(name=self.server.active_player.title))
+                #await self.client.change_presence(game=discord.Game(name=self.server.active_player.title))
                 self.now_playing = self.server.active_player.title
                 await self.client.send_message(self.server.bot_channel,
                                                'Now playing: {}\nIt is {} seconds long'.format(
@@ -110,6 +115,6 @@ class Playlist:
     async def should_clear_now_playing(self):
         while not self.client.is_closed:
             await self.clear_now_playing.wait()
-            await self.client.change_presence(game=discord.Game())
+            #await self.client.change_presence(game=discord.Game())
             self.now_playing = ""
             self.clear_now_playing.clear()

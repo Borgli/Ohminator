@@ -108,7 +108,7 @@ async def on_message(message):
                     temp = server.playlist.add_to_playlist(link)
                     await temp.init_player()
                     server.active_player = await temp.get_new_player()
-                    await client.change_presence(game=discord.Game(name=server.active_player.title))
+                    #await client.change_presence(game=discord.Game(name=server.active_player.title))
                     server.now_playing = server.active_player.title
                     await client.send_message(bot_channel,
                                               '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,
@@ -163,7 +163,7 @@ async def on_message(message):
         try:
             temp = server.playlist.add_to_playlist(link)
             server.active_player = await temp.init_player()
-            await client.change_presence(game=discord.Game(name=server.active_player.title))
+            #await client.change_presence(game=discord.Game(name=server.active_player.title))
             server.playlist.now_playing = server.active_player.title
             await client.send_message(bot_channel,
                                       '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,

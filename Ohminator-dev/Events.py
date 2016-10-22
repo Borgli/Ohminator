@@ -570,7 +570,7 @@ commands["!getbotinvite"] = get_bot_invite
 
 
 async def on_voice_state_update(before, after):
-    if after.voice_channel is None or after.voice.is_afk:
+    if after.voice_channel is None or after.voice.is_afk or (before.voice_channel is after.voice_channel):
         return
     server = get_server(after.server)
     if server is None:

@@ -93,19 +93,16 @@ async def on_message(message):
         if server.intro_player is not None and server.intro_player.is_playing():
             if len(server.playlist.yt_playlist) > 0:
                 try:
-                    player = server.playlist.add_to_playlist(link)
-                    await player.init_player()
+                    player = await server.playlist.add_to_playlist(link, True)
                     await client.send_message(bot_channel,
                                               '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                           player.title,
-                                                                                           player.duration))
-                    server.playlist.yt_playlist.append(player)
+                                                                                           player.title))
                 except:
                     await client.send_message(bot_channel,
                                               '{}: Your link could not be played!'.format(message.author.name))
             else:
                 try:
-                    temp = server.playlist.add_to_playlist(link)
+                    temp = await server.playlist.add_to_playlist(link, False)
                     server.active_player = await temp.get_new_player()
                     #await client.change_presence(game=discord.Game(name=server.active_player.title))
                     server.now_playing = server.active_player.title
@@ -134,13 +131,10 @@ async def on_message(message):
                                           '{}: Could not connect to voice channel!'.format(message.author.name))
                 return
             try:
-                player = server.playlist.add_to_playlist(link)
-                await player.init_player()
+                player = await server.playlist.add_to_playlist(link, True)
                 await client.send_message(bot_channel,
                                           '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                       player.title,
-                                                                                       player.duration))
-                server.playlist.yt_playlist.append(player)
+                                                                                       player.title))
             except:
                 await client.send_message(bot_channel,
                                           '{}: Your link could not be played!'.format(message.author.name))
@@ -160,7 +154,7 @@ async def on_message(message):
             return
 
         try:
-            temp = server.playlist.add_to_playlist(link)
+            temp = await server.playlist.add_to_playlist(link, False)
             server.active_player = await temp.get_new_player()
             #await client.change_presence(game=discord.Game(name=server.active_player.title))
             server.playlist.now_playing = server.active_player.title
@@ -289,7 +283,7 @@ async def next(message, bot_channel):
                                   '{}: The next song is {}. It is {} seconds long'.format(message.author.name,
                                                                                           server.playlist.yt_playlist[
                                                                                               0].title,
-                                                                                          server.bot_channel.yt_playlist[
+                                                                                          server.playlist.yt_playlist[
                                                                                               0].duration))
     else:
         await client.send_message(bot_channel,
@@ -357,7 +351,7 @@ async def intro(message, bot_channel):
                 intro_index = intro_list.index(random.choice(intro_list))
 
             try:
-                server.active_player = voice_client.create_ffmpeg_player(
+                server.intro_player = voice_client.create_ffmpeg_player(
                     'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
                                                              intro_list[intro_index]),
                     after=server.intro_manager.after_intro)
@@ -367,7 +361,8 @@ async def intro(message, bot_channel):
                                               message.author.name, given_index))
                 raise IndexError
 
-            server.active_player.start()
+            server.intro_player.volume = 0.5
+            server.intro_player.start()
         except IndexError:
             pass
         except NameError:
@@ -603,6 +598,7 @@ async def on_voice_state_update(before, after):
             'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
                                                      random.choice(intro_list)),
             after=server.intro_manager.after_intro)
+        server.intro_player.volume = 0.5
         server.intro_player.start()
         await server.intro_manager.intro_counter_lock.acquire()
         server.intro_manager.intro_counter += 1

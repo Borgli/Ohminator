@@ -3,6 +3,8 @@ from random import randint
 from os.path import isdir, exists, realpath
 from os import mkdir, listdir, remove, rename
 import pickle
+
+from Member import Member
 from Server import Server
 import re
 from PlaylistElement import PlaylistElement
@@ -25,6 +27,7 @@ class Events:
         bot.async_event(on_message)
         bot.async_event(on_voice_state_update)
         bot.async_event(on_server_join)
+        bot.async_event(on_member_join)
 
 
 def get_server(discord_server):
@@ -74,24 +77,41 @@ async def on_message(message):
     for key in commands:
         if cmd.lower().startswith(key):
             await commands[key](message, bot_channel)
-            break
+            return
 
     # Commands that require high performance can not be awaited and are therefore implemented here
     if cmd.startswith('!yt'):
         link = cmd[4:]
         await client.delete_message(message)
 
+        # The user must be in a channel to play their link.
         if message.author.voice_channel is None or message.author.voice.is_afk:
             await client.send_message(bot_channel,
-                                      '{}: Please join a voice channel to play your link!'.format(message.author.name))
+                                      '{}: Please join a voice channel to play your link!'.format(
+                                          message.author.name))
             return
 
+        # Check if the voice client is okay to use. If not, it is changed.
+        # The voice client is retrieved later when the playlist starts a new song.
         voice_client = client.voice_client_in(message.author.server)
+        try:
+            if voice_client is None:
+                voice_client = await client.join_voice_channel(message.author.voice_channel)
+            elif voice_client.channel is None:
+                await voice_client.disconnect()
+                voice_client = await client.join_voice_channel(message.author.voice_channel)
+        except:
+            await client.send_message(bot_channel,
+                                      '{}: Could not connect to voice channel!'.format(message.author.name))
+            return
 
+        # Two cases: Case one: Something is already playing, so we queue the requested songs
+        # Case two: Nothing is playing, so we just start playing the song
         server = get_server(message.server)
-
-        if server.intro_player is not None and server.intro_player.is_playing():
-            if len(server.playlist.yt_playlist) > 0:
+        await server.playlist.add_to_playlist_lock.acquire()
+        try:
+            if server.active_player is not None and (
+                        not server.active_player.is_done() or server.active_player.is_playing()):
                 try:
                     player = await server.playlist.add_to_playlist(link, True)
                     await client.send_message(bot_channel,
@@ -101,71 +121,32 @@ async def on_message(message):
                     await client.send_message(bot_channel,
                                               '{}: Your link could not be played!'.format(message.author.name))
             else:
+                # Move to the user's voice channel
+                try:
+                    if voice_client.channel != message.author.voice_channel:
+                        await voice_client.move_to(message.author.voice_channel)
+                except:
+                    await client.send_message(bot_channel,
+                                              '{}: Could not connect to voice channel!'.format(message.author.name))
+                    return
+
                 try:
                     temp = await server.playlist.add_to_playlist(link, False)
                     server.active_player = await temp.get_new_player()
-                    #await client.change_presence(game=discord.Game(name=server.active_player.title))
-                    server.now_playing = server.active_player.title
+                    server.playlist.now_playing = server.active_player.title
                     await client.send_message(bot_channel,
-                                              '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,
-                                                                                                    server.active_player.title,
-                                                                                                    server.active_player.duration))
+                                              '{}: \nNow playing: {}\nIt is {} seconds long'.format(
+                                                  message.author.name,
+                                                  server.active_player.title,
+                                                  server.active_player.duration))
                     server.active_player.start()
-                    server.active_player.pause()
-                except:
+                except Exception as e:
+                    print(e)
+                    print(e.__traceback__)
                     await client.send_message(bot_channel,
                                               '{}: Your link could not be played!'.format(message.author.name))
-            return
-
-        if server.active_player is not None and (
-                    not server.active_player.is_done() or server.active_player.is_playing()):
-            try:
-                if voice_client is None:
-                    voice_client = await client.join_voice_channel(message.author.voice_channel)
-                elif voice_client.channel is None:
-                    await voice_client.disconnect()
-                    voice_client = await client.join_voice_channel(message.author.voice_channel)
-
-            except:
-                await client.send_message(bot_channel,
-                                          '{}: Could not connect to voice channel!'.format(message.author.name))
-                return
-            try:
-                player = await server.playlist.add_to_playlist(link, True)
-                await client.send_message(bot_channel,
-                                          '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                       player.title))
-            except:
-                await client.send_message(bot_channel,
-                                          '{}: Your link could not be played!'.format(message.author.name))
-            return
-
-        try:
-            if voice_client is None:
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
-            elif voice_client.channel is None:
-                await voice_client.disconnect()
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
-            elif voice_client.channel != message.author.voice_channel:
-                await voice_client.move_to(message.author.voice_channel)
-        except:
-            await client.send_message(bot_channel,
-                                      '{}: Could not connect to voice channel!'.format(message.author.name))
-            return
-
-        try:
-            temp = await server.playlist.add_to_playlist(link, False)
-            server.active_player = await temp.get_new_player()
-            #await client.change_presence(game=discord.Game(name=server.active_player.title))
-            server.playlist.now_playing = server.active_player.title
-            await client.send_message(bot_channel,
-                                      '{}: \nNow playing: {}\nIt is {} seconds long'.format(message.author.name,
-                                                                                            server.active_player.title,
-                                                                                            server.active_player.duration))
-            server.active_player.start()
-        except Exception as e:
-            print(e)
-            await client.send_message(bot_channel, '{}: Your link could not be played!'.format(message.author.name))
+        finally:
+            server.playlist.add_to_playlist_lock.release()
 
 
 async def ping(message, bot_channel):
@@ -184,7 +165,7 @@ async def help(message, bot_channel):
         help_resource = 'help.txt'
     with open('resources/{}'.format(help_resource)) as f:
         help_message = f.read()
-    await client.send_message(bot_channel, "{}:\n{}".format(message.author.mention, help_message))
+    await client.send_message(bot_channel, "{}:\n{}".format(message.author.name, help_message))
 
 
 commands["!help"] = help
@@ -280,11 +261,8 @@ async def next(message, bot_channel):
     server = get_server(message.server)
     if len(server.playlist.yt_playlist) > 0:
         await client.send_message(bot_channel,
-                                  '{}: The next song is {}. It is {} seconds long'.format(message.author.name,
-                                                                                          server.playlist.yt_playlist[
-                                                                                              0].title,
-                                                                                          server.playlist.yt_playlist[
-                                                                                              0].duration))
+                                  '{}: The next song is {}'.format(message.author.name, server.playlist.yt_playlist[
+                                                                                                0].title))
     else:
         await client.send_message(bot_channel,
                                   '{}: There is no next song as the queue is empty!'.format(message.author.name))
@@ -474,10 +452,27 @@ async def ask(message, bot_channel):
         await client.send_message(bot_channel, cb.ask(question))
     except Exception as e:
         print(e)
-        await client.send_message(bot_channel, '{}: That is not a question I will answer!'.format(message.author.name))
+        await client.send_message(bot_channel, '{}: That is not a question I will answer!'.format(message.author.mention))
 
 
 commands["!ask"] = ask
+
+
+async def suggest(message, bot_channel):
+    suggestion = message.content[9:]
+    if len(suggestion) < 3:
+        await client.send_message(bot_channel,
+                                  "{}: Please suggest something proper.".format(message.author.mention))
+        return
+    server = get_server(message.server)
+    member = server.get_member(message.author.id)
+    suggestion_loc = 'suggestions.pickle'.format(server.server_loc, member.member_loc)
+    with open(suggestion_loc, 'a') as f:
+        f.write("Suggestion from {}:\n{}\n".format(message.author, suggestion))
+    await client.send_message(bot_channel, '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
+
+
+commands["!suggest"] = suggest
 
 
 async def join(message, bot_channel):
@@ -487,7 +482,7 @@ async def join(message, bot_channel):
         server.split_list.append(message.author)
         await client.send_message(bot_channel,
                                   '{}: You have joined the queue!\n'
-                                  'Current queue: {}'.format(message.author.name, server.print_queue()))
+                                  'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
 
 commands["!join"] = join
@@ -499,7 +494,7 @@ async def leave(message, bot_channel):
     server.split_list.remove(message.author)
     await client.send_message(bot_channel,
                               '{}: You have left the queue!\n'
-                              'Current queue: {}'.format(message.author.name, server.print_queue()))
+                              'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
 
 commands["!leave"] = leave
@@ -611,3 +606,14 @@ async def on_server_join(server):
     if not isdir('servers/{}'.format(server_loc)):
         mkdir('servers/{}'.format(server_loc))
     server_list.append(Server(server, client))
+
+async def on_member_join(member):
+    server = get_server(member.server)
+    member_loc = '{}-{}'.format(member.name, member.id)
+    if not isdir('servers/{}/members/{}'.format(server.server_loc, member_loc)):
+        mkdir('servers/{}/members/{}'.format(server.server_loc, member_loc))
+    server.member_list.append(Member(client, server, member))
+
+async def on_resumed():
+    for server in server_list:
+        await client.send_message(server.bot_channel, 'Ohminator lost connection to Discord. Back now!')

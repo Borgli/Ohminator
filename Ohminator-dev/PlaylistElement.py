@@ -34,5 +34,5 @@ class PlaylistElement:
         player = await voice_client.create_ytdl_player(self.link, options=self.option, after=self.after_yt)
         self.title = player.title
         self.duration = player.duration
-        player.volume = 0.5
+        player.volume = 0.25
         return player

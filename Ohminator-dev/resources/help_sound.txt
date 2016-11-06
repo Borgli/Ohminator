@@ -1,18 +1,20 @@
-**List of sound commands:**
-**!soundhelp**....................................-Prints out this menu.
-**!yt** *[youtube link]*........................-Plays audio from YouTube or other sources in voice channel of caller.
-**!stop** or **!stahp**.............................-Stops playing sound from the yt player.
-**!pause**.............................................-Pauses playing sound from the yt player.
-**!resume**..........................................-Resumes playing sound from the yt player.
-**!skip**................................................-Skips to the next playing in the queue if one exists.
-**!q**......................................................-Lists the playlist queue.
-**!next**...............................................-Displays the next song in the queue.
+```Markdown
+List of sound commands:
+!soundhelp                  - Prints out this menu.
+!yt [youtube link]          - Plays audio from YouTube or other sources in voice channel of caller.
+!stop or !stahp             - Stops playing sound from the yt player.
+!pause                      - Pauses playing sound from the yt player.
+!resume                     - Resumes playing sound from the yt player.
+!skip                       - Skips to the next playing in the queue if one exists.
+!q                          - Lists the playlist queue.
+!next                       - Displays the next song in the queue.
 
-**Intro commands:**
-**!intro** *[(index)]*............................-Plays one of your intros at random. Can play intro at given index.
-**!introstop**......................................-Stops playing the currently playing intro.
-**!myintros**......................................-Lists all of your intros.
-**!deleteintro** *[index]*...................-Deletes intro at given index.
-**!upload** *[url]*................................-Uploads a intro. File must be .wav and must be downloaded from Dropbox.
+Intro commands:
+!intro [(index)]            - Plays one of your intros at random. Can play intro at given index.
+!introstop                  - Stops playing the currently playing intro.
+!myintros                   - Lists all of your intros.
+!deleteintro [index]        - Deletes intro at given index.
+!upload [url]               - Uploads a intro. File must be .wav and must be downloaded from Dropbox.
 The url must end on .wav. Ending with ?dl=0 is not acceptable.
 Example: https://www.dropbox.com/s/znt5tt3xe9vl8su/kekkk.wav
+```

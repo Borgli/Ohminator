@@ -215,7 +215,7 @@ commands["!pause"] = pause
 async def resume(message, bot_channel):
     await client.delete_message(message)
     server = get_server(message.server)
-    if server.active_player is None or not server.active_player.is_playing():
+    if server.active_player is None:
         await client.send_message(bot_channel, '{}: Nothing to resume!'.format(message.author.name))
     else:
         await client.send_message(bot_channel, '{} resumed the player!'.format(message.author.name))

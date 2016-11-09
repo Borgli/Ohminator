@@ -80,7 +80,7 @@ async def on_message(message):
             return
 
     # Commands that require high performance can not be awaited and are therefore implemented here
-    if cmd.startswith('!yt'):
+    if cmd.lower().startswith('!yt'):
         link = cmd[4:]
         await client.delete_message(message)
 
@@ -339,7 +339,7 @@ async def intro(message, bot_channel):
                                               message.author.name, given_index))
                 raise IndexError
 
-            server.intro_player.volume = 0.5
+            server.intro_player.volume = 0.25
             server.intro_player.start()
         except IndexError:
             pass
@@ -593,7 +593,7 @@ async def on_voice_state_update(before, after):
             'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
                                                      random.choice(intro_list)),
             after=server.intro_manager.after_intro)
-        server.intro_player.volume = 0.5
+        server.intro_player.volume = 0.25
         server.intro_player.start()
         await server.intro_manager.intro_counter_lock.acquire()
         server.intro_manager.intro_counter += 1

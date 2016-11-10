@@ -11,16 +11,14 @@ import functools
 
 
 class Playlist:
-    yt_playlist = list()
-
-    queue_exists = None
-    pinned_message_bot_spam = None
-    pinned_message_ohm = None
-    now_playing = ""
-
     def __init__(self, client, server):
         self.client = client
         self.server = server
+        self.yt_playlist = list()
+        self.queue_exists = None
+        self.pinned_message_bot_spam = None
+        self.pinned_message_ohm = None
+        self.now_playing = str()
         # Fetch pinned messages from persistent memory
         # if exists('servers/{}/pinned_message_bot_spam.pickle'.format(server.server_loc)):
         #    with open('servers/{}/pinned_message_bot_spam.pickle'.format(server.server_loc)) as f:

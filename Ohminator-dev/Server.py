@@ -12,22 +12,22 @@ from Channel import Channel
 
 
 class Server:
-    member_list = list()
-    channel_list = list()
-    bot_channel = None
-    default_channel = None
-    playlist = None
-    intro_manager = None
-    active_player = None
-    intro_player = None
-    split_list = list()
-
     def __init__(self, discord_server: discord.Server, client: discord.Client):
         # Initialize everything that is not persistent
         self.name = discord_server.name
         self.id = discord_server.id
         self.server_loc = '{}_{}'.format(discord_server.name, discord_server.id)
         self.default_channel = discord_server.default_channel
+
+        self.member_list = list()
+        self.channel_list = list()
+        self.bot_channel = None
+        self.default_channel = None
+        self.playlist = None
+        self.intro_manager = None
+        self.active_player = None
+        self.intro_player = None
+        self.split_list = list()
 
         server_pickle = 'servers/{}/server.pickle'.format(self.server_loc)
         if exists(server_pickle):

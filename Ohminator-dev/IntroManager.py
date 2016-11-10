@@ -3,13 +3,10 @@ import Server
 
 
 class IntroManager:
-    intro_counter = 0
-    intro_finished = None
-    intro_counter_lock = None
-
     def __init__(self, client, ohm_server):
         self.client = client
         self.ohm_server = ohm_server
+        self.intro_counter = 0
         self.intro_finished = asyncio.Event()
         self.intro_counter_lock = asyncio.Lock()
         client.loop.create_task(self.resume_playing_sound())

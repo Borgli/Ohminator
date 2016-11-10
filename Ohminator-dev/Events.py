@@ -105,21 +105,36 @@ async def on_message(message):
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
             return
 
-        # Two cases: Case one: Something is already playing, so we queue the requested songs
-        # Case two: Nothing is playing, so we just start playing the song
+        # Three cases: Case one: An intro is currently playing, so we either append or pause the active player.
+        # Case two: Something is already playing, so we queue the requested songs
+        # Case three: Nothing is playing, so we just start playing the song
         server = get_server(message.server)
         await server.playlist.add_to_playlist_lock.acquire()
         try:
-            if server.active_player is not None and (
-                        not server.active_player.is_done() or server.active_player.is_playing()):
-                try:
+            # Must check if intro is already playing
+            if server.intro_player is not None and server.intro_player.is_playing():
+                # Check if there's something in the playlist
+                if len(server.playlist.yt_playlist) > 0:
                     player = await server.playlist.add_to_playlist(link, True)
                     await client.send_message(bot_channel,
-                                              '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                           player.title))
-                except:
+                                              '{}: {} has been added to the queue.'.format(message.author.name, player.title))
+                else:
+                    player = await server.playlist.add_to_playlist(link, False)
+                    server.active_player = await player.get_new_player()
+                    server.playlist.now_playing = server.active_player.title
                     await client.send_message(bot_channel,
-                                              '{}: Your link could not be played!'.format(message.author.name))
+                                              '{}: \nNow playing: {}\nIt is {} seconds long'.format(
+                                                  message.author.name,
+                                                  server.active_player.title,
+                                                  server.active_player.duration))
+                    server.active_player.start()
+                    server.active_player.pause()
+
+            elif server.active_player is not None and (
+                        not server.active_player.is_done() or server.active_player.is_playing()):
+                player = await server.playlist.add_to_playlist(link, True)
+                await client.send_message(bot_channel,
+                                          '{}: {} has been added to the queue.'.format(message.author.name, player.title))
             else:
                 # Move to the user's voice channel
                 try:
@@ -130,21 +145,18 @@ async def on_message(message):
                                               '{}: Could not connect to voice channel!'.format(message.author.name))
                     return
 
-                try:
-                    temp = await server.playlist.add_to_playlist(link, False)
-                    server.active_player = await temp.get_new_player()
-                    server.playlist.now_playing = server.active_player.title
-                    await client.send_message(bot_channel,
-                                              '{}: \nNow playing: {}\nIt is {} seconds long'.format(
-                                                  message.author.name,
-                                                  server.active_player.title,
-                                                  server.active_player.duration))
-                    server.active_player.start()
-                except Exception as e:
-                    print(e)
-                    print(e.__traceback__)
-                    await client.send_message(bot_channel,
-                                              '{}: Your link could not be played!'.format(message.author.name))
+                player = await server.playlist.add_to_playlist(link, False)
+                server.active_player = await player.get_new_player()
+                server.playlist.now_playing = server.active_player.title
+                await client.send_message(bot_channel,
+                                          '{}: \nNow playing: {}\nIt is {} seconds long'.format(
+                                              message.author.name,
+                                              server.active_player.title,
+                                              server.active_player.duration))
+                server.active_player.start()
+        except:
+            await client.send_message(bot_channel,
+                                      '{}: Your link could not be played!'.format(message.author.name))
         finally:
             server.playlist.add_to_playlist_lock.release()
 

@@ -8,6 +8,8 @@ List of commands:
 !roll [lowest] [highest]    - Roll a number between lowest and highest.
 !ask [question or sentence] - Lets you communicate to CleverBot!
 !suggest [suggestion]       - Lets you suggest new features and improvements!
+!getbotinvite               - Gives you a link so you can invite the bot to your server.
+                              It needs all permissions to be able to function properly.
 
 Team distribution:
 !join                       - Join the queue awaiting to be placed on a team.

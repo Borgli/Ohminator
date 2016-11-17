@@ -8,6 +8,8 @@ from os.path import exists
 import Server
 import youtube_dl
 import functools
+import logging
+import traceback
 
 
 class Playlist:
@@ -27,6 +29,8 @@ class Playlist:
         self.clear_now_playing = asyncio.Event()
         self.after_yt_lock = asyncio.Lock()
         self.add_to_playlist_lock = asyncio.Lock()
+
+        logging.basicConfig(filename='logs/ohminator.log', level=logging.DEBUG)
         client.loop.create_task(self.manage_pinned_messages())
         client.loop.create_task(self.play_next_yt())
         client.loop.create_task(self.should_clear_now_playing())
@@ -35,6 +39,7 @@ class Playlist:
         await self.client.wait_until_ready()
         await asyncio.sleep(10, loop=self.client.loop)
         while not self.client.is_closed:
+            # Constructing the queue string
             cnt = 1
             queue = str()
             for play in self.yt_playlist:
@@ -43,29 +48,32 @@ class Playlist:
                 queue += "{}: {}\n".format(cnt, play.title)
                 cnt += 1
 
-            if self.pinned_message_bot_spam is None:
-                if exists('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc)):
-                    with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc), 'r+b') as f:
-                        self.pinned_message_bot_spam = pickle.load(f)
-                else:
-                    self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
-                                                                                  '**Now playing:** {}\n**Current queue:**\n{}\n'.format(
-                                                                                         self.now_playing, queue.strip()))
-                try:
-                    await self.client.pin_message(self.pinned_message_bot_spam)
-                except discord.errors.HTTPException:
-                    self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
-                                                                                  '**Now playing:** {}\n**Current queue:**\n{}\n'.format(
-                                                                                      self.now_playing, queue.strip()))
-            else:
-                try:
-                    await self.client.edit_message(self.pinned_message_bot_spam,
-                                                   '**Now playing:** {}\n**Current queue:**\n{}\n'.format(self.now_playing,
-                                                                                                          queue.strip()))
-                except discord.errors.HTTPException:
-                    pass
-                with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc), 'w+b') as f:
-                    pickle.dump(self.pinned_message_bot_spam, f)
+            try:
+                # Check if a pinned message exists
+                if self.pinned_message_bot_spam is None:
+                    # Check if a pinned message pickle file exists
+                    if exists('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc)):
+                        # Open the file to read
+                        with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
+                                  'r+b') as f:
+                            self.pinned_message_bot_spam = pickle.load(f)
+                    else:
+                        # If it doesn't exist we must create a new one
+                        self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel, '')
+                        # Pin and write the new message to file
+                        await self.client.pin_message(self.pinned_message_bot_spam)
+                        with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
+                                  'w+b') as f:
+                            pickle.dump(self.pinned_message_bot_spam, f)
+
+                # Edit the content of the message with the current playlist info
+                await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
+                                                                             '**Current queue:**\n{}\n'.format(
+                    self.now_playing, queue.strip()))
+            except:
+                logging.debug('Manage pinned messages on server {} had an exception:\n{}'.format(self.server.name,
+                                                                                                 traceback.format_exc()))
+            # 5 second intervals
             await asyncio.sleep(5, loop=self.client.loop)
 
     def get_options(self, link):

@@ -30,7 +30,7 @@ class Playlist:
         self.after_yt_lock = asyncio.Lock()
         self.add_to_playlist_lock = asyncio.Lock()
 
-        logging.basicConfig(filename='logs/ohminator.log', level=logging.DEBUG)
+        logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
         client.loop.create_task(self.manage_pinned_messages())
         client.loop.create_task(self.play_next_yt())
         client.loop.create_task(self.should_clear_now_playing())
@@ -71,8 +71,7 @@ class Playlist:
                                                                              '**Current queue:**\n{}\n'.format(
                     self.now_playing, queue.strip()))
             except:
-                logging.debug('Manage pinned messages on server {} had an exception:\n{}'.format(self.server.name,
-                                                                                                 traceback.format_exc()))
+                logging.error('Manage pinned messages on server {} had an exception:\n{}'.format(self.server.name), exc_info=true)
             # 5 second intervals
             await asyncio.sleep(5, loop=self.client.loop)
 
@@ -106,7 +105,8 @@ class Playlist:
     async def add_to_playlist(self, link, append):
         option = self.get_options(link)
         opts = {
-            'format': 'webm[abr>0]/bestaudio/best'
+            'format': 'webm[abr>0]/bestaudio/best',
+            'quiet': true
         }
         if option is not None and isinstance(option, dict):
             opts.update(option)

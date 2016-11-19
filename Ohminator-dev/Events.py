@@ -318,6 +318,24 @@ async def introstop(message, bot_channel):
 
 commands["!introstop"] = introstop
 
+async def slot(message, bot_channel):
+    await client.delete_message(message)
+    if message.channel != bot_channel:
+        await client.send_message(message.channel, '{}: Check bot-spam for the result!'.format(message.author.name))
+    symbols = {
+        '0': ':no_entry_sign:',
+        '20': ':green_apple:',
+        '30': ':apple:',
+        '40': ':cherries:',
+        '80': ':sun_with_face:',
+        '100': ':bulb:',
+        '120': ':heart:',
+        '300': ':alien:',
+        '600': ':moneybag:'
+    }
+    #firstColumn = random.randint(0, 160)
+    await client.send_message(bot_channel, '{}: Good luck!\n{}'.format(message.author.name))
+
 
 async def intro(message, bot_channel):
     await client.delete_message(message)
@@ -521,7 +539,7 @@ async def join(message, bot_channel):
                                   'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
 
-commands["!join"] = join
+commands["!team join"] = join
 
 
 async def leave(message, bot_channel):
@@ -533,7 +551,7 @@ async def leave(message, bot_channel):
                               'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
 
-commands["!leave"] = leave
+commands["!team leave"] = leave
 
 
 async def split(message, bot_channel):

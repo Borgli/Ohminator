@@ -3,6 +3,8 @@ from random import randint
 from os.path import isdir, exists, realpath
 from os import mkdir, listdir, remove, rename
 import pickle
+import traceback
+import time
 
 from Member import Member
 from Server import Server
@@ -49,7 +51,7 @@ async def on_ready():
     print(discord.version_info)
     print(discord.__version__)
     print('------')
-    print('Setting up data structures...')
+    print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
     if not isdir('servers'):
         mkdir('servers')
     for server in client.servers:
@@ -117,7 +119,8 @@ async def on_message(message):
                 if len(server.playlist.yt_playlist) > 0:
                     player = await server.playlist.add_to_playlist(link, True)
                     await client.send_message(bot_channel,
-                                              '{}: {} has been added to the queue.'.format(message.author.name, player.title))
+                                              '{}: {} has been added to the queue.'.format(message.author.name,
+                                                                                           player.title))
                 else:
                     player = await server.playlist.add_to_playlist(link, False)
                     server.active_player = await player.get_new_player()
@@ -134,7 +137,8 @@ async def on_message(message):
                         not server.active_player.is_done() or server.active_player.is_playing()):
                 player = await server.playlist.add_to_playlist(link, True)
                 await client.send_message(bot_channel,
-                                          '{}: {} has been added to the queue.'.format(message.author.name, player.title))
+                                          '{}: {} has been added to the queue.'.format(message.author.name,
+                                                                                       player.title))
             else:
                 # Move to the user's voice channel
                 try:
@@ -154,9 +158,27 @@ async def on_message(message):
                                               server.active_player.title,
                                               server.active_player.duration))
                 server.active_player.start()
+        except youtube_dl.utils.UnsupportedError:
+            await client.send_message(bot_channel,
+                                      '{}: Unsupported URL: That URL is not supported! :slight_frown:'.format(
+                                          message.author.name))
+        except youtube_dl.utils.DownloadError:
+            await client.send_message(bot_channel,
+                                      '{}: Download Error: Your link could not be downloaded! :slight_frown:'.format(
+                                          message.author.name))
+        except youtube_dl.utils.MaxDownloadsReached:
+            await client.send_message(bot_channel,
+                                      '{}: Max downloads reached: Can not download more videos from YT at the moment. '
+                                      'Please wait a moment before trying again. :slight_frown:'.format(
+                                          message.author.name))
+        except youtube_dl.utils.UnavailableVideoError:
+            await client.send_message(bot_channel,
+                                      '{}: Unavailable Video: This video is unavailable! :slight_frown:'.format(
+                                          message.author.name))
         except:
             await client.send_message(bot_channel,
                                       '{}: Your link could not be played!'.format(message.author.name))
+            traceback.print_exc()
         finally:
             server.playlist.add_to_playlist_lock.release()
 
@@ -203,7 +225,7 @@ async def stop(message, bot_channel):
         await client.send_message(bot_channel, '{}: No active player to stop!'.format(message.author.name))
     else:
         await client.send_message(bot_channel,
-                                  '{} stopped the player and cleared the queue!'.format(message.author.name))
+                                  ':stop_button:: {} stopped the player and cleared the queue!'.format(message.author.name))
         server.playlist.yt_playlist.clear()
         server.active_player.stop()
 
@@ -217,7 +239,7 @@ async def pause(message, bot_channel):
     if server.active_player is None or not server.active_player.is_playing():
         await client.send_message(bot_channel, '{}: Nothing to pause!'.format(message.author.name))
     else:
-        await client.send_message(bot_channel, '{} paused the player!'.format(message.author.name))
+        await client.send_message(bot_channel, ':pause_button:: {} paused the player!'.format(message.author.name))
         server.active_player.pause()
 
 
@@ -230,7 +252,7 @@ async def resume(message, bot_channel):
     if server.active_player is None:
         await client.send_message(bot_channel, '{}: Nothing to resume!'.format(message.author.name))
     else:
-        await client.send_message(bot_channel, '{} resumed the player!'.format(message.author.name))
+        await client.send_message(bot_channel, ':arrow_forward:: {} resumed the player!'.format(message.author.name))
         server.active_player.resume()
 
 
@@ -243,7 +265,7 @@ async def skip(message, bot_channel):
     if server.active_player is None or not server.active_player.is_playing():
         await client.send_message(bot_channel, '{}: Nothing to skip!'.format(message.author.name))
     else:
-        await client.send_message(bot_channel, '{} skipped the song!'.format(message.author.name))
+        await client.send_message(bot_channel, ':track_next:: {} skipped the song!'.format(message.author.name))
         server.active_player.stop()
 
 
@@ -274,7 +296,7 @@ async def next(message, bot_channel):
     if len(server.playlist.yt_playlist) > 0:
         await client.send_message(bot_channel,
                                   '{}: The next song is {}'.format(message.author.name, server.playlist.yt_playlist[
-                                                                                                0].title))
+                                      0].title))
     else:
         await client.send_message(bot_channel,
                                   '{}: There is no next song as the queue is empty!'.format(message.author.name))
@@ -291,7 +313,7 @@ async def introstop(message, bot_channel):
     else:
         await client.send_message(bot_channel, '{} stopped the intro!'.format(message.author.name))
         server.intro_player.stop()
-        print("Intro was stopped!")
+        #print("Intro was stopped!")
 
 
 commands["!introstop"] = introstop
@@ -464,7 +486,8 @@ async def ask(message, bot_channel):
         await client.send_message(bot_channel, cb.ask(question))
     except Exception as e:
         print(e)
-        await client.send_message(bot_channel, '{}: That is not a question I will answer!'.format(message.author.mention))
+        await client.send_message(bot_channel,
+                                  '{}: That is not a question I will answer!'.format(message.author.mention))
 
 
 commands["!ask"] = ask
@@ -481,7 +504,8 @@ async def suggest(message, bot_channel):
     suggestion_loc = 'suggestions.pickle'.format(server.server_loc, member.member_loc)
     with open(suggestion_loc, 'a') as f:
         f.write("Suggestion from {}:\n{}\n".format(message.author, suggestion))
-    await client.send_message(bot_channel, '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
+    await client.send_message(bot_channel,
+                              '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
 
 
 commands["!suggest"] = suggest
@@ -560,11 +584,13 @@ async def removeteams(message, bot_channel):
 
 commands["!removeteams"] = removeteams
 
+
 async def get_bot_invite(message, bot_channel):
     await client.delete_message(message)
     permissions = discord.Permissions.all()
     await client.send_message(message.channel,
-                              '{}: {}'.format(message.author.name, discord.utils.oauth_url('176432800331857920', permissions=permissions)))
+                              '{}: {}'.format(message.author.name,
+                                              discord.utils.oauth_url('176432800331857920', permissions=permissions)))
 
 
 commands["!getbotinvite"] = get_bot_invite
@@ -613,11 +639,13 @@ async def on_voice_state_update(before, after):
     except Exception as e:
         print(e)
 
+
 async def on_server_join(server):
     server_loc = '{}_{}'.format(server.name, server.id)
     if not isdir('servers/{}'.format(server_loc)):
         mkdir('servers/{}'.format(server_loc))
     server_list.append(Server(server, client))
+
 
 async def on_member_join(member):
     server = get_server(member.server)
@@ -625,6 +653,7 @@ async def on_member_join(member):
     if not isdir('servers/{}/members/{}'.format(server.server_loc, member_loc)):
         mkdir('servers/{}/members/{}'.format(server.server_loc, member_loc))
     server.member_list.append(Member(client, server, member))
+
 
 async def on_resumed():
     for server in server_list:

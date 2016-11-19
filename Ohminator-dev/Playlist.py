@@ -71,7 +71,8 @@ class Playlist:
                                                                              '**Current queue:**\n{}\n'.format(
                     self.now_playing, queue.strip()))
             except:
-                logging.error('Manage pinned messages on server {} had an exception:\n{}'.format(self.server.name), exc_info=true)
+                logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name), exc_info=True)
+                await asyncio.sleep(60, loop=self.client.loop)
             # 5 second intervals
             await asyncio.sleep(5, loop=self.client.loop)
 
@@ -106,7 +107,7 @@ class Playlist:
         option = self.get_options(link)
         opts = {
             'format': 'webm[abr>0]/bestaudio/best',
-            'quiet': true
+            'quiet': True
         }
         if option is not None and isinstance(option, dict):
             opts.update(option)
@@ -123,7 +124,7 @@ class Playlist:
                 func = functools.partial(ydl.extract_info, link, download=False, process=False)
                 info = await self.client.loop.run_in_executor(None, func)
         except:
-            raise Exception
+            raise
 
         playlist_element = None
         if "entries" in info:
@@ -161,15 +162,15 @@ class Playlist:
         return playlist_element
 
     def after_yt(self):
-        print('{} finished. After-yt starting.'.format(self.server.active_player.title))
+        #print('{} finished. After-yt starting.'.format(self.server.active_player.title))
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
-        print("YouTube-video finished playing.")
+        #print("YouTube-video finished playing.")
 
     async def play_next_yt(self):
         while not self.client.is_closed:
             await self.play_next.wait()
-            print("{} will now play next yt.".format(self.server.name))
+            #print("{} will now play next yt.".format(self.server.name))
             if len(self.yt_playlist) > 0:
                 self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
                 self.now_playing = self.server.active_player.title

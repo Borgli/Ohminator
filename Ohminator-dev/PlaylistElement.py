@@ -11,7 +11,7 @@ class PlaylistElement:
         self.after_yt = after_yt
         self.title = str()
         self.description = str()
-        self.duration = 0;
+        self.duration = 0
 
     def set_yt_info(self, title, duration=None, description=None):
         self.title = title

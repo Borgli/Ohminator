@@ -5,6 +5,7 @@ import pickle
 import re
 from PlaylistElement import PlaylistElement
 from os.path import exists
+from os import remove
 import Server
 import youtube_dl
 import functools
@@ -37,7 +38,7 @@ class Playlist:
 
     async def manage_pinned_messages(self):
         await self.client.wait_until_ready()
-        await asyncio.sleep(10, loop=self.client.loop)
+        await asyncio.sleep(3, loop=self.client.loop)
         while not self.client.is_closed:
             # Constructing the queue string
             cnt = 1
@@ -45,7 +46,7 @@ class Playlist:
             for play in self.yt_playlist:
                 if cnt > 10:
                     break
-                queue += "{}: {}\n".format(cnt, play.title)
+                queue += "**{}**: {}\n".format(cnt, play.title)
                 cnt += 1
 
             try:
@@ -59,22 +60,46 @@ class Playlist:
                             self.pinned_message_bot_spam = pickle.load(f)
                     else:
                         # If it doesn't exist we must create a new one
-                        self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel, '')
-                        # Pin and write the new message to file
-                        await self.client.pin_message(self.pinned_message_bot_spam)
+                        self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
+                                                                                      'Setting up pinned message...')
+                        # Write the new message to file
                         with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
                                   'w+b') as f:
                             pickle.dump(self.pinned_message_bot_spam, f)
 
+                    # Remove previously pinned messages
+                    pinned_messages = await self.client.pins_from(self.server.bot_channel)
+                    for message in pinned_messages:
+                        if message.id != self.pinned_message_bot_spam.id:
+                            await self.client.delete_message(message)
+
+                    # Pin the message
+                    await self.client.pin_message(self.pinned_message_bot_spam)
+
                 # Edit the content of the message with the current playlist info
-                await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
-                                                                             '**Current queue:**\n{}\n'.format(
-                    self.now_playing, queue.strip()))
+                if self.server.active_player is not None and not self.server.active_player.is_playing()\
+                        and not self.server.active_player.is_done():
+                    await self.client.edit_message(self.pinned_message_bot_spam, ':pause_button: '
+                                                                                 '**Paused:** {}\n'
+                                                                                 '**Current queue:**\n{}\n'.format(
+                                                                                    self.now_playing, queue.strip()))
+                else:
+                    await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
+                                                                                 '**Current queue:**\n{}\n'.format(
+                                                                                    self.now_playing, queue.strip()))
+            except discord.errors.HTTPException as f:
+                if f.response.status == 400:
+                    remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
+                    self.pinned_message_bot_spam = None
+                else:
+                    traceback.print_exc()
             except:
-                logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name), exc_info=True)
+                logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
+                              exc_info=True)
+                traceback.print_exc()
                 await asyncio.sleep(60, loop=self.client.loop)
-            # 5 second intervals
-            await asyncio.sleep(5, loop=self.client.loop)
+            # 3 second intervals
+            await asyncio.sleep(3, loop=self.client.loop)
 
     def get_options(self, link):
         try:
@@ -162,15 +187,15 @@ class Playlist:
         return playlist_element
 
     def after_yt(self):
-        #print('{} finished. After-yt starting.'.format(self.server.active_player.title))
+        # print('{} finished. After-yt starting.'.format(self.server.active_player.title))
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
-        #print("YouTube-video finished playing.")
+        # print("YouTube-video finished playing.")
 
     async def play_next_yt(self):
         while not self.client.is_closed:
             await self.play_next.wait()
-            #print("{} will now play next yt.".format(self.server.name))
+            # print("{} will now play next yt.".format(self.server.name))
             if len(self.yt_playlist) > 0:
                 self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
                 self.now_playing = self.server.active_player.title

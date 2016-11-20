@@ -236,8 +236,11 @@ commands["!stop"] = stop
 async def pause(message, bot_channel):
     await client.delete_message(message)
     server = get_server(message.server)
-    if server.active_player is None or not server.active_player.is_playing():
+    if server.active_player is None:
         await client.send_message(bot_channel, '{}: Nothing to pause!'.format(message.author.name))
+    elif not server.active_player.is_playing():
+        await client.send_message(bot_channel, '{}: The player is not playing because it was stopped'
+                                               ' or is already paused!'.format(message.author.name))
     else:
         await client.send_message(bot_channel, ':pause_button:: {} paused the player!'.format(message.author.name))
         server.active_player.pause()
@@ -278,9 +281,19 @@ async def q(message, bot_channel):
     if len(server.playlist.yt_playlist) > 0:
         cnt = 1
         queue = str()
+        more_entries = False
         for play in server.playlist.yt_playlist:
-            queue += "{}: {}\n".format(cnt, play.title)
+            if cnt <= 30:
+                queue += "{}: {}\n".format(cnt, play.title)
+            else:
+                more_entries = True
             cnt += 1
+        if more_entries is True:
+            if cnt-30 == 1:
+                entry = 'entry'
+            else:
+                entry = 'entries'
+            queue += "And {} {} more...".format(cnt-30, entry)
         await client.send_message(bot_channel,
                                   '{}: Here is the current queue:\n{}'.format(message.author.name, queue.strip()))
     else:
@@ -288,6 +301,7 @@ async def q(message, bot_channel):
 
 
 commands["!q"] = q
+commands["!queue"] = q
 
 
 async def next(message, bot_channel):
@@ -322,19 +336,50 @@ async def slot(message, bot_channel):
     await client.delete_message(message)
     if message.channel != bot_channel:
         await client.send_message(message.channel, '{}: Check bot-spam for the result!'.format(message.author.name))
+    #symbols = {
+    #    '0': ':no_entry_sign:',
+    #    '20': ':green_apple:',
+    #    '30': ':apple:',
+    #    '40': ':cherries:',
+    #    '80': ':sun_with_face:',
+    #    '100': ':bulb:',
+    #    '120': ':heart:',
+    #    '300': ':alien:',
+    #    '600': ':moneybag:'
+    #}
     symbols = {
-        '0': ':no_entry_sign:',
-        '20': ':green_apple:',
-        '30': ':apple:',
-        '40': ':cherries:',
-        '80': ':sun_with_face:',
-        '100': ':bulb:',
-        '120': ':heart:',
-        '300': ':alien:',
-        '600': ':moneybag:'
+        ':moneybag:': 600,
+        ':four_leaf_clover:': 300,
+        ':heart:': 120,
+        ':bulb:': 100,
+        ':sun_with_face:': 80,
+        ':alien:': 40,
+        ':apple:': 30,
+        ':cherries:': 0,
     }
-    #firstColumn = random.randint(0, 160)
-    await client.send_message(bot_channel, '{}: Good luck!\n{}'.format(message.author.name))
+    symbols_list = list(symbols.keys())
+    rand = randint(8, 63)
+    num = len(symbols_list)
+    first_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
+    rand = randint(8, 63)
+    second_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
+    rand = randint(8, 63)
+    third_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
+
+    #first_column = random.choice([k for k in symbols for dummy in range(symbols[k])])
+    #second_column = random.choice([k for k in symbols for dummy in range(symbols[k])])
+    #third_column = random.choice([k for k in symbols for dummy in range(symbols[k])])
+
+    if first_column[1] is second_column[1] is third_column[1]:
+        result = "Congratulations, you won!"
+    else:
+        result = "Sorry, but you lost..."
+    slot_string = "  {}{}{}\n>{}{}{}<\n  {}{}{}\n\n{}".format(first_column[0], second_column[0], third_column[0],
+                                                            first_column[1], second_column[1], third_column[1],
+                                                            first_column[2], second_column[2], third_column[2], result)
+    await client.send_message(bot_channel, '{}: Good luck!\n\n{}'.format(message.author.name, slot_string))
+
+commands["!slot"] = slot
 
 
 async def intro(message, bot_channel):

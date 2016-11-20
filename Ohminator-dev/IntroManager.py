@@ -24,4 +24,4 @@ class IntroManager:
 
     def after_intro(self):
         self.client.loop.call_soon_threadsafe(self.intro_finished.set)
-        print("Intro finished playing.")
+        #print("Intro finished playing.")

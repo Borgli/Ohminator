@@ -19,6 +19,7 @@ client = None
 commands = dict()
 server_list = list()
 cb = cleverbot.Cleverbot()
+running = False
 
 
 class Events:
@@ -51,21 +52,30 @@ async def on_ready():
     print(discord.version_info)
     print(discord.__version__)
     print('------')
-    print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
-    if not isdir('servers'):
-        mkdir('servers')
-    for server in client.servers:
-        server_loc = '{}_{}'.format(server.name, server.id)
-        if not isdir('servers/{}'.format(server_loc)):
-            mkdir('servers/{}'.format(server_loc))
-        new_server = Server(server, client)
-        server_list.append(new_server)
+    global running
+    if not running:
+        print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
+        if not isdir('servers'):
+            mkdir('servers')
+        for server in client.servers:
+            server_loc = '{}_{}'.format(server.name, server.id)
+            if not isdir('servers/{}'.format(server_loc)):
+                mkdir('servers/{}'.format(server_loc))
+            new_server = Server(server, client)
+            server_list.append(new_server)
 
-        new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
-        # If channel does not exist - create it
-        if new_server.bot_channel is None:
-            new_server.bot_channel = await client.create_channel(server, 'bot-spam')
-    print('Done!')
+            new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
+            # If channel does not exist - create it
+            if new_server.bot_channel is None:
+                new_server.bot_channel = await client.create_channel(server, 'bot-spam')
+        print('Done!')
+        running = True
+    else:
+        try:
+            for server in server_list:
+                await client.send_message(server.bot_channel, 'Ohminator lost connection to Discord. Back now!')
+        except:
+            traceback.print_exc()
 
 
 async def on_message(message):

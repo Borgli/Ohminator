@@ -115,6 +115,7 @@ async def on_message(message):
         except:
             await client.send_message(bot_channel,
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
+            traceback.print_exc()
             return
 
         # Three cases: Case one: An intro is currently playing, so we either append or pause the active player.
@@ -157,6 +158,9 @@ async def on_message(message):
                 except:
                     await client.send_message(bot_channel,
                                               '{}: Could not connect to voice channel!'.format(message.author.name))
+                    print("Couldn't move from channel {} to channel {}!".format(voice_client.channel.name,
+                                                                         message.author.voice_channel.name))
+                    traceback.print_exc()
                     return
 
                 player = await server.playlist.add_to_playlist(link, False)

@@ -91,6 +91,10 @@ class Playlist:
                 if f.response.status == 400:
                     remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
                     self.pinned_message_bot_spam = None
+                elif f.response.status == 500:
+                    # INTERNAL SERVER ERROR
+                    print("Internal server errror on server {}".format(self.server.name))
+                    await asyncio.sleep(30, loop=self.client.loop)
                 else:
                     traceback.print_exc()
             except:

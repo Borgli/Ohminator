@@ -24,8 +24,8 @@ class Member:
 
     def has_intro(self):
         # Check if the member has intros
-        self.intro_list = listdir(self.intro_folder)
-        if len(self.intro_list) > 0:
+        intro_list = listdir(self.intro_folder)
+        if len(intro_list) > 0:
             return True
         else:
             return False

@@ -266,7 +266,7 @@ commands["!pause"] = pause
 async def resume(message, bot_channel):
     await client.delete_message(message)
     server = get_server(message.server)
-    if server.active_player is None:
+    if server.active_player is None or server.active_player.is_done():
         await client.send_message(bot_channel, '{}: Nothing to resume!'.format(message.author.name))
     else:
         await client.send_message(bot_channel, ':arrow_forward:: {} resumed the player!'.format(message.author.name))
@@ -449,7 +449,9 @@ async def intro(message, bot_channel):
                                           '{}: The given index of {} is out of bounds!'.format(
                                               message.author.name, given_index))
                 raise IndexError
-
+            await server.intro_manager.intro_counter_lock.acquire()
+            server.intro_manager.intro_counter += 1
+            server.intro_manager.intro_counter_lock.release()
             server.intro_player.volume = 0.25
             server.intro_player.start()
         except IndexError:

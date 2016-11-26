@@ -18,6 +18,7 @@ class Server:
         self.id = discord_server.id
         self.server_loc = '{}_{}'.format(discord_server.name, discord_server.id)
         self.default_channel = discord_server.default_channel
+        self.discord_server = discord_server
 
         self.member_list = list()
         self.channel_list = list()

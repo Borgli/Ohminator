@@ -77,7 +77,7 @@ class Playlist:
                     await self.client.pin_message(self.pinned_message_bot_spam)
 
                 # Edit the content of the message with the current playlist info
-                if self.server.active_player is not None and not self.server.active_player.is_playing()\
+                if self.server.active_player is not None and not self.server.active_player.is_playing() \
                         and not self.server.active_player.is_done():
                     await self.client.edit_message(self.pinned_message_bot_spam, ':pause_button: '
                                                                                  '**Paused:** {}\n'
@@ -87,6 +87,48 @@ class Playlist:
                     await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
                                                                                  '**Current queue:**\n{}\n'.format(
                                                                                     self.now_playing, queue.strip()))
+                # Bot spam will always have pinned messages, but this enables it to work on other channels as well.
+                # This should be refactored in the near future
+                for channel in self.server.channel_list:
+                    # Check if channel as pinned messages enabled
+                    if channel.type != discord.ChannelType.text or \
+                                    channel.list_settings()['pin_yt_playlists'] != "True" or \
+                                    channel.id == self.server.bot_channel.id:
+                        continue
+                    # Check if a pinned message pickle file exists
+                    pickle_loc = 'servers/{}/channels/{}/pinned_message.pickle'.format(self.server.server_loc,
+                                                                                       channel.channel_loc)
+                    if exists(pickle_loc):
+                        # Open the file to read
+                        with open(pickle_loc, 'r+b') as f:
+                            pinned_message = pickle.load(f)
+                    else:
+                        # If it doesn't exist we must create a new one
+                        pinned_message = await self.client.send_message(self.server.discord_server.get_channel(channel.id),
+                                                                        'Setting up pinned message...')
+                        # Write the new message to file
+                        with open(pickle_loc, 'w+b') as f:
+                            pickle.dump(pinned_message, f)
+
+                    # Remove previously pinned messages
+                    pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
+                    for message in pinned_messages:
+                        if message.id != pinned_message.id:
+                            await self.client.delete_message(message)
+
+                    # Pin the message
+                    await self.client.pin_message(pinned_message)
+
+                    # Edit the content of the message with the current playlist info
+                    if self.server.active_player is not None and not self.server.active_player.is_playing() \
+                            and not self.server.active_player.is_done():
+                        await self.client.edit_message(pinned_message, ':pause_button: **Paused:** {}\n'
+                                                                        '**Current queue:**\n{}\n'.format(
+                                                                        self.now_playing, queue.strip()))
+                    else:
+                        await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
+                                                                        '**Current queue:**\n{}\n'.format(
+                                                                        self.now_playing, queue.strip()))
             except discord.errors.HTTPException as f:
                 if f.response.status == 400:
                     remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))

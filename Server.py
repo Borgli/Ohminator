@@ -65,6 +65,11 @@ class Server:
             if (id == member.id) and (self.id == member.server.id):
                 return member
 
+    def get_channel(self, id):
+        for channel in self.channel_list:
+            if id == channel.id or id == channel.name:
+                return channel
+
     def print_queue(self):
         print_line = str()
         first = True

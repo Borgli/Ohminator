@@ -57,12 +57,8 @@ class Playlist:
                         # Open the file to read
                         with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
                                   'r+b') as f:
-                            try:
-                                self.pinned_message_bot_spam = pickle.load(f)
-                            except (ValueError, AttributeError) as f:
-                                remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
-                                self.pinned_message_bot_spam = None
-                                traceback.print_exc()
+                            self.pinned_message_bot_spam = pickle.load(f)
+
                     else:
                         # If it doesn't exist we must create a new one
                         self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
@@ -92,6 +88,10 @@ class Playlist:
                     await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
                                                                                  '**Current queue:**\n{}\n'.format(
                                                                                     self.now_playing, queue.strip()))
+            except (ValueError, AttributeError) as f:
+                remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
+                self.pinned_message_bot_spam = None
+                traceback.print_exc()
             except discord.errors.HTTPException as f:
                 if f.response.status == 400:
                     remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
@@ -125,11 +125,8 @@ class Playlist:
                     if exists(pickle_loc):
                         # Open the file to read
                         with open(pickle_loc, 'r+b') as f:
-                            try:
-                                pinned_message = pickle.load(f)
-                            except (ValueError, AttributeError) as f:
-                                remove(pickle_loc)
-                                traceback.print_exc()
+                            pinned_message = pickle.load(f)
+
                     else:
                         # If it doesn't exist we must create a new one
                         pinned_message = await self.client.send_message(self.server.discord_server.get_channel(channel.id),
@@ -157,6 +154,9 @@ class Playlist:
                         await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
                                                                         '**Current queue:**\n{}\n'.format(
                                                                             self.now_playing, queue.strip()))
+                except (ValueError, AttributeError) as f:
+                    remove(pickle_loc)
+                    traceback.print_exc()
                 except discord.errors.HTTPException as f:
                     if f.response.status == 400:
                         if pickle_loc is not None:

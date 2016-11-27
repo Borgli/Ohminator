@@ -139,6 +139,10 @@ class Playlist:
                     await asyncio.sleep(30, loop=self.client.loop)
                 else:
                     traceback.print_exc()
+            except (ValueError, AttributeError) as f:
+                remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
+                self.pinned_message_bot_spam = None
+                traceback.print_exc()
             except:
                 logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
                               exc_info=True)

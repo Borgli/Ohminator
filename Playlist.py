@@ -87,9 +87,28 @@ class Playlist:
                     await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
                                                                                  '**Current queue:**\n{}\n'.format(
                                                                                     self.now_playing, queue.strip()))
-                # Bot spam will always have pinned messages, but this enables it to work on other channels as well.
-                # This should be refactored in the near future
-                for channel in self.server.channel_list:
+            except discord.errors.HTTPException as f:
+                if f.response.status == 400:
+                    remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
+                    self.pinned_message_bot_spam = None
+                    traceback.print_exc()
+                elif f.response.status == 500:
+                    # INTERNAL SERVER ERROR
+                    print("Internal server errror on server {}".format(self.server.name))
+                    await asyncio.sleep(30, loop=self.client.loop)
+                else:
+                    traceback.print_exc()
+            except:
+                logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
+                              exc_info=True)
+                traceback.print_exc()
+                await asyncio.sleep(60, loop=self.client.loop)
+
+
+            # Bot spam will always have pinned messages, but this enables it to work on other channels as well.
+            # This should be refactored in the near future
+            for channel in self.server.channel_list:
+                try:
                     # Check if channel as pinned messages enabled
                     if channel.type != discord.ChannelType.text or \
                                     channel.list_settings()['pin_yt_playlists'] != "True" or \
@@ -128,26 +147,23 @@ class Playlist:
                     else:
                         await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
                                                                         '**Current queue:**\n{}\n'.format(
-                                                                        self.now_playing, queue.strip()))
-            except discord.errors.HTTPException as f:
-                if f.response.status == 400:
-                    remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
-                    self.pinned_message_bot_spam = None
-                elif f.response.status == 500:
-                    # INTERNAL SERVER ERROR
-                    print("Internal server errror on server {}".format(self.server.name))
-                    await asyncio.sleep(30, loop=self.client.loop)
-                else:
+                                                                            self.now_playing, queue.strip()))
+                except discord.errors.HTTPException as f:
+                    if f.response.status == 400:
+                        if pickle_loc is not None:
+                            remove(pickle_loc)
+                        traceback.print_exc()
+                    elif f.response.status == 500:
+                        # INTERNAL SERVER ERROR
+                        print("Internal server errror on server {}".format(self.server.name))
+                        await asyncio.sleep(30, loop=self.client.loop)
+                    else:
+                        traceback.print_exc()
+                except:
+                    logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
+                                  exc_info=True)
                     traceback.print_exc()
-            except (ValueError, AttributeError) as f:
-                remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
-                self.pinned_message_bot_spam = None
-                traceback.print_exc()
-            except:
-                logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
-                              exc_info=True)
-                traceback.print_exc()
-                await asyncio.sleep(60, loop=self.client.loop)
+                    await asyncio.sleep(60, loop=self.client.loop)
             # 3 second intervals
             await asyncio.sleep(3, loop=self.client.loop)
 

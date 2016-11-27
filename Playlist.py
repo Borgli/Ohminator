@@ -57,7 +57,12 @@ class Playlist:
                         # Open the file to read
                         with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
                                   'r+b') as f:
-                            self.pinned_message_bot_spam = pickle.load(f)
+                            try:
+                                self.pinned_message_bot_spam = pickle.load(f)
+                            except (ValueError, AttributeError) as f:
+                                remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
+                                self.pinned_message_bot_spam = None
+                                traceback.print_exc()
                     else:
                         # If it doesn't exist we must create a new one
                         self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
@@ -120,7 +125,11 @@ class Playlist:
                     if exists(pickle_loc):
                         # Open the file to read
                         with open(pickle_loc, 'r+b') as f:
-                            pinned_message = pickle.load(f)
+                            try:
+                                pinned_message = pickle.load(f)
+                            except (ValueError, AttributeError) as f:
+                                remove(pickle_loc)
+                                traceback.print_exc()
                     else:
                         # If it doesn't exist we must create a new one
                         pinned_message = await self.client.send_message(self.server.discord_server.get_channel(channel.id),

@@ -562,10 +562,15 @@ commands["!joined"] = joined
 async def ask(message, bot_channel):
     question = message.content[5:]
     try:
-        await client.send_message(bot_channel, cb.ask(question))
+        await client.send_message(message.channel, cb.ask(question))
+    except IndexError as e:
+        traceback.print_exc()
+        await client.send_message(message.channel,
+                                  '{}: Sorry, it seems cleverbot is not functioning at the moment!'
+                                  ''.format(message.author.mention))
     except Exception as e:
-        print(e)
-        await client.send_message(bot_channel,
+        traceback.print_exc()
+        await client.send_message(message.channel,
                                   '{}: That is not a question I will answer!'.format(message.author.mention))
 
 

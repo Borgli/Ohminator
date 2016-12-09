@@ -99,7 +99,7 @@ class Playlist:
                     traceback.print_exc()
                 elif f.response.status == 500:
                     # INTERNAL SERVER ERROR
-                    print("Internal server errror on server {}".format(self.server.name))
+                    print("Internal server error on server {}".format(self.server.name))
                     await asyncio.sleep(30, loop=self.client.loop)
                 else:
                     traceback.print_exc()
@@ -108,7 +108,6 @@ class Playlist:
                               exc_info=True)
                 traceback.print_exc()
                 await asyncio.sleep(60, loop=self.client.loop)
-
 
             # Bot spam will always have pinned messages, but this enables it to work on other channels as well.
             # This should be refactored in the near future
@@ -203,7 +202,7 @@ class Playlist:
         except:
             return None
 
-    async def add_to_playlist(self, link, append):
+    async def add_to_playlist(self, link, append, name):
         option = self.get_options(link)
         opts = {
             'format': 'webm[abr>0]/bestaudio/best',
@@ -232,18 +231,25 @@ class Playlist:
             if len(entries) > 1:
                 # PLAYLIST
                 playlist_element = self.add_to_queue(option, entries, append)
+                await self.client.send_message(self.server.bot_channel,
+                                                    '{}: The playlist {} has been added to the queue.'
+                                                    ''.format(name, info["title"]))
             else:
                 entry = entries[0]
                 playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt)
                 playlist_element.set_yt_info(entry["title"])
                 if append:
                     self.yt_playlist.append(playlist_element)
+                    await self.client.send_message(self.server.bot_channel,
+                                                    '{}: {} has been added to the queue.'.format(name, entry["title"]))
         else:
             # NORMAL
             playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt)
             playlist_element.set_yt_info(info.get('title'))
             if append:
                 self.yt_playlist.append(playlist_element)
+                await self.client.send_message(self.server.bot_channel,
+                                               '{}: {} has been added to the queue.'.format(name, info.get("title")))
         return playlist_element
 
     def add_to_queue(self, option, entries, append):
@@ -271,6 +277,7 @@ class Playlist:
         while not self.client.is_closed:
             await self.play_next.wait()
             # print("{} will now play next yt.".format(self.server.name))
+            await self.add_to_playlist_lock.acquire()
             if len(self.yt_playlist) > 0:
                 self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
                 self.now_playing = self.server.active_player.title
@@ -280,6 +287,7 @@ class Playlist:
                                                    self.server.active_player.duration))
                 self.server.active_player.start()
             self.play_next.clear()
+            self.add_to_playlist_lock.release()
 
     async def should_clear_now_playing(self):
         while not self.client.is_closed:

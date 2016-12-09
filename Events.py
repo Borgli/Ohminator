@@ -128,12 +128,9 @@ async def on_message(message):
             if server.intro_player is not None and server.intro_player.is_playing():
                 # Check if there's something in the playlist
                 if len(server.playlist.yt_playlist) > 0:
-                    player = await server.playlist.add_to_playlist(link, True)
-                    await client.send_message(bot_channel,
-                                              '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                           player.title))
+                    player = await server.playlist.add_to_playlist(link, True, message.author.name)
                 else:
-                    player = await server.playlist.add_to_playlist(link, False)
+                    player = await server.playlist.add_to_playlist(link, False, message.author.name)
                     server.active_player = await player.get_new_player()
                     server.playlist.now_playing = server.active_player.title
                     await client.send_message(bot_channel,
@@ -146,10 +143,7 @@ async def on_message(message):
 
             elif server.active_player is not None and (
                         not server.active_player.is_done() or server.active_player.is_playing()):
-                player = await server.playlist.add_to_playlist(link, True)
-                await client.send_message(bot_channel,
-                                          '{}: {} has been added to the queue.'.format(message.author.name,
-                                                                                       player.title))
+                player = await server.playlist.add_to_playlist(link, True, message.author.name)
             else:
                 # Move to the user's voice channel
                 try:
@@ -163,7 +157,7 @@ async def on_message(message):
                     traceback.print_exc()
                     return
 
-                player = await server.playlist.add_to_playlist(link, False)
+                player = await server.playlist.add_to_playlist(link, False, message.author.name)
                 server.active_player = await player.get_new_player()
                 server.playlist.now_playing = server.active_player.title
                 await client.send_message(bot_channel,

@@ -5,9 +5,11 @@ from os import mkdir, listdir, remove, rename
 import pickle
 import traceback
 import time
+import asyncio
 
 from Member import Member
 from Server import Server
+from PlayButtons import PlayButtons
 import re
 from PlaylistElement import PlaylistElement
 import random
@@ -31,6 +33,7 @@ class Events:
         bot.async_event(on_voice_state_update)
         bot.async_event(on_server_join)
         bot.async_event(on_member_join)
+        bot.async_event(on_reaction_add)
 
 
 def get_server(discord_server):
@@ -705,6 +708,34 @@ async def settings(message, bot_channel):
                                       '{}: The setting {} does not exist.'.format(message.author.name, tokens[2]))
 
 commands["!settings"] = settings
+
+
+async def playbuttons(message, bot_channel):
+    await client.delete_message(message)
+    server = get_server(message.server)
+    lock = asyncio.locks.Lock()
+    await lock.acquire()
+    await client.send_message(message.channel, 'Here are buttons for controlling the playlist.\n'
+                                               'Use reactions to trigger them!')
+    play = await client.send_message(message.channel, 'Play :arrow_forward:')
+    pause = await client.send_message(message.channel, 'Pause :pause_button:')
+    stop = await client.send_message(message.channel, 'Stop :stop_button:')
+    next = await client.send_message(message.channel, 'Next song :track_next:')
+    volume_up = None#await client.send_message(message.channel, 'Next song :track_next:')
+    volume_down = None#await client.send_message(message.channel, 'Next song :track_next:')
+    queue = await client.send_message(message.channel, 'Current queue :notes:')
+    await client.send_message(message.channel, '----------------------------------------')
+    server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
+    #with open('servers/{}/playbuttons.pickle'.format(server.server_loc), 'w+b') as f:
+    #    pickle.dump(server.playbuttons, f)
+    lock.release()
+
+commands["!playbuttons"] = playbuttons
+
+async def on_reaction_add(reaction, user):
+    server = get_server(reaction.message.server)
+    if server.playbuttons is not None:
+        await server.playbuttons.handle_message(reaction.message, server, client)
 
 
 async def on_voice_state_update(before, after):

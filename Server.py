@@ -29,6 +29,12 @@ class Server:
         self.active_player = None
         self.intro_player = None
         self.split_list = list()
+        self.playbuttons = None
+
+        #playbuttons_message = 'servers/{}/playbuttons.pickle'.format(self.server_loc)
+        #if (exists('servers/{}/playbuttons.pickle'.format(self.server_loc))):
+        #    with open(playbuttons_message, 'w+b') as f:
+        #        self.playbuttons = pickle.load(f)
 
         server_pickle = 'servers/{}/server.pickle'.format(self.server_loc)
         if exists(server_pickle):

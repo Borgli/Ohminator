@@ -70,12 +70,12 @@ async def on_ready():
                 new_server.bot_channel = await client.create_channel(server, 'bot-spam')
         print('Done!')
         running = True
-    else:
-        try:
-            for server in server_list:
-                await client.send_message(server.bot_channel, 'Ohminator lost connection to Discord. Back now!')
-        except:
-            traceback.print_exc()
+    #else:
+        #try:
+            #for server in server_list:
+                #await client.send_message(server.bot_channel, 'Ohminator lost connection to Discord. Back now!')
+        #except:
+            #traceback.print_exc()
 
 
 async def on_message(message):
@@ -617,7 +617,7 @@ commands["!team leave"] = leave
 async def split(message, bot_channel):
     await client.delete_message(message)
     try:
-        num_teams = int(message.content[7:])
+        num_teams = int(message.content.split()[1])
     except:
         await client.send_message(bot_channel,
                                   '{}: Invalid parameter for !split. Use number of teams!'.format(message.author.name))
@@ -629,7 +629,7 @@ async def split(message, bot_channel):
         if channel is None:
             channel_list.append(
                 await client.create_channel(message.author.server, 'Team {}'.format(team_number + 1),
-                                            discord.ChannelType.voice))
+                                            type=discord.ChannelType.voice))
         else:
             channel_list.append(channel)
 

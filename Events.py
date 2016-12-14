@@ -145,7 +145,8 @@ async def on_message(message):
                     server.active_player.pause()
 
             elif server.active_player is not None and (
-                        not server.active_player.is_done() or server.active_player.is_playing()):
+                        not server.active_player.is_done() or server.active_player.is_playing()) \
+                    or len(server.playlist.yt_playlist) > 0:
                 player = await server.playlist.add_to_playlist(link, True, message.author.name)
             else:
                 # Move to the user's voice channel

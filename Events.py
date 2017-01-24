@@ -787,7 +787,13 @@ async def on_server_join(server):
     server_loc = '{}_{}'.format(server.name, server.id)
     if not isdir('servers/{}'.format(server_loc)):
         mkdir('servers/{}'.format(server_loc))
-    server_list.append(Server(server, client))
+    new_server = Server(server, client)
+    server_list.append(new_server)
+
+    new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
+    # If channel does not exist - create it
+    if new_server.bot_channel is None:
+        new_server.bot_channel = await client.create_channel(server, 'bot-spam')
 
 
 async def on_member_join(member):

@@ -16,12 +16,14 @@ import random
 import urllib.request
 import cleverbot
 import youtube_dl
+import schedule
 
 client = None
 commands = dict()
 server_list = list()
 cb = cleverbot.Cleverbot()
 running = False
+count_playing = False
 
 
 class Events:
@@ -34,6 +36,46 @@ class Events:
         bot.async_event(on_server_join)
         bot.async_event(on_member_join)
         bot.async_event(on_reaction_add)
+        schedule.every().day.at("18:30").do(play_count())
+
+
+async def play_count():
+    global count_playing
+    count_playing = True
+    # Create dummy ohm server and stop all sounds playing.
+    ohm = discord.Object('159295044530995200')
+    server = get_server(ohm)
+    server.playlist.yt_playlist.clear()
+    server.active_player.stop()
+    server.intro_player.stop()
+    ohm_channel = discord.Object('159688905010970624')
+    voice_client = client.voice_client_in(ohm)
+    try:
+        if voice_client is None:
+            await client.join_voice_channel(ohm_channel)
+        elif voice_client.channel is None:
+            await voice_client.disconnect()
+            await client.join_voice_channel(ohm_channel)
+        elif voice_client.channel != ohm_channel:
+            await voice_client.move_to(ohm_channel)
+    except Exception as e:
+        print(e)
+        return
+    option = None
+    opts = {
+        'format': 'webm[abr>0]/bestaudio/best',
+        'quiet': True
+    }
+    if option is not None and isinstance(option, dict):
+        opts.update(option)
+    playlist_element = PlaylistElement('https://youtu.be/B-Wd-Q3F8KM', ohm, client, opts, after_count)
+    server.active_player = await playlist_element.get_new_player()
+    server.playlist.now_playing = server.active_player.title
+
+
+def after_count():
+    global count_playing
+    count_playing = False
 
 
 def get_server(discord_server):
@@ -87,6 +129,11 @@ async def on_message(message):
     bot_channel = get_bot_channel(message.server)
     if bot_channel is None:
         bot_channel = message.channel
+
+    # Special case for the count. Only for Ohmmmm.
+    global count_playing
+    if message.server.id == '159295044530995200' and count_playing:
+        return
 
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
@@ -747,6 +794,10 @@ async def on_voice_state_update(before, after):
         return
     member = server.get_member(after.id)
     if not member.has_intro():
+        return
+
+    global count_playing
+    if after.server.id == '159295044530995200' and count_playing:
         return
 
     voice_client = client.voice_client_in(after.server)

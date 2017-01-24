@@ -256,12 +256,14 @@ class Playlist:
         entry = entries.pop(0)
         playlist_element = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt)
         playlist_element.set_yt_info(entry["title"])
-        if append:
+        if append and not (playlist_element.title == '[Deleted video]' or playlist_element.title == '[Private video]'):
             self.yt_playlist.append(playlist_element)
 
         for entry in entries:
             p_e = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt)
             title = entry.get('title')
+            if title == '[Deleted video]' or title == '[Private video]':
+                continue
             p_e.set_yt_info(title)
             self.yt_playlist.append(p_e)
 

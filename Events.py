@@ -273,6 +273,45 @@ async def resume(message, bot_channel):
 
 commands["!resume"] = resume
 
+async def volume(message, bot_channel):
+    await client.delete_message(message)
+    server = get_server(message.server)
+    if server.active_player is None or server.active_player.is_done():
+        await client.send_message(bot_channel, '{}: Nothing is playing!'.format(message.author.name))
+    else:
+        parameters = message.content.split()
+        if len(parameters) < 2:
+            current_volume = server.active_player.volume
+        else:
+            try:
+                current_volume = float(parameters[1])/100.0
+            except ValueError:
+                await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
+                return
+
+        if current_volume <= 0.0:
+            icon = ':mute:'
+        elif 0.0 < current_volume < 0.67:
+            icon = ':speaker:'
+        elif 0.66 < current_volume < 1.33:
+            icon = ':sound:'
+        else:
+            icon = ':loud_sound:'
+
+        if len(parameters) < 2:
+            await client.send_message(bot_channel, '{}: {}, the volume for the current track is {}%!'.format(icon, message.author.name, int(current_volume*100.0)))
+        elif parameters[1] == current_volume:
+            await client.send_message(bot_channel, '{}: {}, the volume is already the given value!'.format(icon, message.author.name))
+        else:
+            if current_volume < 0.0:
+                current_volume = 0.0
+            elif current_volume > 2.0:
+                current_volume = 2.0
+            await client.send_message(bot_channel, '{}: {}, the volume was changed from {}% to {}%!'.format(icon, message.author.name, int(server.active_player.volume*100.0), int(current_volume*100.0)))
+            server.active_player.volume = current_volume
+
+commands["!volume"] = volume
+commands["!sv"] = volume
 
 async def skip(message, bot_channel):
     await client.delete_message(message)
@@ -722,8 +761,8 @@ async def playbuttons(message, bot_channel):
     pause = await client.send_message(message.channel, 'Pause :pause_button:')
     stop = await client.send_message(message.channel, 'Stop :stop_button:')
     next = await client.send_message(message.channel, 'Next song :track_next:')
-    volume_up = None#await client.send_message(message.channel, 'Next song :track_next:')
-    volume_down = None#await client.send_message(message.channel, 'Next song :track_next:')
+    volume_up = await client.send_message(message.channel, 'Volume up :heavy_plus_sign:')
+    volume_down = await client.send_message(message.channel, 'Volume down :heavy_minus_sign:')
     queue = await client.send_message(message.channel, 'Current queue :notes:')
     await client.send_message(message.channel, '----------------------------------------')
     server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)

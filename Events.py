@@ -88,6 +88,9 @@ async def on_message(message):
     if bot_channel is None:
         bot_channel = message.channel
 
+    if len(cmd.split()) < 1:
+        return
+
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
         if cmd.lower().split()[0] == key:

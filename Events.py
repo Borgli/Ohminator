@@ -333,7 +333,7 @@ async def delete(message, bot_channel):
     try:
         playlist_element = server.playlist.yt_playlist[index]
         server.playlist.yt_playlist.remove(playlist_element)
-        await client.send_message(bot_channel, "{}: Entry '{}' with index {} was deleted from the queue.".format(playlist_element.title, message.author.name, index+1))
+        await client.send_message(bot_channel, "{}: Entry '{}' with index {} was deleted from the queue.".format(message.author.name, playlist_element.title, index+1))
     except IndexError:
         await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(index+1, message.author.name))
 

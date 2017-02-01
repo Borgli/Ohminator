@@ -41,5 +41,9 @@ class PlayButtons:
                     queue += "And {} {} more...".format(cnt - 30, entry)
                 await client.send_message(server.bot_channel,
                                           'Here is the current queue:\n{}'.format(queue.strip()))
+            elif message.id == self.volume_up.id:
+                server.active_player.volume += 0.2
+            elif message.id == self.volume_down.id:
+                server.active_player.volume -= 0.2
         except:
             traceback.print_exc()

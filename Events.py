@@ -90,7 +90,7 @@ async def on_message(message):
 
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
-        if cmd.lower().startswith(key):
+        if cmd.lower().split()[0] == key:
             await commands[key](message, bot_channel)
             return
 
@@ -312,6 +312,28 @@ async def volume(message, bot_channel):
 
 commands["!volume"] = volume
 commands["!sv"] = volume
+
+
+async def delete(message, bot_channel):
+    await client.delete_message(message)
+    server = get_server(message.server)
+    parameters = message.content.split()
+    try:
+        index = int(parameters[1])
+    except ValueError:
+        await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
+        return
+    except IndexError:
+        await client.send_message(bot_channel, '{}: Please give an index to delete!'.format(message.author.name))
+        return
+
+    try:
+        server.playlist.yt_playlist.remove(server.playlist.yt_playlist[index])
+    except IndexError:
+        await client.send_message(bot_channel, '{}: Given index is out of queue bounds!'.format(message.author.name))
+
+commands["!delete"] = delete
+
 
 async def skip(message, bot_channel):
     await client.delete_message(message)

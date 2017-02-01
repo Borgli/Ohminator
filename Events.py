@@ -319,7 +319,7 @@ async def delete(message, bot_channel):
     server = get_server(message.server)
     parameters = message.content.split()
     try:
-        index = int(parameters[1])
+        index = int(parameters[1]) - 1
     except ValueError:
         await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
         return
@@ -328,9 +328,11 @@ async def delete(message, bot_channel):
         return
 
     try:
-        server.playlist.yt_playlist.remove(server.playlist.yt_playlist[index])
+        playlist_element = server.playlist.yt_playlist[index]
+        server.playlist.yt_playlist.remove(playlist_element)
+        await client.send_message(bot_channel, "{}: Entry '{}' with index {} was deleted from the queue.".format(playlist_element.title, message.author.name, index+1))
     except IndexError:
-        await client.send_message(bot_channel, '{}: Given index is out of queue bounds!'.format(message.author.name))
+        await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(index+1, message.author.name))
 
 commands["!delete"] = delete
 

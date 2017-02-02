@@ -172,8 +172,38 @@ async def vote(message, bot_channel, client):
 async def queue_page(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
-    server.queue_pages = QueuePage(server)
-    await server.queue_pages.print_next_page(client)
+    if len(server.playlist.yt_playlist) == 0:
+        await client.send_message(bot_channel,
+                                  '{}: There is nothing in the queue!'.format(message.author.name))
+        return
+    parameters = message.content.split()
+    try:
+        index = int(parameters[1]) - 1
+        if not 0 <= index < len(server.playlist.yt_playlist):
+            await client.send_message(bot_channel,
+                                      '{}: Index {} is out of queue bounds!'.format(message.author.name, index + 1))
+        else:
+            await print_from_index(index, server, message, client)
+    except ValueError:
+        await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
+    except IndexError:
+        server.queue_pages = QueuePage(server)
+        await server.queue_pages.print_next_page(client)
+
+async def print_from_index(index, server, message, client):
+    play = server.playlist.yt_playlist
+    queue = str()
+    try:
+        for i in range(index, index + 30, 1):
+            votes = ''
+            if len(play[i].vote_list) > 0:
+                votes = ' **[{}]**'.format(len(play[i].vote_list))
+            queue += "{}: {}{}\n".format(i + 1, play[i].title, votes)
+        queue += "Total entries: {}\n".format(len(play))
+    except IndexError:
+        queue += "End of queue!"
+    await client.send_message(server.bot_channel,
+                                             '{}: Here is the current queue from index {}:\n{}'.format(message.author.name, index+1, queue.strip()))
 
 
 class QueuePage:
@@ -196,8 +226,8 @@ class QueuePage:
                 queue += "{}: {}{}\n".format(i+1, play[i].title, votes)
 
             pages_left = math.ceil((len(play)-((self.page_num*30)+29))/30)
+            queue += "Total entries: {}\n".format(len(play))
             if pages_left > 0:
-                queue += "Total entries: {}\n".format(len(play))
                 queue += "There {} {} {} left".format(pages_left == 1 and 'is' or 'are', pages_left, pages_left == 1 and 'page' or 'pages')
         except IndexError:
             queue += "End of queue!"

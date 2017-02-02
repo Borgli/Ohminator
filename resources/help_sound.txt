@@ -6,9 +6,9 @@ List of sound commands:
 !pause                      - Pauses playing sound from the yt player.
 !resume                     - Resumes playing sound from the yt player.
 !skip                       - Skips to the next playing in the queue if one exists.
-!q                          - Lists the playlist queue.
+!q [(index)]                - Lists the playlist queue. Use reactions to scroll in the queue.
 !next                       - Displays the next song in the queue.
-!volume [(volume)]          - Displays and changes the current volume of the current song.
+!volume or !sv [(volume)]   - Displays and changes the current volume of the current song.
 !delete [index]             - Deletes the song with the given index from the playlist queue.
 !vote [index]               - Vote for a song to skip the queue. You can only vote for one song once.
 

@@ -12,6 +12,7 @@ class PlaylistElement:
         self.title = str()
         self.description = str()
         self.duration = 0
+        self.vote_list = list()
 
     def set_yt_info(self, title, duration=None, description=None):
         self.title = title

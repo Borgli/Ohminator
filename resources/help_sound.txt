@@ -1,13 +1,16 @@
 ```Markdown
 List of sound commands:
-!soundhelp                  - Prints out this menu.
+!help sound                 - Prints out this menu.
 !yt [youtube link]          - Plays audio from YouTube or other sources in voice channel of caller.
-!stop or !stahp             - Stops playing sound from the yt player.
+!stop                       - Stops playing sound from the yt player.
 !pause                      - Pauses playing sound from the yt player.
 !resume                     - Resumes playing sound from the yt player.
 !skip                       - Skips to the next playing in the queue if one exists.
 !q                          - Lists the playlist queue.
 !next                       - Displays the next song in the queue.
+!volume [(volume)]          - Displays and changes the current volume of the current song.
+!delete [index]             - Deletes the song with the given index from the playlist queue.
+!vote [index]               - Vote for a song to skip the queue. You can only vote for one song once.
 
 Intro commands:
 !intro [(index)]            - Plays one of your intros at random. Can play intro at given index.

@@ -1,8 +1,7 @@
 import discord
 from random import randint
-from os.path import isdir, exists, realpath
-from os import mkdir, listdir, remove, rename
-import pickle
+from os.path import isdir
+from os import mkdir, listdir
 import traceback
 import time
 import asyncio
@@ -10,18 +9,20 @@ import asyncio
 from Member import Member
 from Server import Server
 from PlayButtons import PlayButtons
-import re
-from PlaylistElement import PlaylistElement
 import random
-import urllib.request
 import cleverbot
 import youtube_dl
 
-client = None
+from utils import get_server, get_bot_channel
+import utils
+
+from audio import volume, pause, stop, resume, next, delete, q, skip, vote
+from intro import intro, introstop, deleteintro, upload, myintros
+
 commands = dict()
-server_list = list()
 cb = cleverbot.Cleverbot()
 running = False
+client = None
 
 
 class Events:
@@ -34,19 +35,6 @@ class Events:
         bot.async_event(on_server_join)
         bot.async_event(on_member_join)
         bot.async_event(on_reaction_add)
-
-
-def get_server(discord_server):
-    for server in server_list:
-        if server.id == discord_server.id:
-            return server
-
-
-def get_bot_channel(message_server):
-    if message_server is None:
-        return None
-    return get_server(message_server).bot_channel
-
 
 async def on_ready():
     print('Logged in as')
@@ -65,7 +53,7 @@ async def on_ready():
             if not isdir('servers/{}'.format(server_loc)):
                 mkdir('servers/{}'.format(server_loc))
             new_server = Server(server, client)
-            server_list.append(new_server)
+            utils.server_list.append(new_server)
 
             new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
             # If channel does not exist - create it
@@ -94,7 +82,7 @@ async def on_message(message):
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
         if cmd.lower().split()[0] == key:
-            await commands[key](message, bot_channel)
+            await commands[key](message, bot_channel, client)
             return
 
     # Commands that require high performance can not be awaited and are therefore implemented here
@@ -232,183 +220,25 @@ async def roll(message, bot_channel):
 
 commands["!roll"] = roll
 
-
-async def stop(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if server.active_player is None or not server.active_player.is_playing():
-        await client.send_message(bot_channel, '{}: No active player to stop!'.format(message.author.name))
-    else:
-        await client.send_message(bot_channel,
-                                  ':stop_button:: {} stopped the player and cleared the queue!'.format(message.author.name))
-        server.playlist.yt_playlist.clear()
-        server.active_player.stop()
-
-
-commands["!stop"] = stop
-
-
-async def pause(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if server.active_player is None:
-        await client.send_message(bot_channel, '{}: Nothing to pause!'.format(message.author.name))
-    elif not server.active_player.is_playing():
-        await client.send_message(bot_channel, '{}: The player is not playing because it was stopped'
-                                               ' or is already paused!'.format(message.author.name))
-    else:
-        await client.send_message(bot_channel, ':pause_button:: {} paused the player!'.format(message.author.name))
-        server.active_player.pause()
-
-
-commands["!pause"] = pause
-
-
-async def resume(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if server.active_player is None or server.active_player.is_done():
-        await client.send_message(bot_channel, '{}: Nothing to resume!'.format(message.author.name))
-    else:
-        await client.send_message(bot_channel, ':arrow_forward:: {} resumed the player!'.format(message.author.name))
-        server.active_player.resume()
-
-
-commands["!resume"] = resume
-
-async def volume(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if server.active_player is None or server.active_player.is_done():
-        await client.send_message(bot_channel, '{}: Nothing is playing!'.format(message.author.name))
-    else:
-        parameters = message.content.split()
-        if len(parameters) < 2:
-            current_volume = server.active_player.volume
-        else:
-            try:
-                current_volume = float(parameters[1])/100.0
-            except ValueError:
-                await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
-                return
-
-        if current_volume <= 0.0:
-            icon = ':mute:'
-        elif 0.0 < current_volume < 0.67:
-            icon = ':speaker:'
-        elif 0.66 < current_volume < 1.33:
-            icon = ':sound:'
-        else:
-            icon = ':loud_sound:'
-
-        if len(parameters) < 2:
-            await client.send_message(bot_channel, '{}: {}, the volume for the current track is {}%!'.format(icon, message.author.name, int(current_volume*100.0)))
-        elif parameters[1] == current_volume:
-            await client.send_message(bot_channel, '{}: {}, the volume is already the given value!'.format(icon, message.author.name))
-        else:
-            if current_volume < 0.0:
-                current_volume = 0.0
-            elif current_volume > 2.0:
-                current_volume = 2.0
-            await client.send_message(bot_channel, '{}: {}, the volume was changed from {}% to {}%!'.format(icon, message.author.name, int(server.active_player.volume*100.0), int(current_volume*100.0)))
-            server.active_player.volume = current_volume
-
+# Audio commands
 commands["!volume"] = volume
 commands["!sv"] = volume
-
-
-async def delete(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    parameters = message.content.split()
-    try:
-        index = int(parameters[1]) - 1
-    except ValueError:
-        await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
-        return
-    except IndexError:
-        await client.send_message(bot_channel, '{}: Please give an index to delete!'.format(message.author.name))
-        return
-
-    try:
-        playlist_element = server.playlist.yt_playlist[index]
-        server.playlist.yt_playlist.remove(playlist_element)
-        await client.send_message(bot_channel, "{}: Entry '{}' with index {} was deleted from the queue.".format(message.author.name, playlist_element.title, index+1))
-    except IndexError:
-        await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(index+1, message.author.name))
-
+commands["!stop"] = stop
+commands["!pause"] = pause
+commands["!resume"] = resume
 commands["!delete"] = delete
-
-
-async def skip(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if server.active_player is None or not server.active_player.is_playing():
-        await client.send_message(bot_channel, '{}: Nothing to skip!'.format(message.author.name))
-    else:
-        await client.send_message(bot_channel, ':track_next:: {} skipped the song!'.format(message.author.name))
-        server.active_player.stop()
-
-
 commands["!skip"] = skip
-
-
-async def q(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if len(server.playlist.yt_playlist) > 0:
-        cnt = 1
-        queue = str()
-        more_entries = False
-        for play in server.playlist.yt_playlist:
-            if cnt <= 30:
-                queue += "{}: {}\n".format(cnt, play.title)
-            else:
-                more_entries = True
-            cnt += 1
-        if more_entries is True:
-            if cnt-30 == 1:
-                entry = 'entry'
-            else:
-                entry = 'entries'
-            queue += "And {} {} more...".format(cnt-30, entry)
-        await client.send_message(bot_channel,
-                                  '{}: Here is the current queue:\n{}'.format(message.author.name, queue.strip()))
-    else:
-        await client.send_message(bot_channel, '{}: There is nothing in the queue!'.format(message.author.name))
-
-
 commands["!q"] = q
 commands["!queue"] = q
-
-
-async def next(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if len(server.playlist.yt_playlist) > 0:
-        await client.send_message(bot_channel,
-                                  '{}: The next song is {}'.format(message.author.name, server.playlist.yt_playlist[
-                                      0].title))
-    else:
-        await client.send_message(bot_channel,
-                                  '{}: There is no next song as the queue is empty!'.format(message.author.name))
-
-
 commands["!next"] = next
+commands["!vote"] = vote
 
-
-async def introstop(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if server.intro_player is None or not server.intro_player.is_playing():
-        await client.send_message(bot_channel, '{}: No active intro to stop!'.format(message.author.name))
-    else:
-        await client.send_message(bot_channel, '{} stopped the intro!'.format(message.author.name))
-        server.intro_player.stop()
-        #print("Intro was stopped!")
-
-
+# Intro commands
 commands["!introstop"] = introstop
+commands["!intro"] = intro
+commands["!myintros"] = myintros
+commands["!deleteintro"] = deleteintro
+commands["!upload"] = upload
 
 async def slot(message, bot_channel):
     await client.delete_message(message)
@@ -459,169 +289,12 @@ async def slot(message, bot_channel):
 
 commands["!slot"] = slot
 
-
-async def intro(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if message.author.voice_channel is None or message.author.voice.is_afk:
-        return
-
-    member = server.get_member(message.author.id)
-    if message.author.name is not None and member.has_intro:
-
-        voice_client = client.voice_client_in(message.author.server)
-        try:
-            if voice_client is None:
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
-            elif voice_client.channel is None:
-                await voice_client.disconnect()
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
-            elif voice_client.channel != message.author.voice_channel:
-                await voice_client.move_to(message.author.voice_channel)
-        except Exception as e:
-            print(e)
-            await client.send_message(bot_channel,
-                                      '{}: Could not connect to voice channel!'.format(message.author.name))
-            return
-
-        if server.active_player is not None and server.active_player.is_playing():
-            server.active_player.pause()
-
-        if server.intro_player is not None and server.intro_player.is_playing():
-            server.intro_player.stop()
-
-        try:
-            intro_list = listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
-            try:
-                given_index = int(message.content[6:])
-                if given_index < 1:
-                    # Because lists in python interprets negative indices as positive ones
-                    # I give the intro index a high number to trigger the IndexError.
-                    intro_index = 256
-                else:
-                    intro_index = given_index - 1
-            except ValueError:
-                intro_index = intro_list.index(random.choice(intro_list))
-
-            try:
-                server.intro_player = voice_client.create_ffmpeg_player(
-                    'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
-                                                             intro_list[intro_index]),
-                    after=server.intro_manager.after_intro)
-            except IndexError:
-                await client.send_message(bot_channel,
-                                          '{}: The given index of {} is out of bounds!'.format(
-                                              message.author.name, given_index))
-                raise IndexError
-            await server.intro_manager.intro_counter_lock.acquire()
-            server.intro_manager.intro_counter += 1
-            server.intro_manager.intro_counter_lock.release()
-            server.intro_player.volume = 0.25
-            server.intro_player.start()
-        except IndexError:
-            pass
-        except NameError:
-            pass
-        except Exception as e:
-            print(e)
-            await client.send_message(bot_channel,
-                                      '{}: Could not play intro!'.format(message.author.name))
-        return
-    else:
-        await client.send_message(bot_channel,
-                                  '{}: You dont have an intro!'.format(message.author.name))
-
-
-commands["!intro"] = intro
-
-
-async def myintros(message, bot_channel):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    member = server.get_member(message.author.id)
-    intro_list = listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
-    intro_print = str()
-    index_cnt = 1
-    for intro in intro_list:
-        intro_print += '\n**[{}]**:\t{}'.format(index_cnt, intro)
-        index_cnt += 1
-    await client.send_message(bot_channel,
-                              '{}: Intro list:{}'.format(message.author.mention, intro_print))
-
-
-commands["!myintros"] = myintros
-
-
-async def deleteintro(message, bot_channel):
-    await client.delete_message(message)
-    try:
-        intro_index = int(message.content[12:])
-        if intro_index < 1 or intro_index > 5:
-            await client.send_message(bot_channel,
-                                      '{}: Index is out of bounds!'.format(message.author.name))
-            return
-    except:
-        await client.send_message(bot_channel,
-                                  '{}: Invalid parameter. Must be the index of the intro to delete!'.format(
-                                      message.author.name))
-        return
-
-    try:
-        server = get_server(message.server)
-        member = server.get_member(message.author.id)
-        intro_list = listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
-        await client.send_message(bot_channel,
-                                  '{}: Deleting intro {} at index {}'.format(
-                                      message.author.name, intro_list[intro_index - 1], intro_index))
-        remove(
-            'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc, intro_list[intro_index - 1]))
-    except:
-        await client.send_message(bot_channel,
-                                  '{}: Could not remove file. No file found at given index.'.format(
-                                      message.author.name))
-        return
-
-
-commands["!deleteintro"] = deleteintro
-
-
-async def upload(message, bot_channel):
-    await client.delete_message(message)
-    url = message.content[8:]
-    try:
-        find_name = re.findall(r'\/([a-zA-z\d]+?.wav).*?$', url)
-        file_name = find_name.pop()
-    except:
-        await client.send_message(bot_channel, '{}: Invalid file.'.format(message.author.name))
-        return
-    server = get_server(message.server)
-    member = server.get_member(message.author.id)
-    intro_list = listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
-    if (len(intro_list) + 1) > 3:
-        await client.send_message(bot_channel,
-                                  '{}: You have reached the maximum number of intros. '
-                                  'Please delete an intro before uploading a new one'.format(
-                                      message.author.name))
-        return
-    url += '?dl=1&pv=1'
-
-    file, header = urllib.request.urlretrieve(url)
-    path = realpath(file)
-    rename(path, 'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc, file_name))
-    await client.send_message(bot_channel, '{}: Upload successful.'.format(message.author.name))
-
-
-commands["!upload"] = upload
-
-
 async def joined(message, bot_channel):
     await client.delete_message(message)
     await client.send_message(bot_channel, '{}: You joined the Ohm server {}!'.format(message.author.name,
                                                                                       message.author.joined_at))
 
-
 commands["!joined"] = joined
-
 
 async def ask(message, bot_channel):
     question = message.content[5:]
@@ -639,7 +312,6 @@ async def ask(message, bot_channel):
 
 
 commands["!ask"] = ask
-
 
 async def suggest(message, bot_channel):
     suggestion = message.content[9:]
@@ -793,8 +465,6 @@ async def playbuttons(message, bot_channel):
     queue = await client.send_message(message.channel, 'Current queue :notes:')
     await client.send_message(message.channel, '----------------------------------------')
     server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
-    #with open('servers/{}/playbuttons.pickle'.format(server.server_loc), 'w+b') as f:
-    #    pickle.dump(server.playbuttons, f)
     lock.release()
 
 commands["!playbuttons"] = playbuttons
@@ -854,7 +524,7 @@ async def on_server_join(server):
     if not isdir('servers/{}'.format(server_loc)):
         mkdir('servers/{}'.format(server_loc))
     new_server = Server(server, client)
-    server_list.append(new_server)
+    utils.server_list.append(new_server)
 
     new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
     # If channel does not exist - create it
@@ -871,5 +541,5 @@ async def on_member_join(member):
 
 
 async def on_resumed():
-    for server in server_list:
+    for server in utils.server_list:
         await client.send_message(server.bot_channel, 'Ohminator lost connection to Discord. Back now!')

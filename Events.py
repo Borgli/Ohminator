@@ -186,7 +186,7 @@ async def on_message(message):
             server.playlist.add_to_playlist_lock.release()
 
 
-async def ping(message, bot_channel):
+async def ping(message, bot_channel, client):
     await client.delete_message(message)
     await client.send_message(bot_channel, 'Pong!')
 
@@ -194,7 +194,7 @@ async def ping(message, bot_channel):
 commands["!ping"] = ping
 
 
-async def help(message, bot_channel):
+async def help(message, bot_channel, client):
     await client.delete_message(message)
     if message.content.lower().startswith('!help sound'):
         help_resource = 'help_sound.txt'
@@ -208,7 +208,7 @@ async def help(message, bot_channel):
 commands["!help"] = help
 
 
-async def roll(message, bot_channel):
+async def roll(message, bot_channel, client):
     try:
         options = message.content.split()
         rand = randint(int(options[1]), int(options[2]))
@@ -240,7 +240,7 @@ commands["!myintros"] = myintros
 commands["!deleteintro"] = deleteintro
 commands["!upload"] = upload
 
-async def slot(message, bot_channel):
+async def slot(message, bot_channel, client):
     await client.delete_message(message)
     if message.channel != bot_channel:
         await client.send_message(message.channel, '{}: Check bot-spam for the result!'.format(message.author.name))
@@ -289,14 +289,14 @@ async def slot(message, bot_channel):
 
 commands["!slot"] = slot
 
-async def joined(message, bot_channel):
+async def joined(message, bot_channel, client):
     await client.delete_message(message)
     await client.send_message(bot_channel, '{}: You joined the Ohm server {}!'.format(message.author.name,
                                                                                       message.author.joined_at))
 
 commands["!joined"] = joined
 
-async def ask(message, bot_channel):
+async def ask(message, bot_channel, client):
     question = message.content[5:]
     try:
         await client.send_message(message.channel, cb.ask(question))
@@ -313,7 +313,7 @@ async def ask(message, bot_channel):
 
 commands["!ask"] = ask
 
-async def suggest(message, bot_channel):
+async def suggest(message, bot_channel, client):
     suggestion = message.content[9:]
     if len(suggestion) < 3:
         await client.send_message(bot_channel,
@@ -331,7 +331,7 @@ async def suggest(message, bot_channel):
 commands["!suggest"] = suggest
 
 
-async def join(message, bot_channel):
+async def join(message, bot_channel, client):
     await client.delete_message(message)
     server = get_server(message.server)
     if message.author not in server.split_list:
@@ -344,7 +344,7 @@ async def join(message, bot_channel):
 commands["!team join"] = join
 
 
-async def leave(message, bot_channel):
+async def leave(message, bot_channel, client):
     await client.delete_message(message)
     server = get_server(message.server)
     server.split_list.remove(message.author)
@@ -356,7 +356,7 @@ async def leave(message, bot_channel):
 commands["!team leave"] = leave
 
 
-async def split(message, bot_channel):
+async def split(message, bot_channel, client):
     await client.delete_message(message)
     try:
         num_teams = int(message.content.split()[1])
@@ -390,7 +390,7 @@ async def split(message, bot_channel):
 commands["!split"] = split
 
 
-async def removeteams(message, bot_channel):
+async def removeteams(message, bot_channel, client):
     await client.delete_message(message)
     team_number = 1
     while True:
@@ -405,7 +405,7 @@ async def removeteams(message, bot_channel):
 commands["!removeteams"] = removeteams
 
 
-async def get_bot_invite(message, bot_channel):
+async def get_bot_invite(message, bot_channel, client):
     await client.delete_message(message)
     permissions = discord.Permissions.all()
     await client.send_message(message.channel,
@@ -416,7 +416,7 @@ async def get_bot_invite(message, bot_channel):
 commands["!getbotinvite"] = get_bot_invite
 
 
-async def settings(message, bot_channel):
+async def settings(message, bot_channel, client):
     await client.delete_message(message)
     tokens = message.content.split()
     if len(tokens) < 2:
@@ -449,7 +449,7 @@ async def settings(message, bot_channel):
 commands["!settings"] = settings
 
 
-async def playbuttons(message, bot_channel):
+async def playbuttons(message, bot_channel, client):
     await client.delete_message(message)
     server = get_server(message.server)
     lock = asyncio.locks.Lock()

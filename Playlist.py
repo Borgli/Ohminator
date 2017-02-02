@@ -46,7 +46,10 @@ class Playlist:
             for play in self.yt_playlist:
                 if cnt > 10:
                     break
-                queue += "**{}**: {}\n".format(cnt, play.title)
+                votes = ''
+                if len(play.vote_list) > 0:
+                    votes = ' **[{}]**'.format(len(play.vote_list))
+                queue += "**{}**: {}{}\n".format(cnt, play.title, votes)
                 cnt += 1
 
             try:

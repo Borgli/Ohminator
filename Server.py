@@ -30,6 +30,7 @@ class Server:
         self.intro_player = None
         self.split_list = list()
         self.playbuttons = None
+        self.queue_pages = None
 
         #playbuttons_message = 'servers/{}/playbuttons.pickle'.format(self.server_loc)
         #if (exists('servers/{}/playbuttons.pickle'.format(self.server_loc))):

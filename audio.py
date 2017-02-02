@@ -1,4 +1,5 @@
 import utils
+import math
 
 async def volume(message, bot_channel, client):
     await client.delete_message(message)
@@ -32,8 +33,8 @@ async def volume(message, bot_channel, client):
         else:
             if current_volume < 0.0:
                 current_volume = 0.0
-            elif current_volume > 2.0:
-                current_volume = 2.0
+            elif current_volume > 0.5:
+                current_volume = 0.5
             await client.send_message(bot_channel, '{}: {}, the volume was changed from {}% to {}%!'.format(icon, message.author.name, int(server.active_player.volume*100.0), int(current_volume*100.0)))
             server.active_player.volume = current_volume
 
@@ -167,3 +168,45 @@ async def vote(message, bot_channel, client):
 
     except IndexError:
         await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(message.author.name, index+1))
+
+async def queue_page(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    server.queue_pages = QueuePage(server)
+    await server.queue_pages.print_next_page(client)
+
+
+class QueuePage:
+    def __init__(self, server):
+        self.page_num = 0
+        self.server = server
+        self.message = None
+        self.end = False
+
+    async def print_next_page(self, client):
+        if self.end:
+            return
+        play = self.server.playlist.yt_playlist
+        queue = str()
+        try:
+            for i in range(self.page_num*30, (self.page_num*30)+30, 1):
+                votes = ''
+                if len(play[i].vote_list) > 0:
+                    votes = ' **[{}]**'.format(len(play[i].vote_list))
+                queue += "{}: {}{}\n".format(i+1, play[i].title, votes)
+
+            pages_left = math.ceil((len(play)-((self.page_num*30)+29))/30)
+            if pages_left > 0:
+                queue += "Total entries: {}\n".format(len(play))
+                queue += "There {} {} {} left".format(pages_left == 1 and 'is' or 'are', pages_left, pages_left == 1 and 'page' or 'pages')
+        except IndexError:
+            queue += "End of queue!"
+            self.end = True
+
+        self.page_num += 1
+        if self.message is None:
+            self.message = await client.send_message(self.server.bot_channel,
+                                      'Here is the current queue:\n{}'.format(queue.strip()))
+        else:
+            await client.edit_message(self.message,
+                                          'Here is the current queue:\n{}'.format(queue.strip()))

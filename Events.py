@@ -16,7 +16,7 @@ import youtube_dl
 from utils import get_server, get_bot_channel
 import utils
 
-from audio import volume, pause, stop, resume, next, delete, q, skip, vote
+from audio import volume, pause, stop, resume, next, delete, q, skip, vote, queue_page
 from intro import intro, introstop, deleteintro, upload, myintros
 
 commands = dict()
@@ -228,10 +228,11 @@ commands["!pause"] = pause
 commands["!resume"] = resume
 commands["!delete"] = delete
 commands["!skip"] = skip
-commands["!q"] = q
+commands["!q"] = queue_page
 commands["!queue"] = q
 commands["!next"] = next
 commands["!vote"] = vote
+commands["!queuepage"] = queue_page
 
 # Intro commands
 commands["!introstop"] = introstop
@@ -473,6 +474,10 @@ async def on_reaction_add(reaction, user):
     server = get_server(reaction.message.server)
     if server.playbuttons is not None:
         await server.playbuttons.handle_message(reaction.message, server, client)
+
+    if server.queue_pages is not None:
+        if reaction.message.id == server.queue_pages.message.id:
+            await server.queue_pages.print_next_page(client)
 
 
 async def on_voice_state_update(before, after):

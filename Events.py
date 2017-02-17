@@ -16,8 +16,8 @@ import youtube_dl
 from utils import get_server, get_bot_channel
 import utils
 
-from audio import volume, pause, stop, resume, next, delete, q, skip, vote, queue_page
-from intro import intro, introstop, deleteintro, upload, myintros
+from audio import *
+from intro import *
 
 commands = dict()
 cb = cleverbot.Cleverbot()

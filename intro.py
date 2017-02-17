@@ -4,6 +4,7 @@ import random
 import re
 import urllib.request
 import os.path
+import shutil
 
 async def introstop(message, bot_channel, client):
     await client.delete_message(message)
@@ -128,7 +129,7 @@ async def deleteintro(message, bot_channel, client):
                                       message.author.name))
         return
 
-async def upload(message, bot_channel, client):
+async def old_upload(message, bot_channel, client):
     await client.delete_message(message)
     url = message.content[8:]
     try:
@@ -152,3 +153,34 @@ async def upload(message, bot_channel, client):
     path = os.path.realpath(file)
     os.rename(path, 'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc, file_name))
     await client.send_message(bot_channel, '{}: Upload successful.'.format(message.author.name))
+
+async def upload(message, bot_channel, client):
+    if len(message.attachments) > 0:
+        try:
+            # regex function checks if the file is a file ending with .wav or .mp3
+            find_name = re.findall(r'([a-zA-Z\d_ .]+?.(?:wav|mpg))$', message.attachments[0]["filename"])
+            file_name = find_name.pop()
+        except IndexError:
+            await client.send_message(bot_channel, '{}: Invalid file or file format. Must be .wav or .mpg.'.format(message.author.name))
+            return
+
+        server = utils.get_server(message.server)
+        member = server.get_member(message.author.id)
+        intro_list = os.listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
+        if (len(intro_list) + 1) > 3:
+            await client.send_message(bot_channel,
+                                      '{}: You have reached the maximum number of intros. '
+                                      'Please delete an intro before uploading a new one'.format(
+                                          message.author.name))
+            return
+
+        req = urllib.request.Request(message.attachments[0]["url"], headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(message.attachments[0]["filename"], 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+        path = os.path.realpath(message.attachments[0]["filename"])
+        os.rename(path, 'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc, message.attachments[0]["filename"]))
+        #TODO: Fix restrictions and check for valid file
+        await client.delete_message(message)
+        await client.send_message(bot_channel, '{}: Upload successful.'.format(message.author.name))
+    else:
+        await client.send_message(bot_channel, '{}: Please use this command while uploading a file to discord.'.format(message.author.name))

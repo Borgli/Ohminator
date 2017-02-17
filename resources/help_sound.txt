@@ -17,7 +17,6 @@ Intro commands:
 !introstop                  - Stops playing the currently playing intro.
 !myintros                   - Lists all of your intros.
 !deleteintro [index]        - Deletes intro at given index.
-!upload [url]               - Uploads a intro. File must be .wav and must be downloaded from Dropbox.
-The url must end on .wav. Ending with ?dl=0 is not acceptable.
-Example: https://www.dropbox.com/s/znt5tt3xe9vl8su/kekkk.wav
+!upload                     - Uploads a intro. File must use the wav or mp3 file format.
+                              Upload the file through Discord and put the command as the comment.
 ```

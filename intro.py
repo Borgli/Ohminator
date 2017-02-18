@@ -158,10 +158,10 @@ async def upload(message, bot_channel, client):
     if len(message.attachments) > 0:
         try:
             # regex function checks if the file is a file ending with .wav or .mp3
-            find_name = re.findall(r'([a-zA-Z\d_ .]+?.(?:wav|mpg))$', message.attachments[0]["filename"])
+            find_name = re.findall(r'([a-zA-Z\d_ .]+?.(?:wav|mp3))$', message.attachments[0]["filename"])
             file_name = find_name.pop()
         except IndexError:
-            await client.send_message(bot_channel, '{}: Invalid file or file format. Must be .wav or .mpg.'.format(message.author.name))
+            await client.send_message(bot_channel, '{}: Invalid file or file format. Must be .wav or .mp3.'.format(message.author.name))
             return
 
         server = utils.get_server(message.server)

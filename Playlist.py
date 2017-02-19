@@ -209,24 +209,24 @@ class Playlist:
         option = self.get_options(link)
         opts = {
             'format': 'webm[abr>0]/bestaudio/best',
-            'quiet': True
+            'quiet': True,
+            'logger': MyLogger()
         }
         if option is not None and isinstance(option, dict):
             opts.update(option)
 
+        ydl = youtube_dl.YoutubeDL(opts)
         try:
-            if re.fullmatch(r'https?://(www.youtube.com|youtu.be)/\S+', link) is None:
-                link = 'ytsearch:{}'.format(link)
-                ydl = youtube_dl.YoutubeDL(opts)
+            func = functools.partial(ydl.extract_info, link, download=False, process=False)
+            info = await self.client.loop.run_in_executor(None, func)
+        except youtube_dl.DownloadError as e:
+            link = 'ytsearch:{}'.format(link)
+            try:
                 # Process = True to recieve titles
                 func = functools.partial(ydl.extract_info, link, download=False, process=True)
                 info = await self.client.loop.run_in_executor(None, func)
-            else:
-                ydl = youtube_dl.YoutubeDL(opts)
-                func = functools.partial(ydl.extract_info, link, download=False, process=False)
-                info = await self.client.loop.run_in_executor(None, func)
-        except:
-            raise
+            except:
+                raise
 
         playlist_element = None
         if "entries" in info:
@@ -299,3 +299,15 @@ class Playlist:
             await self.clear_now_playing.wait()
             self.now_playing = ""
             self.clear_now_playing.clear()
+
+
+# The sole purpose of this class is to suppress output from youtube-dl
+class MyLogger(object):
+    def debug(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        pass

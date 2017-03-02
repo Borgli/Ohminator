@@ -163,7 +163,8 @@ class Playlist:
                     if f.response.status == 400:
                         if pickle_loc is not None:
                             remove(pickle_loc)
-                        traceback.print_exc()
+                        else:
+                            traceback.print_exc()
                     elif f.response.status == 500:
                         # INTERNAL SERVER ERROR
                         print("Internal server errror on server {}".format(self.server.name))
@@ -216,16 +217,28 @@ class Playlist:
             opts.update(option)
 
         ydl = youtube_dl.YoutubeDL(opts)
+
         try:
+            # Case number 1: The link is any URL
             func = functools.partial(ydl.extract_info, link, download=False, process=False)
             info = await self.client.loop.run_in_executor(None, func)
         except youtube_dl.DownloadError as e:
-            link = 'ytsearch:{}'.format(link)
-            try:
-                # Process = True to recieve titles
-                func = functools.partial(ydl.extract_info, link, download=False, process=True)
-                info = await self.client.loop.run_in_executor(None, func)
-            except:
+            # Case number 2: The link is a search link
+            if not re.fullmatch(r'https?://(www.youtube.com|youtu.be)/\S+', link):
+                link = 'ytsearch:{}'.format(link)
+                try:
+                    # Process = True to recieve titles
+                    func = functools.partial(ydl.extract_info, link, download=False, process=True)
+                    info = await self.client.loop.run_in_executor(None, func)
+                except:
+                    raise
+            else:
+                # Case number 3: The link is broken
+                try:
+                    await self.client.send_message(self.server.bot_channel,
+                                                   '{}: Sorry! {}'.format(name, e.exc_info[1].args[0]))
+                except IndexError:
+                    pass
                 raise
 
         playlist_element = None
@@ -284,7 +297,15 @@ class Playlist:
             # print("{} will now play next yt.".format(self.server.name))
             await self.add_to_playlist_lock.acquire()
             if len(self.yt_playlist) > 0:
-                self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
+                while True:
+                    if len(self.yt_playlist) <= 0:
+                        self.play_next.clear()
+                        self.add_to_playlist_lock.release()
+                        return
+                    self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
+                    if self.server.active_player is not None:
+                        break
+
                 self.now_playing = self.server.active_player.title
                 await self.client.send_message(self.server.bot_channel,
                                                'Now playing: {}\nIt is {} seconds long'.format(

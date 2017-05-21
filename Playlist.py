@@ -114,6 +114,9 @@ class Playlist:
                 remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
                 self.pinned_message_bot_spam = None
                 traceback.print_exc()
+            except discord.errors.Forbidden as f:
+                print("Missing privilege post to channel {} on server {}".format(self.pinned_message_bot_spam.channel,
+                                                                                 self.server.name))
             except discord.errors.HTTPException as f:
                 if f.response.status == 400:
                     remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))

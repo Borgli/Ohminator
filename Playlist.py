@@ -99,7 +99,7 @@ class Playlist:
                         current_time = int((time.time()-player.start_time))
                         end_time = player.duration
                         progress_step = int(math.ceil((((current_time/end_time)*100)/10)))
-                        white_space = "" + (' '*(10-progress_step))
+                        white_space = "<" + ('='*(10-progress_step))
                         progress_bar = "" + ('='*progress_step) + ">" + white_space + ""
                         m, s = divmod(current_time, 60)
                         h, m = divmod(m, 60)

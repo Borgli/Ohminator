@@ -126,6 +126,7 @@ async def on_message(message):
                 else:
                     player = await server.playlist.add_to_playlist(link, False, message.author.name)
                     server.active_player = await player.get_new_player()
+                    server.active_playlist_element = player
                     server.playlist.now_playing = server.active_player.title
                     await client.send_message(bot_channel,
                                               '{}: \nNow playing: {}\nIt is {} seconds long'.format(
@@ -154,6 +155,7 @@ async def on_message(message):
 
                 player = await server.playlist.add_to_playlist(link, False, message.author.name)
                 server.active_player = await player.get_new_player()
+                server.active_playlist_element = player
                 server.playlist.now_playing = server.active_player.title
                 await client.send_message(bot_channel,
                                           '{}: \nNow playing: {}\nIt is {} seconds long'.format(

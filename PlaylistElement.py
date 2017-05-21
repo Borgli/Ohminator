@@ -1,5 +1,7 @@
 import youtube_dl
 import functools
+import time
+import discord.voice_client
 
 
 class PlaylistElement:
@@ -13,6 +15,9 @@ class PlaylistElement:
         self.description = str()
         self.duration = 0
         self.vote_list = list()
+        self.start_time = 0
+        self.pause_time = 0
+        self.player = None
 
     def set_yt_info(self, title, duration=None, description=None):
         self.title = title
@@ -32,7 +37,9 @@ class PlaylistElement:
             player = await voice_client.create_ytdl_player(self.link, options=self.option, after=self.after_yt, ytdl_options={'quiet':True})
         except:
             return None
+        self.player = player
         self.title = player.title
         self.duration = player.duration
+        self.start_time = time.time()
         player.volume = 0.25
         return player

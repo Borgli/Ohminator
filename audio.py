@@ -1,3 +1,5 @@
+import time
+
 import utils
 import math
 
@@ -59,6 +61,7 @@ async def pause(message, bot_channel, client):
                                                ' or is already paused!'.format(message.author.name))
     else:
         await client.send_message(bot_channel, ':pause_button:: {} paused the player!'.format(message.author.name))
+        server.active_playlist_element.pause_time = time.time()
         server.active_player.pause()
 
 async def resume(message, bot_channel, client):
@@ -68,6 +71,7 @@ async def resume(message, bot_channel, client):
         await client.send_message(bot_channel, '{}: Nothing to resume!'.format(message.author.name))
     else:
         await client.send_message(bot_channel, ':arrow_forward:: {} resumed the player!'.format(message.author.name))
+        server.active_playlist_element.start_time += (server.active_playlist_element.pause_time-server.active_playlist_element.start_time)
         server.active_player.resume()
 
 

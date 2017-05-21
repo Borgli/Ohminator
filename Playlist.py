@@ -11,6 +11,8 @@ import youtube_dl
 import functools
 import logging
 import traceback
+import time
+import math
 
 
 class Playlist:
@@ -38,7 +40,7 @@ class Playlist:
 
     async def manage_pinned_messages(self):
         await self.client.wait_until_ready()
-        await asyncio.sleep(3, loop=self.client.loop)
+        await asyncio.sleep(1, loop=self.client.loop)
         while not self.client.is_closed:
             # Constructing the queue string
             cnt = 1
@@ -80,6 +82,7 @@ class Playlist:
                     # Pin the message
                     await self.client.pin_message(self.pinned_message_bot_spam)
 
+                player = self.server.active_playlist_element
                 # Edit the content of the message with the current playlist info
                 if self.server.active_player is not None and not self.server.active_player.is_playing() \
                         and not self.server.active_player.is_done():
@@ -88,9 +91,25 @@ class Playlist:
                                                                                  '**Current queue:**\n{}\n'.format(
                                                                                     self.now_playing, queue.strip()))
                 else:
-                    await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
-                                                                                 '**Current queue:**\n{}\n'.format(
-                                                                                    self.now_playing, queue.strip()))
+                    if player is None or self.server.active_player.is_done():
+                        await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
+                                                                                     '**Current queue:**\n{}\n'.format(
+                            self.now_playing, queue.strip()))
+                    else:
+                        current_time = int((time.time()-player.start_time))
+                        end_time = player.duration
+                        progress_step = int(math.ceil((((current_time/end_time)*100)/10)))
+                        white_space = "" + (' '*(10-progress_step))
+                        progress_bar = "" + ('='*progress_step) + ">" + white_space + ""
+                        m, s = divmod(current_time, 60)
+                        h, m = divmod(m, 60)
+                        current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m, s if s>9 else "0"+ str(s))
+                        m, s = divmod(end_time, 60)
+                        h, m = divmod(m, 60)
+                        end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m, s if s>9 else "0"+ str(s))
+                        await self.client.edit_message(self.pinned_message_bot_spam, '`[{}][{}][{}]`\n**Now playing:** {}\n'
+                                                                                     '**Current queue:**\n{}\n'.format(
+                                                                                        current_time, progress_bar, end_time, self.now_playing, queue.strip()))
             except (ValueError, AttributeError) as f:
                 remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
                 self.pinned_message_bot_spam = None
@@ -177,7 +196,7 @@ class Playlist:
                     traceback.print_exc()
                     await asyncio.sleep(60, loop=self.client.loop)
             # 3 second intervals
-            await asyncio.sleep(3, loop=self.client.loop)
+            await asyncio.sleep(0.5, loop=self.client.loop)
 
     def get_options(self, link):
         try:
@@ -302,7 +321,9 @@ class Playlist:
                         self.play_next.clear()
                         self.add_to_playlist_lock.release()
                         return
-                    self.server.active_player = await self.yt_playlist.pop(0).get_new_player()
+                    player = self.yt_playlist.pop(0)
+                    self.server.active_player = await player.get_new_player()
+                    self.server.active_playlist_element = player
                     if self.server.active_player is not None:
                         break
 

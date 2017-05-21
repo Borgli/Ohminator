@@ -27,6 +27,7 @@ class Server:
         self.playlist = None
         self.intro_manager = None
         self.active_player = None
+        self.active_playlist_element = None
         self.intro_player = None
         self.split_list = list()
         self.playbuttons = None

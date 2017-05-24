@@ -18,6 +18,7 @@ import utils
 
 from audio import *
 from intro import *
+from admin import *
 
 commands = dict()
 cb = cleverbot.Cleverbot()
@@ -545,6 +546,13 @@ async def on_member_join(member):
     if not isdir('servers/{}/members/{}'.format(server.server_loc, member_loc)):
         mkdir('servers/{}/members/{}'.format(server.server_loc, member_loc))
     server.member_list.append(Member(client, server, member))
+    if member.server.id == "159295044530995200":
+        await assign_default_role(client, member, "Faggot")
+    await notify_of_joining_person(client, member)
+
+
+async def on_member_remove(member):
+    await notify_of_leaving_person(client, member)
 
 
 async def on_resumed():

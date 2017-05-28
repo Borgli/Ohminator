@@ -118,6 +118,9 @@ async def on_message(message):
         # Case three: Nothing is playing, so we just start playing the song
         server = get_server(message.server)
         await server.playlist.add_to_playlist_lock.acquire()
+        if server.active_tts:
+            server.active_tts.stop()
+            server.tts_queue.clear()
         try:
             # Must check if intro is already playing
             if server.intro_player is not None and server.intro_player.is_playing():
@@ -224,6 +227,7 @@ async def roll(message, bot_channel, client):
 commands["!roll"] = roll
 
 # Audio commands
+commands["!tts"] = text_to_speech
 commands["!volume"] = volume
 commands["!sv"] = volume
 commands["!stop"] = stop
@@ -505,6 +509,10 @@ async def on_voice_state_update(before, after):
     except Exception as e:
         print(e)
         return
+
+    if server.active_tts:
+        server.active_tts.stop()
+        server.tts_queue.clear()
 
     if server.active_player is not None and server.active_player.is_playing():
         server.active_player.pause()

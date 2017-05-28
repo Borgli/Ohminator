@@ -1,7 +1,99 @@
 import time
+import traceback
 
+from gtts import gTTS
 import utils
 import math
+import discord
+from tempfile import TemporaryFile, mkstemp
+import os
+
+async def text_to_speech(message, bot_channel, client):
+    await client.delete_message(message)
+    text = message.content[5:]
+    server = utils.get_server(message.server)
+    if not server.next_tts_created:
+        client.loop.create_task(play_next_tts(server, client))
+        server.next_tts_created = True
+    await server.playlist.add_to_playlist_lock.acquire()
+    if message.author.voice_channel is None or message.author.voice.is_afk:
+        await client.send_message(bot_channel,
+                                  '{}: Please join a voice channel to use text-to-speech!'.format(
+                                      message.author.name))
+        return
+    try:
+
+        if len(server.tts_queue) > 0 or (server.active_tts is not None and server.active_tts.is_playing()):
+            server.tts_queue.append(text)
+            return
+
+        if (server.intro_player is not None and server.intro_player.is_playing()) or (server.active_player is not None
+            and (not server.active_player.is_done() or server.active_player.is_playing())):
+            server.tts_queue.clear()
+            return
+
+        tts = gTTS(text=text, lang='no')
+        voice_client = client.voice_client_in(message.server)
+        try:
+            if voice_client is None:
+                voice_client = await client.join_voice_channel(message.author.voice_channel)
+            elif voice_client.channel is None:
+                await voice_client.disconnect()
+                voice_client = await client.join_voice_channel(message.author.voice_channel)
+        except:
+            await client.send_message(bot_channel,
+                                      '{}: Could not connect to voice channel!'.format(message.author.name))
+            traceback.print_exc()
+            return
+
+        fd, filename = mkstemp()
+
+        def after_tts():
+            client.loop.call_soon_threadsafe(server.next_tts.set)
+            os.remove(filename)
+
+        tts.save(filename)
+        server.active_tts = voice_client.create_ffmpeg_player(filename, after=after_tts)
+        server.active_tts.start()
+    finally:
+        server.playlist.add_to_playlist_lock.release()
+
+async def play_next_tts(server, client):
+    while not client.is_closed:
+        await server.next_tts.wait()
+        await server.playlist.add_to_playlist_lock.acquire()
+        if (server.intro_player is not None and server.intro_player.is_playing()) or (server.active_player is not None
+            and (not server.active_player.is_done() or server.active_player.is_playing())):
+            server.tts_queue.clear()
+        else:
+            if len(server.tts_queue) > 0:
+                something_to_play = False
+                while True:
+                    if len(server.tts_queue) <= 0:
+                        server.next_tts.clear()
+                        server.playlist.add_to_playlist_lock.release()
+                        break
+                    text = server.tts_queue.pop(0)
+                    tts = gTTS(text=text, lang='no')
+
+                    fd, filename = mkstemp()
+
+                    def after_tts():
+                        server.tts_queue.pop(0)
+                        client.loop.call_soon_threadsafe(server.next_tts.set)
+                        os.remove(filename)
+
+                    tts.save(filename)
+                    voice_client = client.voice_client_in(server.discord_server)
+                    server.active_tts = voice_client.create_ffmpeg_player(filename, after=after_tts)
+                    if server.active_tts:
+                        something_to_play = True
+                        break
+                if something_to_play:
+                    server.active_tts.start()
+        server.next_tts.clear()
+        server.playlist.add_to_playlist_lock.release()
+
 
 async def volume(message, bot_channel, client):
     await client.delete_message(message)

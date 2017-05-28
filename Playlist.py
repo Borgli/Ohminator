@@ -319,23 +319,25 @@ class Playlist:
             # print("{} will now play next yt.".format(self.server.name))
             await self.add_to_playlist_lock.acquire()
             if len(self.yt_playlist) > 0:
+                something_to_play = False
                 while True:
                     if len(self.yt_playlist) <= 0:
                         self.play_next.clear()
                         self.add_to_playlist_lock.release()
-                        return
+                        break
                     player = self.yt_playlist.pop(0)
                     self.server.active_player = await player.get_new_player()
                     self.server.active_playlist_element = player
                     if self.server.active_player is not None:
+                        something_to_play = True
                         break
-
-                self.now_playing = self.server.active_player.title
-                await self.client.send_message(self.server.bot_channel,
-                                               'Now playing: {}\nIt is {} seconds long'.format(
-                                                   self.server.active_player.title,
-                                                   self.server.active_player.duration))
-                self.server.active_player.start()
+                if something_to_play:
+                    self.now_playing = self.server.active_player.title
+                    await self.client.send_message(self.server.bot_channel,
+                                                   'Now playing: {}\nIt is {} seconds long'.format(
+                                                       self.server.active_player.title,
+                                                       self.server.active_player.duration))
+                    self.server.active_player.start()
             self.play_next.clear()
             self.add_to_playlist_lock.release()
 

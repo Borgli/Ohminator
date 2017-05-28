@@ -32,6 +32,10 @@ class Server:
         self.split_list = list()
         self.playbuttons = None
         self.queue_pages = None
+        self.tts_queue = list()
+        self.next_tts = asyncio.Event()
+        self.next_tts_created = False
+        self.active_tts = None
 
         #playbuttons_message = 'servers/{}/playbuttons.pickle'.format(self.server_loc)
         #if (exists('servers/{}/playbuttons.pickle'.format(self.server_loc))):

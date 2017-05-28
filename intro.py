@@ -39,6 +39,10 @@ async def intro(message, bot_channel, client):
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
             return
 
+        if server.active_tts:
+            server.active_tts.stop()
+            server.tts_queue.clear()
+
         if server.active_player is not None and server.active_player.is_playing():
             server.active_player.pause()
 

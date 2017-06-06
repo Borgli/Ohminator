@@ -9,7 +9,7 @@ from Playlist import Playlist
 from IntroManager import IntroManager
 import discord
 from Channel import Channel
-
+from settings import ServerSettings
 
 class Server:
     def __init__(self, discord_server: discord.Server, client: discord.Client):
@@ -48,6 +48,17 @@ class Server:
             with open(server_pickle, 'r+b') as f:
                 pass
 
+        # Handle server settings
+        self.settings_pickle = 'servers/{}/settings.pickle'.format(self.server_loc)
+        if exists(self.settings_pickle):
+            # Load settings
+            with open(self.settings_pickle, 'r+b') as f:
+                self.settings = pickle.load(f)
+        else:
+            self.settings = ServerSettings()
+            with open(self.settings_pickle, 'w+b') as f:
+                pickle.dump(self.settings, f)
+
         # Create members folder if it doesn't exist
         if not exists('servers/{}/members'.format(self.server_loc)):
             mkdir('servers/{}/members'.format(self.server_loc))
@@ -72,6 +83,15 @@ class Server:
 
         self.playlist = Playlist(client, self)
         self.intro_manager = IntroManager(client, self)
+
+    def change_settings(self, in_settings):
+        for setting, value in in_settings.items():
+            setattr(self.settings, setting, value)
+            with open(self.settings_pickle, 'w+b') as f:
+                pickle.dump(self.settings, f)
+
+    def list_settings(self):
+        return self.settings.__dict__
 
     def get_member(self, id):
         for member in self.member_list:

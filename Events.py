@@ -228,6 +228,7 @@ commands["!roll"] = roll
 
 # Audio commands
 commands["!tts"] = text_to_speech
+commands["!say"] = text_to_speech
 commands["!volume"] = volume
 commands["!sv"] = volume
 commands["!stop"] = stop
@@ -433,21 +434,24 @@ async def settings(message, bot_channel, client):
                                   ' [value to change to])]'.format(message.author.name))
         return
     server = get_server(message.server)
-    channel = server.get_channel(tokens[1])
+    if tokens[1] == message.server.id:
+        settings_source = server
+    else:
+        settings_source = server.get_channel(tokens[1])
     if len(tokens) < 3:
         # No other arguments -> list all settings for given channel
-        settings_str = "Settings for channel {}:".format(channel.name)
-        for key, val in channel.list_settings().items():
+        settings_str = "Settings for {} {}:".format("server" if settings_source == server else "channel", settings_source.name)
+        for key, val in settings_source.list_settings().items():
             settings_str += "\n{}: {}".format(key, val)
         await client.send_message(message.channel,
                                   '{}: {}'.format(message.author.name, settings_str))
     elif len(tokens) < 4:
         await client.send_message(message.channel,
-                                  '{}: Usage !settings [client name or id] [([permission to change]'
+                                  '{}: Usage !settings [client/server name or id] [([permission to change]'
                                   ' [value to change to])]'.format(message.author.name))
     else:
-        if tokens[2] in channel.list_settings().keys():
-            channel.change_settings({tokens[2] : tokens[3]})
+        if tokens[2] in settings_source.list_settings().keys():
+            settings_source.change_settings({tokens[2] : tokens[3]})
             await client.send_message(message.channel,
                                       '{}: The setting {} har been changed to {}.'.format(message.author.name, tokens[2], tokens[3]))
         else:

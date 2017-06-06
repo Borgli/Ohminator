@@ -31,8 +31,13 @@ async def text_to_speech(message, bot_channel, client):
             and (not server.active_player.is_done() or server.active_player.is_playing())):
             server.tts_queue.clear()
             return
-
-        tts = gTTS(text=text, lang='no')
+        try:
+            tts = gTTS(text=text, lang=server.settings.tts_language)
+        except:
+            traceback.print_exc()
+            await client.send_message(bot_channel,
+                                      '{}: Language setting is not a valid setting! Please fix.'.format(message.author.name))
+            return
         voice_client = client.voice_client_in(message.server)
         try:
             if voice_client is None:
@@ -74,7 +79,10 @@ async def play_next_tts(server, client):
                         server.playlist.add_to_playlist_lock.release()
                         break
                     text = server.tts_queue.pop(0)
-                    tts = gTTS(text=text, lang='no')
+                    try:
+                        tts = gTTS(text=text, lang=server.settings.tts_language)
+                    except:
+                        continue
 
                     fd, filename = mkstemp()
 

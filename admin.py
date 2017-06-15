@@ -2,7 +2,7 @@ from utils import *
 
 
 async def assign_default_role(client, member, role_name):
-    await client.add_roles(member, filter(lambda k: k.name == role_name, member.server.roles))
+    await client.add_roles(member, list(filter(lambda k: k.name == role_name, member.server.roles)))
 
 
 async def notify_of_leaving_person(client, member):

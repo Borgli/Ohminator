@@ -5,6 +5,8 @@ from os import mkdir, listdir
 import traceback
 import time
 import asyncio
+import urllib
+import re
 
 from Member import Member
 from Server import Server
@@ -12,6 +14,7 @@ from PlayButtons import PlayButtons
 import random
 import cleverbot
 import youtube_dl
+import steamapi
 
 from utils import get_server, get_bot_channel
 import utils
@@ -480,6 +483,39 @@ async def playbuttons(message, bot_channel, client):
     lock.release()
 
 commands["!playbuttons"] = playbuttons
+
+async def sharedgames(message, bot_channel, client):
+    await client.delete_message(message)
+    content = message.content.split()
+    users = content[1:]
+    api_interface = steamapi.core.APIConnection(api_key="BDCD48F7FF3046773D26D94F742B0B54", validate_key=True)
+    sharedgames_list = list()
+    first_injection = True
+    for user in users:
+        print(user)
+        steam_user = steamapi.user.SteamUser(userurl=user)
+        #await client.send_message(message.channel, "For user {} found {}".format(user, steam_user.name))
+        #await client.send_message(message.channel, "User has recently played: {}".format(steam_user.recently_played))
+        if first_injection:
+            sharedgames_list = list(steam_user.recently_played)
+            first_injection = False
+        else:
+            sharedgames_list_temp = list()
+            for game in steam_user.recently_played:
+                if game in sharedgames_list:
+                    sharedgames_list_temp.append(game)
+            sharedgames_list = sharedgames_list_temp
+
+    sharedgames_list_temp = list()
+    for game in sharedgames_list:
+        url = urllib.request.get("http://store.steampowered.com/app/{}".format(game.appid)).content
+        if (re.search(">Multi-player</a>", url)):
+            sharedgames_list_temp.append(game.appid)
+    sharedgames_list = sharedgames_list_temp
+
+    await client.send_message(message.channel, "Users share these games: {}".format(sharedgames_list))
+
+commands["!sharedgames"] = sharedgames
 
 async def on_reaction_add(reaction, user):
     server = get_server(reaction.message.server)

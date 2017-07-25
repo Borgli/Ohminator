@@ -1,3 +1,5 @@
+import threading
+
 import discord
 from random import randint
 from os.path import isdir
@@ -5,7 +7,7 @@ from os import mkdir, listdir
 import traceback
 import time
 import asyncio
-import urllib
+import urllib.request
 import re
 
 from Member import Member
@@ -489,31 +491,64 @@ async def sharedgames(message, bot_channel, client):
     content = message.content.split()
     users = content[1:]
     api_interface = steamapi.core.APIConnection(api_key="BDCD48F7FF3046773D26D94F742B0B54", validate_key=True)
+
+    class SharedGame:
+        def __init__(self, game):
+            self.game = game
+            self.total_playtime_forever = game.playtime_forever
+
+        def add_together_playtime(self, game):
+            self.total_playtime_forever += game.playtime_forever
+            return self
+
     sharedgames_list = list()
     first_injection = True
+    user_string = str()
+    print("Starting user game list retrieval...")
+    start = time.time()
     for user in users:
-        print(user)
-        steam_user = steamapi.user.SteamUser(userurl=user)
-        #await client.send_message(message.channel, "For user {} found {}".format(user, steam_user.name))
-        #await client.send_message(message.channel, "User has recently played: {}".format(steam_user.recently_played))
+        try:
+            steam_user = steamapi.user.SteamUser(userurl=user)
+        except steamapi.errors.UserNotFoundError:
+            continue
+        user_string += "**{}**, ".format(steam_user.name)
+        games = steam_user.games
         if first_injection:
-            sharedgames_list = list(steam_user.recently_played)
+            sharedgames_list = list(map(lambda game: SharedGame(game), games))
             first_injection = False
         else:
-            sharedgames_list_temp = list()
-            for game in steam_user.recently_played:
-                if game in sharedgames_list:
-                    sharedgames_list_temp.append(game)
-            sharedgames_list = sharedgames_list_temp
-
+            sharedgames_list = list(filter(lambda shared_game: shared_game.game in games, sharedgames_list))
+            sharedgames_list = list(map(lambda shared_game: shared_game.add_together_playtime(games[games.index(shared_game.game)]), sharedgames_list))
+    print("Done! It took {} seconds.".format(time.time()-start))
+    if first_injection:
+        await client.send_message(message.channel, "Sorry, could not find any users...")
+        return
+    print("Starting game info retrieval...")
+    start = time.time()
+    print_string = str()
+    cnt = 1
     sharedgames_list_temp = list()
-    for game in sharedgames_list:
-        url = urllib.request.get("http://store.steampowered.com/app/{}".format(game.appid)).content
-        if (re.search(">Multi-player</a>", url)):
-            sharedgames_list_temp.append(game.appid)
-    sharedgames_list = sharedgames_list_temp
 
-    await client.send_message(message.channel, "Users share these games: {}".format(sharedgames_list))
+    def games_filter(shared_game):
+        url = urllib.request.urlopen("http://store.steampowered.com/app/{}".format(shared_game.game.appid)).read().decode('utf-8')
+        if re.search(">Multi-player</a>", url) or re.search(">Co-op</a>", url):
+            sharedgames_list_temp.append(shared_game)
+    thread_list = list()
+    for game in sharedgames_list:
+        thread = threading.Thread(target=games_filter, args=[game])
+        thread.start()
+        thread_list.append(thread)
+    for thread in thread_list:
+        thread.join()
+    sharedgames_list = sharedgames_list_temp
+    sharedgames_list = sorted(sharedgames_list, key=lambda shared_game: shared_game.total_playtime_forever, reverse=True)
+    print("Done! It took {} seconds.".format(time.time()-start))
+    for shared_game in sharedgames_list:
+        print_string += "{}. {}   **{} hours total**\n".format(cnt, shared_game.game.name, math.ceil(shared_game.total_playtime_forever/60))
+        cnt += 1
+        if cnt == 40:
+            break
+    await client.send_message(message.channel, "{} share these games:\n{}".format(user_string[:-2], print_string))
 
 commands["!sharedgames"] = sharedgames
 

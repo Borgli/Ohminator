@@ -521,7 +521,7 @@ async def sharedgames(message, bot_channel, client):
             sharedgames_list = list(map(lambda shared_game: shared_game.add_together_playtime(games[games.index(shared_game.game)]), sharedgames_list))
     print("Done! It took {} seconds.".format(time.time()-start))
     if first_injection:
-        await client.send_message(message.channel, "Sorry, could not find any users...")
+        await client.send_message(bot_channel, "Sorry, could not find any users...")
         return
     print("Starting game info retrieval...")
     start = time.time()
@@ -548,7 +548,7 @@ async def sharedgames(message, bot_channel, client):
         cnt += 1
         if cnt == 40:
             break
-    await client.send_message(message.channel, "{} share these games:\n{}".format(user_string[:-2], print_string))
+    await client.send_message(bot_channel, "{} share these games:\n{}".format(user_string[:-2], print_string))
 
 commands["!sharedgames"] = sharedgames
 

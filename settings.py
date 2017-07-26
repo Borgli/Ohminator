@@ -1,6 +1,7 @@
 
 class Settings:
-    pass
+    def get_settings(self):
+        return dict(self.__dict__.items())
 
 
 class ServerSettings(Settings):

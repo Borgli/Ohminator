@@ -61,7 +61,7 @@ async def on_ready():
             server_loc = '{}_{}'.format(server.name, server.id)
             if not isdir('servers/{}'.format(server_loc)):
                 mkdir('servers/{}'.format(server_loc))
-            new_server = Server(server, client)
+            new_server = Server(server, client, db)
             utils.server_list.append(new_server)
 
             new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)

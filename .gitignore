@@ -61,5 +61,8 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-#Pickle
+# Pickle
 *.pickle
+
+# Token file
+token.txt

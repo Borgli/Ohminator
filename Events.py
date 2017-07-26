@@ -14,7 +14,7 @@ from Member import Member
 from Server import Server
 from PlayButtons import PlayButtons
 import random
-import cleverbot
+#import cleverbot
 import youtube_dl
 import steamapi
 
@@ -26,7 +26,7 @@ from intro import *
 from admin import *
 
 commands = dict()
-cb = cleverbot.Cleverbot()
+#cb = cleverbot.Cleverbot()
 running = False
 client = None
 
@@ -310,6 +310,7 @@ async def joined(message, bot_channel, client):
 
 commands["!joined"] = joined
 
+'''
 async def ask(message, bot_channel, client):
     question = message.content[5:]
     try:
@@ -326,7 +327,7 @@ async def ask(message, bot_channel, client):
 
 
 commands["!ask"] = ask
-
+'''
 async def suggest(message, bot_channel, client):
     suggestion = message.content[9:]
     if len(suggestion) < 3:

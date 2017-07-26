@@ -110,7 +110,7 @@ class Playlist:
                         await self.client.edit_message(self.pinned_message_bot_spam, '`[{}][{}][{}]`\n**Now playing:** {}\n'
                                                                                      '**Current queue:**\n{}\n'.format(
                                                                                         current_time, progress_bar, end_time, self.now_playing, queue.strip()))
-            except (ValueError, AttributeError) as f:
+            except (ValueError, AttributeError, discord.errors.NotFound) as f:
                 remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
                 self.pinned_message_bot_spam = None
                 traceback.print_exc()
@@ -178,7 +178,7 @@ class Playlist:
                         await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
                                                                         '**Current queue:**\n{}\n'.format(
                                                                             self.now_playing, queue.strip()))
-                except (ValueError, AttributeError) as f:
+                except (ValueError, AttributeError, discord.errors.NotFound) as f:
                     remove(pickle_loc)
                     traceback.print_exc()
                 except discord.errors.HTTPException as f:

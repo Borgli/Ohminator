@@ -32,6 +32,7 @@ async def text_to_speech(message, bot_channel, client):
             server.tts_queue.clear()
             return
         try:
+            server.settings.update_settings(server.db.Servers, {"_id": server.id})
             tts = gTTS(text=text, lang=server.settings.tts_language)
         except:
             traceback.print_exc()
@@ -80,6 +81,7 @@ async def play_next_tts(server, client):
                         break
                     text = server.tts_queue.pop(0)
                     try:
+                        server.settings.update_settings(server.db.Servers, {"_id": server.id})
                         tts = gTTS(text=text, lang=server.settings.tts_language)
                     except:
                         continue

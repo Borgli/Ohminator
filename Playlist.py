@@ -5,7 +5,7 @@ import pickle
 import re
 from PlaylistElement import PlaylistElement
 from os.path import exists
-from os import remove
+from os import remove, mkdir
 import Server
 import youtube_dl
 import functools
@@ -33,7 +33,10 @@ class Playlist:
         self.after_yt_lock = asyncio.Lock()
         self.add_to_playlist_lock = asyncio.Lock()
 
+        if not exists("logs"):
+            mkdir("logs")
         logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
+
         client.loop.create_task(self.manage_pinned_messages())
         client.loop.create_task(self.play_next_yt())
         client.loop.create_task(self.should_clear_now_playing())
@@ -54,95 +57,10 @@ class Playlist:
                 queue += "**{}**: {}{}\n".format(cnt, play.title, votes)
                 cnt += 1
 
-            try:
-                # Check if a pinned message exists
-                if self.pinned_message_bot_spam is None:
-                    # Check if a pinned message pickle file exists
-                    if exists('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc)):
-                        # Open the file to read
-                        with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
-                                  'r+b') as f:
-                            self.pinned_message_bot_spam = pickle.load(f)
-
-                    else:
-                        # If it doesn't exist we must create a new one
-                        self.pinned_message_bot_spam = await self.client.send_message(self.server.bot_channel,
-                                                                                      'Setting up pinned message...')
-                        # Write the new message to file
-                        with open('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc),
-                                  'w+b') as f:
-                            pickle.dump(self.pinned_message_bot_spam, f)
-
-                    # Remove previously pinned messages
-                    pinned_messages = await self.client.pins_from(self.server.bot_channel)
-                    for message in pinned_messages:
-                        if message.id != self.pinned_message_bot_spam.id:
-                            await self.client.delete_message(message)
-
-                    # Pin the message
-                    await self.client.pin_message(self.pinned_message_bot_spam)
-
-                player = self.server.active_playlist_element
-                # Edit the content of the message with the current playlist info
-                if self.server.active_player is not None and not self.server.active_player.is_playing() \
-                        and not self.server.active_player.is_done():
-                    await self.client.edit_message(self.pinned_message_bot_spam, ':pause_button: '
-                                                                                 '**Paused:** {}\n'
-                                                                                 '**Current queue:**\n{}\n'.format(
-                                                                                    self.now_playing, queue.strip()))
-                else:
-                    if player is None or self.server.active_player.is_done():
-                        await self.client.edit_message(self.pinned_message_bot_spam, '**Now playing:** {}\n'
-                                                                                     '**Current queue:**\n{}\n'.format(
-                            self.now_playing, queue.strip()))
-                    else:
-                        current_time = int((time.time()-player.start_time))
-                        end_time = player.duration
-                        progress_step = int(math.ceil((((current_time/end_time)*100)/10)))
-                        white_space = "<" + ('='*(10-progress_step))
-                        progress_bar = "" + ('='*progress_step) + ">" + white_space + ""
-                        m, s = divmod(current_time, 60)
-                        h, m = divmod(m, 60)
-                        current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m, s if s>9 else "0"+ str(s))
-                        m, s = divmod(end_time, 60)
-                        h, m = divmod(m, 60)
-                        end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m, s if s>9 else "0"+ str(s))
-                        await self.client.edit_message(self.pinned_message_bot_spam, '`[{}][{}][{}]`\n**Now playing:** {}\n'
-                                                                                     '**Current queue:**\n{}\n'.format(
-                                                                                        current_time, progress_bar, end_time, self.now_playing, queue.strip()))
-            except (ValueError, AttributeError, discord.errors.NotFound) as f:
-                remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
-                self.pinned_message_bot_spam = None
-                traceback.print_exc()
-            except discord.errors.Forbidden as f:
-                print("Missing privilege post to channel {} on server {}".format(self.pinned_message_bot_spam.channel,
-                                                                                 self.server.name))
-            except discord.errors.HTTPException as f:
-                if f.response.status == 400:
-                    remove('servers/{}/pinned_message_bot_spam.pickle'.format(self.server.server_loc))
-                    self.pinned_message_bot_spam = None
-                    traceback.print_exc()
-                elif f.response.status == 500:
-                    # INTERNAL SERVER ERROR
-                    print("Internal server error on server {}".format(self.server.name))
-                    await asyncio.sleep(30, loop=self.client.loop)
-                else:
-                    traceback.print_exc()
-            except:
-                logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
-                              exc_info=True)
-                traceback.print_exc()
-                await asyncio.sleep(60, loop=self.client.loop)
-
-            # Bot spam will always have pinned messages, but this enables it to work on other channels as well.
-            # This should be refactored in the near future
-            for channel in self.server.channel_list:
+            # Filter on channels with pinned playlists enabled. Bot-spam channel will always have pinned playlists enabled.
+            for channel in filter(lambda channel: channel.type == discord.ChannelType.text and
+                            channel.list_settings()['pin_yt_playlists'] == "True" or channel.name == 'bot-spam', self.server.channel_list):
                 try:
-                    # Check if channel as pinned messages enabled
-                    if channel.type != discord.ChannelType.text or \
-                                    channel.list_settings()['pin_yt_playlists'] != "True" or \
-                                    channel.id == self.server.bot_channel.id:
-                        continue
                     # Check if a pinned message pickle file exists
                     pickle_loc = 'servers/{}/channels/{}/pinned_message.pickle'.format(self.server.server_loc,
                                                                                        channel.channel_loc)
@@ -168,28 +86,59 @@ class Playlist:
                     # Pin the message
                     await self.client.pin_message(pinned_message)
 
+                    player = self.server.active_playlist_element
                     # Edit the content of the message with the current playlist info
                     if self.server.active_player is not None and not self.server.active_player.is_playing() \
                             and not self.server.active_player.is_done():
-                        await self.client.edit_message(pinned_message, ':pause_button: **Paused:** {}\n'
-                                                                        '**Current queue:**\n{}\n'.format(
-                                                                        self.now_playing, queue.strip()))
+                        await self.client.edit_message(pinned_message, ':pause_button: '
+                                                                                     '**Paused:** {}\n'
+                                                                                     '**Current queue:**\n{}\n'.format(
+                            self.now_playing, queue.strip()))
                     else:
-                        await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
-                                                                        '**Current queue:**\n{}\n'.format(
-                                                                            self.now_playing, queue.strip()))
+                        if player is None or self.server.active_player.is_done():
+                            await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
+                                                                                         '**Current queue:**\n{}\n'.format(
+                                self.now_playing, queue.strip()))
+                        else:
+                            # Create duration bar
+                            current_time = int((time.time() - player.start_time))
+                            end_time = player.duration
+                            progress_step = int(math.ceil((((current_time / end_time) * 100) / 10)))
+                            white_space = "<" + ('=' * (10 - progress_step))
+                            progress_bar = "" + ('=' * progress_step) + ">" + white_space + ""
+                            m, s = divmod(current_time, 60)
+                            h, m = divmod(m, 60)
+                            current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
+                                                                                                    s if s > 9 else "0" + str(
+                                                                                                        s))
+                            m, s = divmod(end_time, 60)
+                            h, m = divmod(m, 60)
+                            end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
+                                                                                                s if s > 9 else "0" + str(
+                                                                                                    s))
+                            await self.client.edit_message(pinned_message,
+                                                           '`[{}][{}][{}]`\n**Now playing:** {}\n'
+                                                           '**Current queue:**\n{}\n'.format(
+                                                               current_time, progress_bar, end_time, self.now_playing,
+                                                               queue.strip()))
+
                 except (ValueError, AttributeError, discord.errors.NotFound) as f:
-                    remove(pickle_loc)
+                    try:
+                        remove('servers/{}/pinned_message.pickle'.format(self.server.server_loc))
+                    except Exception as f:
+                        traceback.print_exc()
                     traceback.print_exc()
+                except discord.errors.Forbidden as f:
+                    print(
+                        "Missing privilege to post to channel {} on server {}".format(channel.name,
+                                                                                   self.server.name))
                 except discord.errors.HTTPException as f:
                     if f.response.status == 400:
-                        if pickle_loc is not None:
-                            remove(pickle_loc)
-                        else:
-                            traceback.print_exc()
+                        remove('servers/{}/pinned_message.pickle'.format(self.server.server_loc))
+                        traceback.print_exc()
                     elif f.response.status == 500:
                         # INTERNAL SERVER ERROR
-                        print("Internal server errror on server {}".format(self.server.name))
+                        print("Internal server error on server {}".format(self.server.name))
                         await asyncio.sleep(30, loop=self.client.loop)
                     else:
                         traceback.print_exc()
@@ -198,7 +147,8 @@ class Playlist:
                                   exc_info=True)
                     traceback.print_exc()
                     await asyncio.sleep(60, loop=self.client.loop)
-            # 3 second intervals
+
+            # 0.5 second intervals
             await asyncio.sleep(0.5, loop=self.client.loop)
 
     def get_options(self, link):

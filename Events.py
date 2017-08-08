@@ -29,12 +29,15 @@ commands = dict()
 #cb = cleverbot.Cleverbot()
 running = False
 client = None
+db = None
 
 
 class Events:
-    def __init__(self, bot: discord.Client):
+    def __init__(self, bot: discord.Client, database):
         global client
         client = bot
+        global db
+        db = database
         bot.async_event(on_ready)
         bot.async_event(on_message)
         bot.async_event(on_voice_state_update)
@@ -58,7 +61,7 @@ async def on_ready():
             server_loc = '{}_{}'.format(server.name, server.id)
             if not isdir('servers/{}'.format(server_loc)):
                 mkdir('servers/{}'.format(server_loc))
-            new_server = Server(server, client)
+            new_server = Server(server, client, db)
             utils.server_list.append(new_server)
 
             new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)

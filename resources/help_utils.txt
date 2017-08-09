@@ -1,0 +1,13 @@
+```Markdown
+List of utility commands:
+!help utils                 - Prints out this menu.
+!settings [channel or server id] [([setting to change] [value to change to])]
+                            - Lists settings for the given id if only id is supplied.
+                              If setting and value is supplied, the setting is changed to that value.
+!suggest [suggestion]       - Lets you suggest new features and improvements!
+!getbotinvite               - Gives you a link so you can invite the bot to your server.
+                              It needs all permissions to be able to function properly.
+!ping                       - Prints out "Pong!".
+!joined                     - Tells you when you joined the server!
+!roll [lowest] [highest]    - Roll a number between lowest and highest.
+```

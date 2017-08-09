@@ -1,0 +1,16 @@
+```Markdown
+List of audio commands:
+!help audio                 - Prints out this menu.
+!yt or !play or !p          - Plays audio from YouTube or other sources in voice channel of caller.
+[link or search term]         Can be a direct link to video or playlist or search term.
+!stop or !s                 - Stops playing sound from the audio player.
+!pause or !pa               - Pauses playing sound from the audio player.
+!resume or !r               - Resumes playing sound from the audio player.
+!skip or !sk                - Skips to the next playing in the queue if one exists.
+!queue or q [(index)]       - Lists the playlist queue. Use reactions to scroll in the queue.
+!next or !n                 - Displays the next song in the queue.
+!volume or !sv [(volume)]   - Displays and changes the current volume of the current song.
+!delete [index] or !d       - Deletes the song with the given index from the playlist queue.
+!vote or !v [index]         - Vote for a song to skip the queue. You can only vote for one song once.
+!playbuttons                - Prints out functional audio-player buttons that can be interacted with by using reactions.
+```

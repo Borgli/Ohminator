@@ -95,7 +95,7 @@ async def on_message(message):
             return
 
     # Commands that require high performance can not be awaited and are therefore implemented here
-    if cmd.lower().startswith('!yt'):
+    if cmd.lower().startswith('!yt') or cmd.lower().startswith('!play') or cmd.lower().startswith('!p'):
         link = cmd[4:]
         await client.delete_message(message)
 
@@ -208,21 +208,43 @@ async def ping(message, bot_channel, client):
 commands["!ping"] = ping
 
 
+async def print_page(resource, message, bot_channel, client):
+    with open('resources/{}'.format(resource)) as f:
+        content = f.read()
+    await client.send_message(bot_channel, "{}:\n{}".format(message.author.name, content))
+
 async def help(message, bot_channel, client):
     await client.delete_message(message)
-    if message.content.lower().startswith('!help sound'):
-        help_resource = 'help_sound.txt'
+    async def print_help_page(help_resource):
+        return await print_page(help_resource, message, bot_channel, client)
+    if message.content.lower().startswith('!help audio'):
+        await print_help_page('help_audio.txt')
+    elif message.content.lower().startswith('!help intro'):
+        await print_help_page('help_intro.txt')
+    elif message.content.lower().startswith('!help util'):
+        await print_help_page('help_utils.txt')
+    elif message.content.lower().startswith('!help other'):
+        await print_help_page('help_others.txt')
+    elif message.content.lower().startswith('!help all'):
+        await print_help_page('help_all_1.txt')
+        await print_help_page('help_all_2.txt')
     else:
-        help_resource = 'help.txt'
-    with open('resources/{}'.format(help_resource)) as f:
-        help_message = f.read()
-    await client.send_message(bot_channel, "{}:\n{}".format(message.author.name, help_message))
+        await print_help_page('help.txt')
+        await print_help_page('summary.txt')
 
 
 commands["!help"] = help
+commands["!commands"] = help
+commands["!command"] = help
 
+async def summary(message, bot_channel, client):
+    await client.delete_message(message)
+    return await print_page('summary.txt', message, bot_channel, client)
+
+commands["!summary"] = summary
 
 async def roll(message, bot_channel, client):
+    await client.delete_message(message)
     try:
         options = message.content.split()
         rand = randint(int(options[1]), int(options[2]))
@@ -240,22 +262,38 @@ commands["!say"] = text_to_speech
 commands["!volume"] = volume
 commands["!sv"] = volume
 commands["!stop"] = stop
+commands["!s"] = stop
 commands["!pause"] = pause
+commands["!pa"] = pause
 commands["!resume"] = resume
+commands["!r"] = resume
 commands["!delete"] = delete
+commands["!d"] = delete
 commands["!skip"] = skip
+commands["!sk"] = skip
 commands["!q"] = queue_page
-commands["!queue"] = q
+commands["!queue"] = queue_page
 commands["!next"] = next
+commands["!n"] = next
 commands["!vote"] = vote
+commands["!v"] = vote
 commands["!queuepage"] = queue_page
 
 # Intro commands
 commands["!introstop"] = introstop
+commands["!stopintro"] = introstop
+commands["!is"] = introstop
 commands["!intro"] = intro
+commands["!i"] = intro
 commands["!myintros"] = myintros
+commands["!intros"] = myintros
+commands["!mi"] = myintros
 commands["!deleteintro"] = deleteintro
+commands["!introdelete"] = deleteintro
+commands["!di"] = deleteintro
 commands["!upload"] = upload
+commands["!up"] = upload
+commands["!u"] = upload
 
 async def slot(message, bot_channel, client):
     await client.delete_message(message)
@@ -358,10 +396,6 @@ async def join(message, bot_channel, client):
                                   '{}: You have joined the queue!\n'
                                   'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
-
-commands["!team join"] = join
-
-
 async def leave(message, bot_channel, client):
     await client.delete_message(message)
     server = get_server(message.server)
@@ -370,8 +404,19 @@ async def leave(message, bot_channel, client):
                               '{}: You have left the queue!\n'
                               'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
+async def team(message, bot_channel, client):
+    subcommands = {
+        "join": join,
+        "leave": leave
+    }
+    parameters = message.content.lower().split()
+    # Check if there are subcommands.
+    if len(parameters) > 1:
+        if parameters[1] in subcommands:
+            await subcommands[parameters[1]](message, bot_channel, client)
 
-commands["!team leave"] = leave
+
+commands["!team"] = team
 
 
 async def split(message, bot_channel, client):
@@ -432,7 +477,7 @@ async def get_bot_invite(message, bot_channel, client):
 
 
 commands["!getbotinvite"] = get_bot_invite
-
+commands["!gbi"] = get_bot_invite
 
 async def settings(message, bot_channel, client):
     await client.delete_message(message)

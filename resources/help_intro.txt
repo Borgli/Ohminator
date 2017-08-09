@@ -1,0 +1,21 @@
+```Markdown
+List of intro commands:
+!help intro                 - Prints out this menu.
+!intro or !i [(index)]      - Plays one of your intros at random. Can play intro at given index.
+!introstop or !is           - Stops playing the currently playing intro.
+!myintros or !intros or !mi - Lists all of your intros.
+!deleteintro or !di [index] - Deletes intro at given index.
+!upload or !up or !u        - Uploads an intro. File must use the .wav or .mp3 file format.
+                              Upload the file through Discord and put the command as the comment.
+
+Step-by-step guide on how to upload an intro:
+Step 1: Find a suitable intro. The file format must be .wav or .mp3.
+        Audio length should be no less than 3 seconds and no more than 10 seconds. The sweet spot is 5-6 seconds.
+Step 2: Click the "upload file button" in Discord in any channel belonging to the server you want your intro to play in,
+        and upload the file you want to play as your intro. Intros are server specific. You can alternatively
+        drag the file you want directly into the channel.
+Step 3: You will be prompted by Discord if you want to add an optional comment with your upload. This is where you
+        write the upload command, !upload, and click upload.
+If successful the bot should reply that the upload was successful. If not successful, try each step again or
+try changing the file.
+```

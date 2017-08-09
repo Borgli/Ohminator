@@ -1,0 +1,28 @@
+```Markdown
+List of all commands:
+!help all                   - Prints out this page.
+!help or !commands          - Prints out the main help menu.
+!help audio                 - Prints out the audio command menu.
+!help intro                 - Prints out the intro command menu.
+!help utils                 - Prints out all utility commands.
+!help others                - Prints out all commands not in a category.
+!ping                       - Prints out "Pong!".
+!summary                    - Prints out a short description of Ohminator.
+!yt or !play or !p          - Plays audio from YouTube or other sources in voice channel of caller.
+[link or search term]         Can be a direct link to video or playlist or search term.
+!stop or !s                 - Stops playing sound from the audio player.
+!pause or !pa               - Pauses playing sound from the audio player.
+!resume or !r               - Resumes playing sound from the audio player.
+!skip or !sk                - Skips to the next playing in the queue if one exists.
+!queue or q [(index)]       - Lists the playlist queue. Use reactions to scroll in the queue.
+!next or !n                 - Displays the next song in the queue.
+!volume or !sv [(volume)]   - Displays and changes the current volume of the current song.
+!delete [index] or !d       - Deletes the song with the given index from the playlist queue.
+!vote or !v [index]         - Vote for a song to skip the queue. You can only vote for one song once.
+!intro or !i [(index)]      - Plays one of your intros at random. Can play intro at given index.
+!introstop or !is           - Stops playing the currently playing intro.
+!myintros or !intros or !mi - Lists all of your intros.
+!deleteintro or !di [index] - Deletes intro at given index.
+!upload or !up or !u        - Uploads an intro. File must use the .wav or .mp3 file format.
+                              Upload the file through Discord and put the command as the comment.
+```

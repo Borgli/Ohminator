@@ -1,0 +1,18 @@
+```Markdown
+Summary:
+Ohminator is a Discord Bot with audio-playing capabilities. It can play audio from different
+video sources like YouTube, SoundCloud and Twitch. It also has built in queueing and you can
+even add a playlist into the queue directly from YouTube. In addition Ohminator has the commands
+and features expected of an audio player. A dedicated channel is used for output to reduce spam.
+
+Another feature of Ohminator is intros. Intros are small audio clips chosen by each user,
+playing upon joining a channel. The point is to have something unique and recognizable associated
+to each user so you know who is joining without having to check. It's also fun and creative.
+
+Lastly Ohminator hosts different features like text-to-speech in different languages,
+possibility to compare steam games library to find shared multiplayer or co-op games, automatic
+team distribution and more, smaller utility functions. The list will continue expanding based on
+requests from users. Work is also being done on creating a web-service to complement Ohminator.
+
+If you have suggestions you can submit them by using the command !suggest [your suggestion].
+```

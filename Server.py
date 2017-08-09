@@ -49,7 +49,10 @@ class Server:
 
         # Handle server settings
         self.settings = ServerSettings()
-        self.change_settings(self.server_doc['settings'])
+        if 'settings' in self.server_doc:
+            self.change_settings(self.server_doc['settings'])
+        else:
+            self.change_settings(dict())
 
         # Create members folder if it doesn't exist
         if not exists('servers/{}/members'.format(self.server_loc)):

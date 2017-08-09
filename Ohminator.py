@@ -17,7 +17,7 @@ events = Events.Events(client, db)
 
 # Reads token
 with open("token.txt", 'r') as f:
-    token = f.read()
+    token = f.read().strip()
 
 # Starts the execution of the bot
 client.run(token)

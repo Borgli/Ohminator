@@ -44,6 +44,7 @@ class Events:
         bot.async_event(on_server_join)
         bot.async_event(on_member_join)
         bot.async_event(on_reaction_add)
+        client.loop.create_task(set_global_text())
 
 async def on_ready():
     print('Logged in as')
@@ -70,13 +71,13 @@ async def on_ready():
                 new_server.bot_channel = await client.create_channel(server, 'bot-spam')
         print('Done!')
         running = True
-    #else:
-        #try:
-            #for server in server_list:
-                #await client.send_message(server.bot_channel, 'Ohminator lost connection to Discord. Back now!')
-        #except:
-            #traceback.print_exc()
 
+async def set_global_text():
+    await client.wait_until_ready()
+    await asyncio.sleep(10, loop=client.loop)
+    while not client.is_closed:
+        await client.change_presence(game=discord.Game(name="{} servers, {} users".format(sum(1 for _ in client.servers), sum(1 for _ in client.get_all_members())), type=1))
+        await asyncio.sleep(300, loop=client.loop)
 
 async def on_message(message):
     cmd = message.content

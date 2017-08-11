@@ -1,7 +1,4 @@
-import youtube_dl
-import functools
 import time
-import discord.voice_client
 
 
 class PlaylistElement:
@@ -23,13 +20,6 @@ class PlaylistElement:
         self.title = title
         self.duration = duration
         self.description = description
-
-    # async def init_player(self):
-    #    voice_client = self.client.voice_client_in(self.server)
-    #    player = await voice_client.create_ytdl_player(self.link, options=self.option)
-    #    self.title = player.title
-    #    self.duration = player.duration
-    #    return player
 
     async def get_new_player(self):
         voice_client = self.client.voice_client_in(self.server)

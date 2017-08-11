@@ -1,12 +1,13 @@
+import math
+import os
 import time
 import traceback
+from tempfile import mkstemp
 
 from gtts import gTTS
+
 import utils
-import math
-import discord
-from tempfile import TemporaryFile, mkstemp
-import os
+
 
 async def text_to_speech(message, bot_channel, client):
     await client.delete_message(message)

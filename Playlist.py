@@ -24,10 +24,6 @@ class Playlist:
         self.pinned_message_bot_spam = None
         self.pinned_message_ohm = None
         self.now_playing = str()
-        # Fetch pinned messages from persistent memory
-        # if exists('servers/{}/pinned_message_bot_spam.pickle'.format(server.server_loc)):
-        #    with open('servers/{}/pinned_message_bot_spam.pickle'.format(server.server_loc)) as f:
-        #        self.pinned_message_bot_spam = pickle.load(f);
         self.play_next = asyncio.Event()
         self.clear_now_playing = asyncio.Event()
         self.after_yt_lock = asyncio.Lock()
@@ -258,15 +254,13 @@ class Playlist:
         return playlist_element
 
     def after_yt(self):
-        # print('{} finished. After-yt starting.'.format(self.server.active_player.title))
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
-        # print("YouTube-video finished playing.")
+
 
     async def play_next_yt(self):
         while not self.client.is_closed:
             await self.play_next.wait()
-            # print("{} will now play next yt.".format(self.server.name))
             await self.add_to_playlist_lock.acquire()
             if len(self.yt_playlist) > 0:
                 something_to_play = False

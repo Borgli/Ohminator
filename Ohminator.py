@@ -1,11 +1,7 @@
 import discord
-import asyncio
-
 import pymongo
 
 import Events
-import pickle
-from os.path import exists
 
 client = discord.Client()
 

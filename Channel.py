@@ -1,6 +1,7 @@
-from os.path import exists
-from settings import ClientSettings
 import pickle
+from os.path import exists
+
+from settings import ClientSettings
 
 
 class Channel:

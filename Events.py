@@ -1,32 +1,21 @@
-import threading
-
-import discord
-from random import randint
-from os.path import isdir
-from os import mkdir, listdir
-import traceback
-import time
 import asyncio
+import threading
 import urllib.request
-import re
+from os import mkdir, listdir
+from os.path import isdir
+from random import randint
+
+import steamapi
+import youtube_dl
 
 from Member import Member
-from Server import Server
 from PlayButtons import PlayButtons
-import random
-#import cleverbot
-import youtube_dl
-import steamapi
-
-from utils import get_server, get_bot_channel
-import utils
-
+from Server import Server
+from admin import *
 from audio import *
 from intro import *
-from admin import *
 
 commands = dict()
-#cb = cleverbot.Cleverbot()
 running = False
 client = None
 db = None
@@ -302,17 +291,6 @@ async def slot(message, bot_channel, client):
     await client.delete_message(message)
     if message.channel != bot_channel:
         await client.send_message(message.channel, '{}: Check bot-spam for the result!'.format(message.author.name))
-    #symbols = {
-    #    '0': ':no_entry_sign:',
-    #    '20': ':green_apple:',
-    #    '30': ':apple:',
-    #    '40': ':cherries:',
-    #    '80': ':sun_with_face:',
-    #    '100': ':bulb:',
-    #    '120': ':heart:',
-    #    '300': ':alien:',
-    #    '600': ':moneybag:'
-    #}
     symbols = {
         ':moneybag:': 600,
         ':four_leaf_clover:': 300,
@@ -331,10 +309,6 @@ async def slot(message, bot_channel, client):
     second_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
     rand = randint(8, 63)
     third_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
-
-    #first_column = random.choice([k for k in symbols for dummy in range(symbols[k])])
-    #second_column = random.choice([k for k in symbols for dummy in range(symbols[k])])
-    #third_column = random.choice([k for k in symbols for dummy in range(symbols[k])])
 
     if first_column[1] is second_column[1] is third_column[1]:
         result = "Congratulations, you won!"
@@ -355,24 +329,7 @@ async def joined(message, bot_channel, client):
 
 commands["!joined"] = joined
 
-'''
-async def ask(message, bot_channel, client):
-    question = message.content[5:]
-    try:
-        await client.send_message(message.channel, cb.ask(question))
-    except IndexError as e:
-        traceback.print_exc()
-        await client.send_message(message.channel,
-                                  '{}: Sorry, it seems cleverbot is not functioning at the moment!'
-                                  ''.format(message.author.mention))
-    except Exception as e:
-        traceback.print_exc()
-        await client.send_message(message.channel,
-                                  '{}: That is not a question I will answer!'.format(message.author.mention))
 
-
-commands["!ask"] = ask
-'''
 async def suggest(message, bot_channel, client):
     suggestion = message.content[9:]
     if len(suggestion) < 3:

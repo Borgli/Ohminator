@@ -1,10 +1,12 @@
-import utils
 import os
+import os.path
 import random
 import re
-import urllib.request
-import os.path
 import shutil
+import urllib.request
+
+import utils
+
 
 async def introstop(message, bot_channel, client):
     await client.delete_message(message)

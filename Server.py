@@ -2,15 +2,12 @@ from Member import Member
 from os.path import isdir
 from os import mkdir
 from os.path import exists
-import pickle
-from discord.utils import find
 import asyncio
 from Playlist import Playlist
 from IntroManager import IntroManager
 import discord
 from Channel import Channel
 from settings import ServerSettings
-import inspect
 
 class Server:
     def __init__(self, discord_server: discord.Server, client: discord.Client, db):
@@ -108,15 +105,3 @@ class Server:
             else:
                 print_line += ', {}'.format(entry.name)
         return print_line
-
-
-#async def save_to_file():
-#    await client.wait_until_ready()
-#    await asyncio.sleep(10, loop=client.loop)
-#    while not client.is_closed:
-#        for server in Events.server_list:
-#            with open('servers/{}/server.pickle'.format(server.server_loc), 'w+b') as f:
-#                pickle.dump(server, f)
-#        await asyncio.sleep(5, loop=client.loop)
-
-#client.loop.create_task(save_to_file())

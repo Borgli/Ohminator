@@ -3,7 +3,10 @@ Summary:
 Ohminator is a Discord Bot with audio-playing capabilities. It can play audio from different
 video sources like YouTube, SoundCloud and Twitch. It also has built in queueing and you can
 even add a playlist into the queue directly from YouTube. In addition Ohminator has the commands
-and features expected of an audio player. A dedicated channel is used for output to reduce spam.
+and features expected of an audio player.
+
+A dedicated channel is used for output to reduce spam. This is automatically created as "bot-spam".
+It is recommended to mute this channel as it will be spammed every time the bot is interacted with.
 
 Another feature of Ohminator is intros. Intros are small audio clips chosen by each user,
 playing upon joining a channel. The point is to have something unique and recognizable associated

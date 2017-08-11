@@ -264,6 +264,8 @@ commands["!volume"] = volume
 commands["!sv"] = volume
 commands["!stop"] = stop
 commands["!s"] = stop
+commands["!stahp"] = stop
+commands["!stap"] = stop
 commands["!pause"] = pause
 commands["!pa"] = pause
 commands["!resume"] = resume
@@ -344,6 +346,7 @@ async def slot(message, bot_channel, client):
     await client.send_message(bot_channel, '{}: Good luck!\n\n{}'.format(message.author.name, slot_string))
 
 commands["!slot"] = slot
+commands["!spin"] = slot
 
 async def joined(message, bot_channel, client):
     await client.delete_message(message)

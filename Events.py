@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import urllib.request
+import discord
 from os import mkdir, listdir
 from os.path import isdir
 from random import randint

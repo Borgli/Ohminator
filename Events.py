@@ -36,6 +36,7 @@ class Events:
         bot.async_event(on_reaction_add)
         client.loop.create_task(set_global_text())
 
+
 async def on_ready():
     print('Logged in as')
     print(client.user.name)
@@ -250,6 +251,7 @@ async def roll(message, bot_channel, client):
 
 
 commands["!roll"] = roll
+commands["!broadcast"] = broadcast
 
 # Audio commands
 commands["!tts"] = text_to_speech

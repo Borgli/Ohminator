@@ -66,3 +66,6 @@ target/
 
 # Token file
 token.txt
+
+# PyCharm
+.idea/

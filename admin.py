@@ -20,16 +20,32 @@ async def notify_of_joining_person(client, member):
 # Will be used later for broadcasting Ohminator announcement
 async def broadcast(message, bot_channel, client):
     await client.delete_message(message)
+    if message.author.id != "159315181288030208":
+        await client.send_message(bot_channel,
+                                  "{}: Sorry, this command is only for the author of Ohminator!".format(
+                                      message.author.name))
+        return
     split_message = message.content.split()
     if len(split_message) > 2:
         # If all is written instead of channel id, all bot-spam channels will be messaged
         if split_message[1] == "all":
             for channel in map(lambda s: s.bot_channel, server_list):
-                await client.send_message(channel, "**Console**: {}".format(" ".join(split_message[2:])))
+                await client.send_message(channel, "**Announcement**: {}".format(" ".join(split_message[2:])))
         else:
-            channel_id = split_message[1]
-            channel = client.get_channel(channel_id)
+            channel = client.get_channel(split_message[1])
             if channel:
-                await client.send_message(channel, "**Console**: {}".format(" ".join(split_message[2:])))
+                await client.send_message(channel, "**Announcement**: {}".format(" ".join(split_message[2:])))
             else:
-                await client.send_message(bot_channel, "No channel with the given ID.")
+                servers = list(filter(lambda s: s.name == split_message[1] or s.id == split_message[1], server_list))
+                if len(servers) > 0:
+                    for server in servers:
+                        await client.send_message(server.bot_channel,
+                                                  "**Announcement**: {}".format(" ".join(split_message[2:])))
+                else:
+                    await client.send_message(bot_channel,
+                                              "{}: No channel with the given ID or server with the given ID or name."
+                                              .format(message.author.name))
+    else:
+        await client.send_message(bot_channel,
+                                  "{}: Use: !broadcast [all/channel id/server name] [announcement]"
+                                  .format(message.author.name))

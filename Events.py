@@ -1,10 +1,12 @@
 import asyncio
+import pickle
 import threading
 import urllib.request
 import discord
 from os import mkdir, listdir
 from os.path import isdir
 from random import randint
+from dateutil.parser import parse
 
 import steamapi
 import youtube_dl
@@ -250,6 +252,50 @@ async def roll(message, bot_channel, client):
                                   '{}: Could not roll with those parameters!'.format(message.author.name))
 
 
+async def set_birthday(message, bot_channel, client):
+    await client.delete_message(message)
+    parameters = message.content.split()
+    if len(parameters) < 2:
+        await client.send_message(bot_channel,
+                                  '{}: Use: !setbirthday [your birthday]'.format(message.author.name))
+        return
+    try:
+        date = parse(" ".join(parameters[1:]), dayfirst=True, fuzzy=True)
+    except ValueError:
+        await client.send_message(bot_channel,
+                                  '{}: Invalid birth date! Please try a different format like day/month/year'.format(message.author.name))
+        return
+    except OverflowError:
+        await client.send_message(bot_channel,
+                                  '{}: The number you gave overflowed!'.format(message.author.name))
+        return
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    member.birthday = date
+    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc, member.member_loc)
+    # Save birthday to pickle
+    with open(birthday_pickle, 'w+b') as f:
+        pickle.dump(member.birthday, f)
+    await client.send_message(bot_channel,
+                              '{}: Your birthday was set successfully.'
+                              '\nIt was saved as {}.'
+                              '\nPlease verify that this is correct.'.format(message.author.name, date))
+
+
+async def my_birthday(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    if member.birthday:
+        await client.send_message(bot_channel,
+                                  '{}: Your birthday is {}'.format(message.author.name, member.birthday.ctime()))
+    else:
+        await client.send_message(bot_channel,
+                                  "{}: You don't have a birthday saved to Ohminator!"
+                                  "\nYou can add one by using the !setbirthday command.".format(message.author.name))
+
+commands["!mybirthday"] = my_birthday
+commands["!setbirthday"] = set_birthday
 commands["!roll"] = roll
 commands["!broadcast"] = broadcast
 

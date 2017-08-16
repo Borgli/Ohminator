@@ -9,10 +9,6 @@ async def get_rl_rank(message, bot_channel, client):
     if len(parameters) > 1:
         try:
             player = await rl_client.get_player(parameters[1], rocket_snake.constants.STEAM)
-            #player_info = "Rocket League player {} on {}\nStats: {}\n" \
-            #              "Rank Season 5: {}".format(player.display_name, player.platform,
-            #                                         player.stats, player.ranked_seasons['5'])
-            #await client.send_message(bot_channel, "{}: {}".format(message.author.name,player_info))
             embed = discord.Embed()
             embed.title = "Season {} ranks:".format(str(len(player.ranked_seasons)))
             embed.colour = discord.Colour.purple()

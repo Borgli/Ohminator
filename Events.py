@@ -296,6 +296,8 @@ async def my_birthday(message, bot_channel, client):
                                   "\nYou can add one by using the !setbirthday command.".format(message.author.name))
 
 commands["!rlstats"] = get_rl_rank
+commands["!getrlrank"] = get_rl_rank
+commands["!rlrank"] = get_rl_rank
 commands["!mybirthday"] = my_birthday
 commands["!setbirthday"] = set_birthday
 commands["!roll"] = roll

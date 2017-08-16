@@ -17,6 +17,7 @@ from Server import Server
 from admin import *
 from audio import *
 from intro import *
+from others import *
 
 commands = dict()
 running = False
@@ -294,6 +295,7 @@ async def my_birthday(message, bot_channel, client):
                                   "{}: You don't have a birthday saved to Ohminator!"
                                   "\nYou can add one by using the !setbirthday command.".format(message.author.name))
 
+commands["!rlstats"] = get_rl_rank
 commands["!mybirthday"] = my_birthday
 commands["!setbirthday"] = set_birthday
 commands["!roll"] = roll

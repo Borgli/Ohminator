@@ -50,8 +50,16 @@ class Playlist:
                     'url': item.link
                 }
                 cnt += 1
+            currently_playing = {
+                'title': self.now_playing,
+                'url': self.server.active_playlist_element.link,
+                'duration': self.server.active_playlist_element.duration
+            }
             self.server.db.Servers.update_one({'_id': self.server.discord_server.id},
-                                       {'$set': {'playlist': self.server.server_doc['playlist']}})
+                                       {'$set': {
+                                           'currently_playing': currently_playing,
+                                           'playlist': self.server.server_doc['playlist']
+                                       }})
             # 5 second intervals
             await asyncio.sleep(5, loop=self.client.loop)
 

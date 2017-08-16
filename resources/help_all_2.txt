@@ -17,4 +17,5 @@
 !playbuttons                - Prints out functional audio-player buttons that can be interacted with by using reactions.
 !sharedgames                - Get a list over shared multi-player and co-op games from the Steam library.
 [steam custom url]            Give one or more public profiles with custom steam urls as parameters.
+!rlstats [steam/ps4/xboxid] - Get your rank points from the latest season of Rocket League.
 ```

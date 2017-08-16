@@ -6,6 +6,7 @@ List of other commands:
 !slot                       - Simple slot game as proof of concept. You either win or you don't.
 !tts or !say [text]         - Using the gTTS engine the bot will say what is given as text.
                               The language can be changed server-wise by changing the tts_language parameter.
+!rlstats [steam/ps4/xboxid] - Get your rank points from the latest season of Rocket League.
 
 Team distribution:
 !team join                  - Join the queue awaiting to be placed on a team.

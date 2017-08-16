@@ -36,6 +36,24 @@ class Playlist:
         client.loop.create_task(self.manage_pinned_messages())
         client.loop.create_task(self.play_next_yt())
         client.loop.create_task(self.should_clear_now_playing())
+        client.loop.create_task(self.update_database_playlist())
+
+    async def update_database_playlist(self):
+        await self.client.wait_until_ready()
+        await asyncio.sleep(1, loop=self.client.loop)
+        while not self.client.is_closed:
+            self.server.server_doc['playlist'] = dict()
+            cnt = 1
+            for item in self.yt_playlist:
+                self.server.server_doc['playlist'][str(cnt)] = {
+                    'title': item.title,
+                    'url': item.link
+                }
+                cnt += 1
+            self.server.db.Servers.update_one({'_id': self.server.discord_server.id},
+                                       {'$set': {'playlist': self.server.server_doc['playlist']}})
+            # 5 second intervals
+            await asyncio.sleep(5, loop=self.client.loop)
 
     async def manage_pinned_messages(self):
         await self.client.wait_until_ready()

@@ -95,8 +95,16 @@ async def on_message(message):
 
     # Commands that require high performance can not be awaited and are therefore implemented here
     if cmd.lower().startswith('!yt') or cmd.lower().startswith('!play') or cmd.lower().startswith('!p'):
-        link = cmd[4:]
         await client.delete_message(message)
+
+        parameters = message.content.split()
+        if len(parameters) < 2:
+            await client.send_message(bot_channel,
+                                      '{}: Usage: !yt or !play or !p [link or search term]!'.format(
+                                          message.author.name))
+            return
+
+        link = " ".join(message.content.split()[1:])
 
         # The user must be in a channel to play their link.
         if message.author.voice_channel is None or message.author.voice.is_afk:

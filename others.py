@@ -9,17 +9,21 @@ async def get_rl_rank(message, bot_channel, client):
     if len(parameters) > 1:
         try:
             player = await rl_client.get_player(parameters[1], rocket_snake.constants.STEAM)
+            seasons = await rl_client.get_seasons()
+            last_season = next((season for season in seasons if season.is_current), seasons[-1])
             embed = discord.Embed()
-            embed.title = "Season {} ranks:".format(str(len(player.ranked_seasons)))
+            embed.title = "Season {} ranks:".format(str(last_season.id))
             embed.colour = discord.Colour.purple()
-            latest_season = player.ranked_seasons[str(len(player.ranked_seasons))]
+            latest_season = player.ranked_seasons[str(last_season.id)]
             solo_duel = 'No rank' if '10' not in latest_season else latest_season['10'].rankPoints
             doubles = 'No rank' if '11' not in latest_season else latest_season['11'].rankPoints
             solo_standard = 'No rank' if '12' not in latest_season else latest_season['12'].rankPoints
             standard = 'No rank' if '13' not in latest_season else latest_season['13'].rankPoints
             embed.set_image(url=player.signature_url).set_thumbnail(url=player.avatar_url)\
                 .add_field(name='Solo Duel', value='{} points'.format(solo_duel)).add_field(name='Solo Standard', value='{} points'.format(solo_standard)) \
-                .add_field(name='Doubles', value='{} points'.format(doubles)).add_field(name='Standard', value='{} points'.format(standard))
+                .add_field(name='Doubles', value='{} points'.format(doubles)).add_field(name='Standard', value='{} points'.format(standard))\
+                .set_footer(text='The signature is cached by Discord for a day or two. '
+                                 'See the original site for updated signature.')
             await client.send_message(bot_channel, "{}:".format(message.author.name), embed=embed)
         except rocket_snake.exceptions.APINotFoundError:
             await client.send_message(bot_channel, "{}: Sorry, couldn't find player!".format(message.author.name))

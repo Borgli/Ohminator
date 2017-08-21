@@ -119,7 +119,7 @@ class Server:
             todays_day_and_month = "{}.{}".format(todays_date.day, todays_date.month)
             for member in self.member_list:
                 if not 'birthday' in member.birthday:
-                    return
+                    continue
                 birthday = member.birthday['birthday']
                 day_and_month = "{}.{}".format(birthday.day, birthday.month)
                 if day_and_month == todays_day_and_month and (not 'congratulated' in member.birthday or

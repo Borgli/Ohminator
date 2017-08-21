@@ -116,8 +116,13 @@ class Server:
         await asyncio.sleep(1, loop=self.client.loop)
         while not self.client.is_closed:
             todays_date = datetime.date.today()
+            todays_day_and_month = "{}.{}".format(todays_date.day, todays_date.month)
             for member in self.member_list:
-                if 'birthday' in member.birthday and member.birthday['birthday'] == todays_date and (not 'congratulated' in member.birthday or
+                if not 'birthday' in member.birthday:
+                    return
+                birthday = member.birthday['birthday']
+                day_and_month = "{}.{}".format(birthday.day, birthday.month)
+                if day_and_month == todays_day_and_month and (not 'congratulated' in member.birthday or
                                                                              member.birthday['congratulated'] != todays_date):
                     await self.client.send_message(self.bot_channel, "Happy Birthday, **{}**!".format(member.mention))
                     member.birthday['congratulated'] = todays_date

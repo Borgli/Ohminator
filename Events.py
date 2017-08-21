@@ -312,6 +312,11 @@ async def clear_birthday(message, bot_channel, client):
     server = utils.get_server(message.server)
     member = server.get_member(message.author.id)
     member.birthday = dict()
+    # Save birthday to pickle
+    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc,
+                                                                     member.member_loc)
+    with open(birthday_pickle, 'w+b') as f:
+        pickle.dump(member.birthday, f)
     await client.send_message(bot_channel, '{}: Your birthday has been cleared.'.format(message.author.name))
 
 commands["!clearbirthday"] = clear_birthday

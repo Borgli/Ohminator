@@ -1,3 +1,5 @@
+import pickle
+
 from Member import Member
 from os.path import isdir
 from os import mkdir
@@ -8,6 +10,7 @@ from IntroManager import IntroManager
 import discord
 from Channel import Channel
 from settings import ServerSettings
+import datetime
 
 class Server:
     def __init__(self, discord_server: discord.Server, client: discord.Client, db):
@@ -18,6 +21,7 @@ class Server:
         self.default_channel = discord_server.default_channel
         self.discord_server = discord_server
         self.db = db
+        self.client = client
 
         self.member_list = list()
         self.channel_list = list()
@@ -75,6 +79,7 @@ class Server:
 
         self.playlist = Playlist(client, self)
         self.intro_manager = IntroManager(client, self)
+        client.loop.create_task(self.check_for_birthdays())
 
     def change_settings(self, in_settings):
         for setting, value in in_settings.items():
@@ -105,3 +110,20 @@ class Server:
             else:
                 print_line += ', {}'.format(entry.name)
         return print_line
+
+    async def check_for_birthdays(self):
+        await self.client.wait_until_ready()
+        await asyncio.sleep(1, loop=self.client.loop)
+        while not self.client.is_closed:
+            todays_date = datetime.date.today()
+            for member in self.member_list:
+                if 'birthday' in member.birthday and member.birthday['birthday'] == todays_date and (not 'congratulated' in member.birthday or
+                                                                             member.birthday['congratulated'] != todays_date):
+                    await self.client.send_message(self.bot_channel, "Happy Birthday, **{}**!".format(member.mention))
+                    member.birthday['congratulated'] = todays_date
+                    # Save birthday to pickle
+                    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(self.server_loc,
+                                                                                     member.member_loc)
+                    with open(birthday_pickle, 'w+b') as f:
+                        pickle.dump(member.birthday, f)
+            await asyncio.sleep(10, loop=self.client.loop)

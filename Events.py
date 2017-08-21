@@ -280,7 +280,7 @@ async def set_birthday(message, bot_channel, client):
         return
     server = utils.get_server(message.server)
     member = server.get_member(message.author.id)
-    member.birthday = date
+    member.birthday['birthday'] = date.date()
     birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc, member.member_loc)
     # Save birthday to pickle
     with open(birthday_pickle, 'w+b') as f:
@@ -288,21 +288,29 @@ async def set_birthday(message, bot_channel, client):
     await client.send_message(bot_channel,
                               '{}: Your birthday was set successfully.'
                               '\nIt was saved as {}.'
-                              '\nPlease verify that this is correct.'.format(message.author.name, date))
+                              '\nPlease verify that this is correct.'.format(message.author.name, date.date()))
 
 
 async def my_birthday(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
     member = server.get_member(message.author.id)
-    if member.birthday:
+    if 'birthday' in member.birthday:
         await client.send_message(bot_channel,
-                                  '{}: Your birthday is {}'.format(message.author.name, member.birthday.ctime()))
+                                  '{}: Your birthday is {}'.format(message.author.name, member.birthday['birthday'].ctime()))
     else:
         await client.send_message(bot_channel,
                                   "{}: You don't have a birthday saved to Ohminator!"
                                   "\nYou can add one by using the !setbirthday command.".format(message.author.name))
 
+async def clear_birthday(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    member.birthday = dict()
+    await client.send_message(bot_channel, '{}: Your birthday has been cleared.'.format(message.author.name))
+
+commands["!clearbirthday"] = clear_birthday
 commands["!rlstats"] = get_rl_rank
 commands["!getrlrank"] = get_rl_rank
 commands["!rlrank"] = get_rl_rank

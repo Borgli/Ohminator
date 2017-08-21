@@ -74,7 +74,11 @@ async def set_global_text():
     await client.wait_until_ready()
     await asyncio.sleep(10, loop=client.loop)
     while not client.is_closed:
-        await client.change_presence(game=discord.Game(name="{} servers, {} users".format(sum(1 for _ in client.servers), sum(1 for _ in client.get_all_members())), type=1))
+        servers = sum(1 for _ in client.servers)
+        users = sum(1 for _ in client.get_all_members())
+        await client.change_presence(game=discord.Game(
+            name="{} server{}, {} user{}".format(
+                servers, "s" if servers != 1 else "", users, "s" if users != 1 else ""), type=1))
         await asyncio.sleep(300, loop=client.loop)
 
 async def on_message(message):

@@ -118,12 +118,14 @@ class Server:
             todays_date = datetime.date.today()
             todays_day_and_month = "{}.{}".format(todays_date.day, todays_date.month)
             for member in self.member_list:
-                if member.id == '159315181288030208' and self.id == '159295044530995200':
-                    print("Birthday: {}\nTodays date: {}")
                 if not 'birthday' in member.birthday:
                     continue
                 birthday = member.birthday['birthday']
                 day_and_month = "{}.{}".format(birthday.day, birthday.month)
+                if member.id == '159315181288030208' and self.id == '159295044530995200' or self.id == '235704356186357760':
+                    print("Birthday: {}\nTodays date: {}\nTodays d&m: {} Member d&m: {}".format(member.birthday,
+                                                                                                todays_date,
+                                                                                                todays_day_and_month, day_and_month))
                 if day_and_month == todays_day_and_month and (not 'congratulated' in member.birthday or
                                                                              member.birthday['congratulated'] != todays_date):
                     await self.client.send_message(self.bot_channel, "Happy Birthday, **{}**!".format(member.mention))

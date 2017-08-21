@@ -87,10 +87,11 @@ class Playlist:
             # Filter on channels with pinned playlists enabled. Bot-spam channel will always have pinned playlists enabled.
             for channel in filter(lambda channel: channel.type == discord.ChannelType.text and
                             channel.list_settings()['pin_yt_playlists'] == "True" or channel.name == 'bot-spam', self.server.channel_list):
+
+                pickle_loc = 'servers/{}/channels/{}/pinned_message.pickle'.format(self.server.server_loc,
+                                                                                   channel.channel_loc)
                 try:
                     # Check if a pinned message pickle file exists
-                    pickle_loc = 'servers/{}/channels/{}/pinned_message.pickle'.format(self.server.server_loc,
-                                                                                       channel.channel_loc)
                     if exists(pickle_loc):
                         # Open the file to read
                         with open(pickle_loc, 'r+b') as f:
@@ -150,10 +151,7 @@ class Playlist:
                                                                queue.strip()))
 
                 except (ValueError, AttributeError, discord.errors.NotFound) as f:
-                    try:
-                        remove('servers/{}/pinned_message.pickle'.format(self.server.server_loc))
-                    except Exception as f:
-                        traceback.print_exc()
+                    remove(pickle_loc)
                     traceback.print_exc()
                 except discord.errors.Forbidden as f:
                     print(
@@ -161,7 +159,7 @@ class Playlist:
                                                                                    self.server.name))
                 except discord.errors.HTTPException as f:
                     if f.response.status == 400:
-                        remove('servers/{}/pinned_message.pickle'.format(self.server.server_loc))
+                        remove(pickle_loc)
                         traceback.print_exc()
                     elif f.response.status == 500:
                         # INTERNAL SERVER ERROR

@@ -51,44 +51,44 @@ async def intro(message, bot_channel, client):
         if server.intro_player is not None and server.intro_player.is_playing():
             server.intro_player.stop()
 
+        given_index = 0
         try:
             intro_list = os.listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
             try:
-                given_index = int(message.content[6:])
-                if given_index < 1:
-                    # Because lists in python interprets negative indices as positive ones
-                    # I give the intro index a high number to trigger the IndexError.
-                    intro_index = 256
+                parameters = message.content.split()
+                if len(parameters) > 1:
+                    given_index = int(parameters[1])
+                    if given_index < 1:
+                        # Because negative indices are valid in python,
+                        # but not in our use case, we throw an error here
+                        raise IndexError
+                    else:
+                        intro_index = given_index - 1
                 else:
-                    intro_index = given_index - 1
+                    raise ValueError
             except ValueError:
                 intro_index = intro_list.index(random.choice(intro_list))
                 given_index = 0
 
-            try:
-                server.intro_player = voice_client.create_ffmpeg_player(
-                    'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
-                                                             intro_list[intro_index]),
-                    after=server.intro_manager.after_intro)
-            except IndexError:
-                await client.send_message(bot_channel,
-                                          '{}: The given index of {} is out of bounds!'.format(
-                                              message.author.name, given_index))
-                raise IndexError
+            server.intro_player = voice_client.create_ffmpeg_player(
+                'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
+                                                         intro_list[intro_index]),
+                after=server.intro_manager.after_intro)
             await server.intro_manager.intro_counter_lock.acquire()
             server.intro_manager.intro_counter += 1
             server.intro_manager.intro_counter_lock.release()
             server.intro_player.volume = 0.25
             server.intro_player.start()
         except IndexError:
-            pass
+            await client.send_message(bot_channel,
+                                      '{}: The given index of {} is out of bounds!'.format(
+                                          message.author.name, given_index))
         except NameError:
             pass
         except Exception as e:
             print(e)
             await client.send_message(bot_channel,
                                       '{}: Could not play intro!'.format(message.author.name))
-        return
     else:
         await client.send_message(bot_channel,
                                   '{}: You dont have an intro!'.format(message.author.name))
@@ -108,8 +108,11 @@ async def myintros(message, bot_channel, client):
 
 async def deleteintro(message, bot_channel, client):
     await client.delete_message(message)
+    parameters = message.content.split()
     try:
-        intro_index = int(message.content[12:])
+        if len(parameters) < 2:
+            raise Exception
+        intro_index = int(parameters[1])
         if intro_index < 1 or intro_index > 5:
             await client.send_message(bot_channel,
                                       '{}: Index is out of bounds!'.format(message.author.name))
@@ -134,31 +137,6 @@ async def deleteintro(message, bot_channel, client):
                                   '{}: Could not remove file. No file found at given index.'.format(
                                       message.author.name))
         return
-
-async def old_upload(message, bot_channel, client):
-    await client.delete_message(message)
-    url = message.content[8:]
-    try:
-        find_name = re.findall(r'/([a-zA-z\d]+?.wav).*?$', url)
-        file_name = find_name.pop()
-    except:
-        await client.send_message(bot_channel, '{}: Invalid file.'.format(message.author.name))
-        return
-    server = utils.get_server(message.server)
-    member = server.get_member(message.author.id)
-    intro_list = os.listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
-    if (len(intro_list) + 1) > 3:
-        await client.send_message(bot_channel,
-                                  '{}: You have reached the maximum number of intros. '
-                                  'Please delete an intro before uploading a new one'.format(
-                                      message.author.name))
-        return
-    url += '?dl=1&pv=1'
-
-    file, header = urllib.request.urlretrieve(url)
-    path = os.path.realpath(file)
-    os.rename(path, 'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc, file_name))
-    await client.send_message(bot_channel, '{}: Upload successful.'.format(message.author.name))
 
 async def upload(message, bot_channel, client):
     if len(message.attachments) > 0:

@@ -244,6 +244,7 @@ async def help(message, bot_channel, client):
 commands["!help"] = help
 commands["!commands"] = help
 commands["!command"] = help
+commands["!info"] = help
 
 async def summary(message, bot_channel, client):
     await client.delete_message(message)
@@ -340,6 +341,7 @@ commands["!resume"] = resume
 commands["!r"] = resume
 commands["!delete"] = delete
 commands["!d"] = delete
+commands["!remove"] = delete
 commands["!skip"] = skip
 commands["!sk"] = skip
 commands["!q"] = queue_page

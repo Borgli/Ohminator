@@ -64,9 +64,10 @@ async def on_ready():
             if new_server.bot_channel is None:
                 new_server.bot_channel = await client.create_channel(server, 'bot-spam')
             # Change the topic of the channel if not already set
-            if new_server.bot_channel.topic is None or new_server.bot_channel.topic == "":
-                await client.edit_channel(new_server.bot_channel,
-                                          topic="Output channel for Ohminator. You should mute this channel.")
+            with open('resources/bot_channel_topic.txt') as f:
+                topic = f.read()
+            if new_server.bot_channel.topic != topic:
+                await client.edit_channel(new_server.bot_channel, topic=topic)
         print('Done!')
         running = True
 
@@ -714,9 +715,10 @@ async def on_server_join(server):
     if new_server.bot_channel is None:
         new_server.bot_channel = await client.create_channel(server, 'bot-spam')
     # Change the topic of the channel if not already set
-    if new_server.bot_channel.topic is None or new_server.bot_channel.topic == "":
-        await client.edit_channel(new_server.bot_channel,
-                                  topic="Output channel for Ohminator. You should mute this channel.")
+    with open('resources/bot_channel_topic.txt') as f:
+        topic = f.read()
+    if new_server.bot_channel.topic != topic:
+        await client.edit_channel(new_server.bot_channel, topic=topic)
 
 
 async def on_member_join(member):

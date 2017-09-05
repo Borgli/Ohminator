@@ -13,7 +13,7 @@ import logging
 import traceback
 import time
 import math
-
+import utils
 
 class Playlist:
     def __init__(self, client, server):
@@ -249,16 +249,14 @@ class Playlist:
                                                     ''.format(name, info["title"]))
             else:
                 entry = entries[0]
-                playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt)
-                playlist_element.set_yt_info(entry["title"])
+                playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt, entry)
                 if append:
                     self.yt_playlist.append(playlist_element)
                     await self.client.send_message(self.server.bot_channel,
                                                     '{}: {} has been added to the queue.'.format(name, entry["title"]))
         else:
             # NORMAL
-            playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt)
-            playlist_element.set_yt_info(info.get('title'))
+            playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt, info)
             if append:
                 self.yt_playlist.append(playlist_element)
                 await self.client.send_message(self.server.bot_channel,
@@ -267,17 +265,15 @@ class Playlist:
 
     def add_to_queue(self, option, entries, append):
         entry = entries.pop(0)
-        playlist_element = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt)
-        playlist_element.set_yt_info(entry["title"])
+        playlist_element = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt, entry)
         if append and not (playlist_element.title == '[Deleted video]' or playlist_element.title == '[Private video]'):
             self.yt_playlist.append(playlist_element)
 
         for entry in entries:
-            p_e = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt)
+            p_e = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt, entry)
             title = entry.get('title')
             if title == '[Deleted video]' or title == '[Private video]':
                 continue
-            p_e.set_yt_info(title)
             self.yt_playlist.append(p_e)
 
         return playlist_element
@@ -307,9 +303,8 @@ class Playlist:
                 if something_to_play:
                     self.now_playing = self.server.active_player.title
                     await self.client.send_message(self.server.bot_channel,
-                                                   'Now playing: {}\nIt is {} seconds long'.format(
-                                                       self.server.active_player.title,
-                                                       self.server.active_player.duration))
+                                                   embed=utils.create_now_playing_embed(
+                                                       self.server.active_playlist_element))
                     self.server.active_player.start()
             self.play_next.clear()
             self.add_to_playlist_lock.release()

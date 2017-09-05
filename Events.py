@@ -11,6 +11,7 @@ from dateutil.parser import parse
 import steamapi
 import youtube_dl
 
+import utils
 from Member import Member
 from PlayButtons import PlayButtons
 from Server import Server
@@ -82,6 +83,7 @@ async def set_global_text():
                 servers, "s" if servers != 1 else "", users, "s" if users != 1 else ""), type=1))
         await asyncio.sleep(300, loop=client.loop)
 
+
 async def on_message(message):
     cmd = message.content
 
@@ -152,11 +154,8 @@ async def on_message(message):
                     server.active_player = await player.get_new_player()
                     server.active_playlist_element = player
                     server.playlist.now_playing = server.active_player.title
-                    await client.send_message(bot_channel,
-                                              '{}: \nNow playing: {}\nIt is {} seconds long'.format(
-                                                  message.author.name,
-                                                  server.active_player.title,
-                                                  server.active_player.duration))
+                    await client.send_message(bot_channel, '{}:'.format(message.author.mention),
+                                              embed=utils.create_now_playing_embed(server.active_playlist_element))
                     server.active_player.start()
                     server.active_player.pause()
 
@@ -181,11 +180,8 @@ async def on_message(message):
                 server.active_player = await player.get_new_player()
                 server.active_playlist_element = player
                 server.playlist.now_playing = server.active_player.title
-                await client.send_message(bot_channel,
-                                          '{}: \nNow playing: {}\nIt is {} seconds long'.format(
-                                              message.author.name,
-                                              server.active_player.title,
-                                              server.active_player.duration))
+                await client.send_message(bot_channel, '{}:'.format(message.author.mention),
+                                          embed=utils.create_now_playing_embed(server.active_playlist_element))
                 server.active_player.start()
         except youtube_dl.utils.UnsupportedError:
             await client.send_message(bot_channel,

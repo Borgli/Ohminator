@@ -2,7 +2,7 @@ import time
 
 
 class PlaylistElement:
-    def __init__(self, link, server, in_client, options, after_yt=None):
+    def __init__(self, link, server, in_client, options, after_yt=None, entry=None):
         self.link = link
         self.server = server
         self.client = in_client
@@ -10,16 +10,19 @@ class PlaylistElement:
         self.after_yt = after_yt
         self.title = str()
         self.description = str()
+        self.thumbnail = str()
+        self.webpage_url = str()
         self.duration = 0
         self.vote_list = list()
         self.start_time = 0
         self.pause_time = 0
         self.player = None
-
-    def set_yt_info(self, title, duration=None, description=None):
-        self.title = title
-        self.duration = duration
-        self.description = description
+        if entry:
+            self.title = entry.get("title")
+            self.duration = entry.get("duration")
+            self.description = entry.get("description")
+            self.thumbnail = entry.get("thumbnail")
+            self.webpage_url = entry.get("webpage_url")
 
     async def get_new_player(self):
         voice_client = self.client.voice_client_in(self.server)

@@ -17,4 +17,3 @@ with open("token.txt", 'r') as f:
 
 # Starts the execution of the bot
 client.run(token)
-

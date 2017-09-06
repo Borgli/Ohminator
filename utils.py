@@ -27,3 +27,10 @@ def create_now_playing_embed(now_playing):
     high_res_thumbnail = '/'.join(url_splitted)
     embed.set_thumbnail(url=high_res_thumbnail)
     return embed
+
+
+class NoChannelFoundError(BaseException):
+    pass
+
+class NoMemberFoundError(BaseException):
+    pass

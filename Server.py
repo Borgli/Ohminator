@@ -11,6 +11,7 @@ import discord
 from Channel import Channel
 from settings import ServerSettings
 import datetime
+from utils import *
 
 class Server:
     def __init__(self, discord_server: discord.Server, client: discord.Client, db):
@@ -94,11 +95,13 @@ class Server:
         for member in self.member_list:
             if (id == member.id) and (self.id == member.server.id):
                 return member
+        raise NoMemberFoundError
 
     def get_channel(self, id):
         for channel in self.channel_list:
             if id == channel.id or id == channel.name:
                 return channel
+        raise NoChannelFoundError
 
     def print_queue(self):
         print_line = str()

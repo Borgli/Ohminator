@@ -10,6 +10,7 @@ class Channel:
         self.id = channel.id
         self.channel_loc = '{}-{}'.format(channel.name, channel.id)
         self.type = channel.type
+        self.discord_channel = channel
 
         self.settings_pickle = 'servers/{}/channels/{}/settings.pickle'.format(server.server_loc, self.channel_loc)
         if exists(self.settings_pickle):

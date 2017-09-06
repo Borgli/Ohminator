@@ -7,6 +7,7 @@ from tempfile import mkstemp
 from gtts import gTTS
 
 import utils
+import discord
 
 
 async def text_to_speech(message, bot_channel, client):
@@ -105,6 +106,63 @@ async def play_next_tts(server, client):
         server.next_tts.clear()
         server.playlist.add_to_playlist_lock.release()
 
+async def connect_to_voice_channel(message, bot_channel, client, voice_channel=None):
+    if voice_channel:
+        channel = voice_channel
+    else:
+        channel = message.author.voice_channel
+    voice_client = client.voice_client_in(message.author.server)
+    try:
+        if voice_client is None:
+            voice_client = await client.join_voice_channel(channel)
+        elif voice_client.channel is None:
+            await voice_client.disconnect()
+            voice_client = await client.join_voice_channel(channel)
+        elif voice_client.channel != channel:
+            await voice_client.move_to(channel)
+    except:
+        await client.send_message(bot_channel,
+                                  '{}: Could not connect to voice channel!'.format(message.author.name))
+        traceback.print_exc()
+        return
+
+
+async def summon(message, bot_channel, client):
+    await client.delete_message(message)
+    parameters = message.content.split()
+    server = utils.get_server(message.server)
+    # If there's a parameter it should be the channel you want the bot locked to
+    if len(parameters) > 1:
+        try:
+            channel = server.get_channel(parameters[1])
+            if channel.type == discord.ChannelType.voice:
+                server.playlist.summoned_channel = channel.discord_channel
+                await connect_to_voice_channel(message, bot_channel, client, voice_channel=channel.discord_channel)
+                await client.send_message(bot_channel, "{}: Locked to channel {}".format(message.author.name,
+                                                                                         channel.name))
+            else:
+                await client.send_message(bot_channel, "{}: That channel is a text channel, not a voice channel.\n"
+                                                       "Usage: !summon [(channel id or name)]".format(message.author.name))
+        except utils.NoChannelFoundError:
+            await client.send_message(bot_channel, "{}: Couldn't find a channel matching the parameter!\n"
+                                                   "Usage: !summon [(channel id or name)]".format(message.author.name))
+    else:
+        if message.author.voice.voice_channel:
+            server.playlist.summoned_channel = message.author.voice.voice_channel
+            await connect_to_voice_channel(message, bot_channel, client)
+            await client.send_message(bot_channel, "{}: Locked to channel {}"
+                                      .format(message.author.name, message.author.voice.voice_channel.name))
+        else:
+            await client.send_message(bot_channel, "{}: You must be in a voice channel "
+                                                   "to use this command without a channel id.\n"
+                                                   "Usage: !summon [(channel id)]".format(message.author.name))
+
+async def unsummon(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    await client.send_message(bot_channel, "{}: Released from channel {}"
+                              .format(message.author.name, server.playlist.summoned_channel.name))
+    server.playlist.summoned_channel = None
 
 async def volume(message, bot_channel, client):
     await client.delete_message(message)

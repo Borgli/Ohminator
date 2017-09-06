@@ -120,15 +120,20 @@ async def on_message(message):
                                           message.author.name))
             return
 
+        server = get_server(message.server)
+        if server.playlist.summoned_channel:
+            voice_channel = server.playlist.summoned_channel
+        else:
+            voice_channel = message.author.voice_channel
         # Check if the voice client is okay to use. If not, it is changed.
         # The voice client is retrieved later when the playlist starts a new song.
         voice_client = client.voice_client_in(message.author.server)
         try:
             if voice_client is None:
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
+                voice_client = await client.join_voice_channel(voice_channel)
             elif voice_client.channel is None:
                 await voice_client.disconnect()
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
+                voice_client = await client.join_voice_channel(voice_channel)
         except:
             await client.send_message(bot_channel,
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
@@ -138,7 +143,6 @@ async def on_message(message):
         # Three cases: Case one: An intro is currently playing, so we either append or pause the active player.
         # Case two: Something is already playing, so we queue the requested songs
         # Case three: Nothing is playing, so we just start playing the song
-        server = get_server(message.server)
         await server.playlist.add_to_playlist_lock.acquire()
         if server.active_tts:
             server.active_tts.stop()
@@ -166,8 +170,8 @@ async def on_message(message):
             else:
                 # Move to the user's voice channel
                 try:
-                    if voice_client.channel != message.author.voice_channel:
-                        await voice_client.move_to(message.author.voice_channel)
+                    if voice_client.channel != voice_channel:
+                        await voice_client.move_to(voice_channel)
                 except:
                     await client.send_message(bot_channel,
                                               '{}: Could not connect to voice channel!'.format(message.author.name))
@@ -351,6 +355,11 @@ commands["!n"] = next
 commands["!vote"] = vote
 commands["!v"] = vote
 commands["!queuepage"] = queue_page
+commands["!summon"] = summon
+commands["!lock"] = summon
+commands["!unsummon"] = unsummon
+commands["!desummon"] = unsummon
+commands["!release"] = unsummon
 
 # Intro commands
 commands["!introstop"] = introstop
@@ -663,15 +672,24 @@ async def on_voice_state_update(before, after):
     if not member.has_intro():
         return
 
+    # Handles playing intros when the bot is summoned
+    if server.playlist.summoned_channel:
+        if after.voice_channel == server.playlist.summoned_channel:
+            voice_channel = server.playlist.summoned_channel
+        else:
+            return
+    else:
+        voice_channel = after.voice_channel
+
     voice_client = client.voice_client_in(after.server)
     try:
         if voice_client is None:
-            voice_client = await client.join_voice_channel(after.voice_channel)
+            voice_client = await client.join_voice_channel(voice_channel)
         elif voice_client.channel is None:
             await voice_client.disconnect()
-            voice_client = await client.join_voice_channel(after.voice_channel)
-        elif voice_client.channel != after.voice_channel:
-            await voice_client.move_to(after.voice_channel)
+            voice_client = await client.join_voice_channel(voice_channel)
+        elif voice_client.channel != voice_channel:
+            await voice_client.move_to(voice_channel)
     except Exception as e:
         print(e)
         return

@@ -15,6 +15,7 @@ import time
 import math
 import utils
 
+
 class Playlist:
     def __init__(self, client, server):
         self.client = client
@@ -28,6 +29,7 @@ class Playlist:
         self.clear_now_playing = asyncio.Event()
         self.after_yt_lock = asyncio.Lock()
         self.add_to_playlist_lock = asyncio.Lock()
+        self.summoned_channel = None
 
         if not exists("logs"):
             mkdir("logs")
@@ -281,7 +283,6 @@ class Playlist:
     def after_yt(self):
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
-
 
     async def play_next_yt(self):
         while not self.client.is_closed:

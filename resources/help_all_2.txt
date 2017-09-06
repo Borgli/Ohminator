@@ -18,4 +18,7 @@
 !sharedgames                - Get a list over shared multi-player and co-op games from the Steam library.
 [steam custom url]            Give one or more public profiles with custom steam urls as parameters.
 !rlstats [steam/ps4/xboxid] - Get your rank points from the latest season of Rocket League.
+!summon or !lock            - Locks the bot to your voice channel or a given voice channel.
+[(channel id or name)]
+!unsummon or !release       - Releases the bot from a voice channel.
 ```

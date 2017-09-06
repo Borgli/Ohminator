@@ -154,7 +154,7 @@ async def on_message(message):
                     server.active_player = await player.get_new_player()
                     server.active_playlist_element = player
                     server.playlist.now_playing = server.active_player.title
-                    await client.send_message(bot_channel, '{}:'.format(message.author.mention),
+                    await client.send_message(bot_channel, '{}:'.format(message.author.name),
                                               embed=utils.create_now_playing_embed(server.active_playlist_element))
                     server.active_player.start()
                     server.active_player.pause()
@@ -180,7 +180,7 @@ async def on_message(message):
                 server.active_player = await player.get_new_player()
                 server.active_playlist_element = player
                 server.playlist.now_playing = server.active_player.title
-                await client.send_message(bot_channel, '{}:'.format(message.author.mention),
+                await client.send_message(bot_channel, '{}:'.format(message.author.name),
                                           embed=utils.create_now_playing_embed(server.active_playlist_element))
                 server.active_player.start()
         except youtube_dl.utils.UnsupportedError:

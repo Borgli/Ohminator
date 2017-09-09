@@ -41,17 +41,33 @@ async def text_to_speech(message, bot_channel, client):
             await client.send_message(bot_channel,
                                       '{}: Language setting is not a valid setting! Please fix.'.format(message.author.name))
             return
-        voice_client = client.voice_client_in(message.server)
+
+        # Handles playing intros when the bot is summoned
+        if server.playlist.summoned_channel:
+            if message.author.voice.voice_channel == server.playlist.summoned_channel:
+                voice_channel = server.playlist.summoned_channel
+            else:
+                await client.send_message(bot_channel,
+                                          '{}: The bot is locked to channel {}. '
+                                          'Please join that channel to use !tts.'.format(
+                                              message.author.name, server.playlist.summoned_channel.name))
+                return
+        else:
+            voice_channel = message.author.voice_channel
+
+        voice_client = client.voice_client_in(message.author.server)
         try:
             if voice_client is None:
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
+                voice_client = await client.join_voice_channel(voice_channel)
             elif voice_client.channel is None:
                 await voice_client.disconnect()
-                voice_client = await client.join_voice_channel(message.author.voice_channel)
-        except:
+                voice_client = await client.join_voice_channel(voice_channel)
+            elif voice_client.channel != voice_channel:
+                await voice_client.move_to(voice_channel)
+        except Exception as e:
+            print(e)
             await client.send_message(bot_channel,
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
-            traceback.print_exc()
             return
 
         fd, filename = mkstemp()

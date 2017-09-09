@@ -122,7 +122,15 @@ async def on_message(message):
 
         server = get_server(message.server)
         if server.playlist.summoned_channel:
-            voice_channel = server.playlist.summoned_channel
+            # Restricts users to only be able to add songs to playlist if they are in the channel the bot is locked to.
+            if message.author.voice.voice_channel == server.playlist.summoned_channel:
+                voice_channel = server.playlist.summoned_channel
+            else:
+                await client.send_message(bot_channel,
+                                          '{}: The bot is locked to channel {}. '
+                                          'Please join that channel to make Ohminator play audio.'.format(
+                                              message.author.name, server.playlist.summoned_channel.name))
+                return
         else:
             voice_channel = message.author.voice_channel
         # Check if the voice client is okay to use. If not, it is changed.

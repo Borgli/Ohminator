@@ -22,7 +22,7 @@ class PlaylistElement:
             self.duration = entry.get("duration")
             self.description = entry.get("description")
             self.thumbnail = entry.get("thumbnail")
-            if not self.webpage_url:
+            if not self.thumbnail:
                 self.thumbnail = "https://i.ytimg.com/vi/{}/mqdefault.jpg".format(entry.get("url"))
             self.webpage_url = entry.get("webpage_url")
             if not self.webpage_url:

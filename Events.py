@@ -371,6 +371,8 @@ commands["!release"] = unsummon
 commands["!repeat"] = repeat
 commands["!again"] = repeat
 commands["!a"] = repeat
+commands["!shuffle"] = shuffle
+commands["!sh"] = shuffle
 
 # Intro commands
 commands["!introstop"] = introstop

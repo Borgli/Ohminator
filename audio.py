@@ -1,5 +1,6 @@
 import math
 import os
+import random
 import time
 import traceback
 from tempfile import mkstemp
@@ -261,6 +262,17 @@ async def repeat(message, bot_channel, client):
                                   ':repeat: {} repeated {}.'.format(message.author.name,
                                                                               server.active_playlist_element.title))
         server.playlist.yt_playlist.insert(0, server.active_playlist_element)
+
+async def shuffle(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    if server.active_player is None or not server.active_player.is_playing():
+        await client.send_message(bot_channel, '{}: Nothing to shuffle!'.format(message.author.name))
+    else:
+        await client.send_message(bot_channel,
+                                  ':twisted_rightwards_arrows: {} shuffled the list.'.format(message.author.name))
+        random.shuffle(server.playlist.yt_playlist)
+        server.playlist.yt_playlist.sort(key=lambda element: len(element.vote_list), reverse=True)
 
 async def delete(message, bot_channel, client):
     await client.delete_message(message)

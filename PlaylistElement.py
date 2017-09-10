@@ -22,7 +22,11 @@ class PlaylistElement:
             self.duration = entry.get("duration")
             self.description = entry.get("description")
             self.thumbnail = entry.get("thumbnail")
+            if not self.webpage_url:
+                self.thumbnail = "https://i.ytimg.com/vi/{}/mqdefault.jpg".format(entry.get("url"))
             self.webpage_url = entry.get("webpage_url")
+            if not self.webpage_url:
+                self.webpage_url = "https://www.youtube.com/watch?v={}".format(entry.get("url"))
 
     async def get_new_player(self):
         voice_client = self.client.voice_client_in(self.server)
@@ -36,3 +40,6 @@ class PlaylistElement:
         self.start_time = time.time()
         player.volume = 0.25
         return player
+
+    def __repr__(self):
+        return self.title

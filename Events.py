@@ -441,9 +441,9 @@ async def suggest(message, bot_channel, client):
         return
     server = get_server(message.server)
     member = server.get_member(message.author.id)
-    suggestion_loc = 'suggestions.pickle'.format(server.server_loc, member.member_loc)
+    suggestion_loc = 'suggestions.txt'.format(server.server_loc, member.member_loc)
     with open(suggestion_loc, 'a') as f:
-        f.write("Suggestion from {}:\n{}\n".format(message.author, suggestion))
+        f.write("Suggestion from {} on server {}:\n{}\n".format(message.author, message.server, suggestion))
     await client.send_message(bot_channel,
                               '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
 

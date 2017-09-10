@@ -21,4 +21,5 @@
 !summon or !lock            - Locks the bot to your voice channel or a given voice channel.
 [(channel id or name)]
 !unsummon or !release       - Releases the bot from a voice channel.
+!repeat or !again or !a     - Repeats the currently playing song.
 ```

@@ -251,6 +251,16 @@ async def resume(message, bot_channel, client):
         server.active_playlist_element.start_time += (server.active_playlist_element.pause_time-server.active_playlist_element.start_time)
         server.active_player.resume()
 
+async def repeat(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    if server.active_player is None or not server.active_player.is_playing():
+        await client.send_message(bot_channel, '{}: Nothing to repeat!'.format(message.author.name))
+    else:
+        await client.send_message(bot_channel,
+                                  ':repeat: {} repeated {}.'.format(message.author.name,
+                                                                              server.active_playlist_element.title))
+        server.playlist.yt_playlist.insert(0, server.active_playlist_element)
 
 async def delete(message, bot_channel, client):
     await client.delete_message(message)

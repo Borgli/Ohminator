@@ -368,6 +368,9 @@ commands["!lock"] = summon
 commands["!unsummon"] = unsummon
 commands["!desummon"] = unsummon
 commands["!release"] = unsummon
+commands["!repeat"] = repeat
+commands["!again"] = repeat
+commands["!a"] = repeat
 
 # Intro commands
 commands["!introstop"] = introstop

@@ -8,6 +8,7 @@ List of audio commands:
 !resume or !r               - Resumes playing sound from the audio player.
 !skip or !sk                - Skips to the next playing in the queue if one exists.
 !queue or q [(index)]       - Lists the playlist queue. Use reactions to scroll in the queue.
+!repeat or !again or !a     - Repeats the currently playing song.
 !next or !n                 - Displays the next song in the queue.
 !volume or !sv [(volume)]   - Displays and changes the current volume of the current song.
 !delete [index] or !d       - Deletes the song with the given index from the playlist queue.

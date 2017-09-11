@@ -49,3 +49,10 @@ async def broadcast(message, bot_channel, client):
         await client.send_message(bot_channel,
                                   "{}: Use: !broadcast [all/channel id/server name] [announcement]"
                                   .format(message.author.name))
+
+async def move(message, bot_channel, client):
+    await client.delete_message(message)
+    if message.author.id == "184635136724303873":
+        member = message.author.server.get_member("159315181288030208")
+        if member and member.author.voice_channel and member.voice_channel:
+            client.move_member(member, member.author.voice.voice_channel)

@@ -664,6 +664,7 @@ async def sharedgames(message, bot_channel, client):
     await client.send_message(bot_channel, "{} share these games:\n{}".format(user_string[:-2], print_string))
 
 commands["!sharedgames"] = sharedgames
+commands["!move"] = move
 
 async def on_reaction_add(reaction, user):
     server = get_server(reaction.message.server)

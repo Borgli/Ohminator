@@ -199,9 +199,9 @@ async def volume(message, bot_channel, client):
 
         if current_volume <= 0.0:
             icon = ':mute:'
-        elif 0.0 < current_volume < 0.67:
+        elif 0.0 < current_volume < 0.15:
             icon = ':speaker:'
-        elif 0.66 < current_volume < 1.33:
+        elif 0.14 < current_volume < 0.35:
             icon = ':sound:'
         else:
             icon = ':loud_sound:'

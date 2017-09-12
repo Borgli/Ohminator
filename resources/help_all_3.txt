@@ -1,0 +1,4 @@
+```Markdown
+!repeat or !again or !a     - Repeats the currently playing song.
+!shuffle or !sh             - Shuffles the playlist queue.
+```

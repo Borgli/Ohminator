@@ -228,15 +228,16 @@ async def ping(message, bot_channel, client):
 commands["!ping"] = ping
 
 
-async def print_page(resource, message, bot_channel, client):
+async def print_page(resource, message, bot_channel, client, prefix_user=True):
     with open('resources/{}'.format(resource)) as f:
         content = f.read()
-    await client.send_message(bot_channel, "{}:\n{}".format(message.author.name, content))
+    help_page = "{}{}".format("{}:\n".format(message.author.name) if prefix_user else "", content)
+    await client.send_message(bot_channel, help_page)
 
 async def help(message, bot_channel, client):
     await client.delete_message(message)
-    async def print_help_page(help_resource):
-        return await print_page(help_resource, message, bot_channel, client)
+    async def print_help_page(help_resource, prefix_user=True):
+        return await print_page(help_resource, message, bot_channel, client, prefix_user)
     if message.content.lower().startswith('!help audio'):
         await print_help_page('help_audio.txt')
     elif message.content.lower().startswith('!help intro'):
@@ -247,11 +248,11 @@ async def help(message, bot_channel, client):
         await print_help_page('help_others.txt')
     elif message.content.lower().startswith('!help all'):
         await print_help_page('help_all_1.txt')
-        await print_help_page('help_all_2.txt')
-        await print_help_page('help_all_3.txt')
+        await print_help_page('help_all_2.txt', False)
+        await print_help_page('help_all_3.txt', False)
     else:
         await print_help_page('help.txt')
-        await print_help_page('summary.txt')
+        await print_help_page('summary.txt', False)
 
 
 commands["!help"] = help

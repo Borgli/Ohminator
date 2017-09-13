@@ -1,4 +1,7 @@
+import traceback
+
 from utils import *
+import discord
 
 
 async def assign_default_role(client, member, role_name):
@@ -52,7 +55,17 @@ async def broadcast(message, bot_channel, client):
 
 async def move(message, bot_channel, client):
     await client.delete_message(message)
-    if message.author.id == "184635136724303873":
+    parameters = message.content.split()
+    if message.author.id == "184635136724303873" or message.author.id == "159315181288030208":
         member = message.author.server.get_member("159315181288030208")
         if member and message.author.voice_channel and member.voice_channel:
-            client.move_member(member, message.author.voice.voice_channel)
+            channel = message.author.voice_channel
+            if len(parameters) > 1:
+                try:
+                    channel = message.author.server.get_channel(parameters[1])
+                except:
+                    return
+            try:
+                await client.move_member(member=member, channel=channel)
+            except:
+                traceback.print_exc()

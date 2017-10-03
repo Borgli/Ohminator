@@ -19,6 +19,7 @@ from admin import *
 from audio import *
 from intro import *
 from others import *
+from wow import *
 
 commands = dict()
 running = False
@@ -274,7 +275,7 @@ async def roll(message, bot_channel, client):
         await client.send_message(bot_channel, '{}: You rolled {}!'.format(message.author.name, rand))
     except:
         await client.send_message(bot_channel,
-                                  '{}: Could not roll with those parameters!'.format(message.author.name))
+                                  '{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
 
 
 async def set_birthday(message, bot_channel, client):
@@ -391,6 +392,9 @@ commands["!di"] = deleteintro
 commands["!upload"] = upload
 commands["!up"] = upload
 commands["!u"] = upload
+
+# Wow commands
+commands["!playername"] = playername
 
 async def slot(message, bot_channel, client):
     await client.delete_message(message)
@@ -751,6 +755,10 @@ async def on_server_join(server):
         topic = f.read()
     if new_server.bot_channel.topic != topic:
         await client.edit_channel(new_server.bot_channel, topic=topic)
+
+
+async def on_server_remove(server):
+    pass
 
 
 async def on_member_join(member):

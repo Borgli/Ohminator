@@ -32,8 +32,6 @@ class PlaylistElement:
         voice_client = self.client.voice_client_in(self.server)
         try:
             player = await voice_client.create_ytdl_player(self.webpage_url, options=self.option,
-                                                           before_options="-reconnect_streamed 1"
-                                                                          " -reconnect_delay_max 5",
                                                            after=self.after_yt, ytdl_options={'quiet':True})
         except:
             return None

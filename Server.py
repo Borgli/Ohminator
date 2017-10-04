@@ -62,9 +62,6 @@ class Server:
 
         # Initialize members
         for member in discord_server.members:
-            member_loc = '{}-{}'.format(member.name, member.id)
-            if not isdir('servers/{}/members/{}'.format(self.server_loc, member_loc)):
-                mkdir('servers/{}/members/{}'.format(self.server_loc, member_loc))
             self.member_list.append(Member(client, self, member))
 
         # Create channels folder if it doesn't exist

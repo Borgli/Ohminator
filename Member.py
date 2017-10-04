@@ -1,7 +1,7 @@
 import pickle
 
 from Stats import Stats
-from os.path import exists
+from os.path import exists, isdir
 from os import mkdir, listdir
 
 
@@ -11,9 +11,12 @@ class Member:
         self.name = member.name
         self.id = member.id
         self.mention = member.mention
-        self.member_loc = '{}-{}'.format(member.name, member.id)
+        self.member_loc = '{}'.format(member.id)
         self.server = server
         self.birthday = dict()
+
+        if not isdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc)):
+            mkdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc))
 
         self.intro_folder = 'servers/{}/members/{}/intros'.format(server.server_loc, self.member_loc)
         # Create intros folder if it doesn't exist

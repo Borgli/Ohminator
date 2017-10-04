@@ -35,10 +35,11 @@ class Playlist:
             mkdir("logs")
         logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
 
-        client.loop.create_task(self.manage_pinned_messages())
-        client.loop.create_task(self.play_next_yt())
-        client.loop.create_task(self.should_clear_now_playing())
-        client.loop.create_task(self.update_database_playlist())
+        self.task_list = list()
+        self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
+        self.task_list.append(client.loop.create_task(self.play_next_yt()))
+        self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
+        self.task_list.append(client.loop.create_task(self.update_database_playlist()))
 
     async def update_database_playlist(self):
         await self.client.wait_until_ready()
@@ -178,7 +179,8 @@ class Playlist:
             # 0.5 second intervals
             await asyncio.sleep(0.5, loop=self.client.loop)
 
-    def get_options(self, link):
+    @staticmethod
+    def get_options(link):
         try:
             outstring = re.findall(r'\?t=(.*)', link)
             timestamps = re.findall(r'(\d+)', outstring.pop())

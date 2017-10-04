@@ -743,7 +743,7 @@ async def on_server_join(server):
     server_loc = '{}_{}'.format(server.name, server.id)
     if not isdir('servers/{}'.format(server_loc)):
         mkdir('servers/{}'.format(server_loc))
-    new_server = Server(server, client)
+    new_server = Server(server, client, db)
     utils.server_list.append(new_server)
 
     new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
@@ -758,7 +758,10 @@ async def on_server_join(server):
 
 
 async def on_server_remove(server):
-    pass
+    server = get_server(server)
+    for task in server.playlist.task_list:
+        task.cancel()
+    server_list.remove(server)
 
 
 async def on_member_join(member):

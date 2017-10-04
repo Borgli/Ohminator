@@ -351,7 +351,7 @@ async def vote(message, bot_channel, client):
         await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
         return
     except IndexError:
-        await client.send_message(bot_channel, '{}: Please give an index to delete!'.format(message.author.name))
+        await client.send_message(bot_channel, '{}: Please give an index to vote for!'.format(message.author.name))
         return
 
     try:

@@ -30,7 +30,6 @@ async def playername(message, bot_channel, client):
         async with aiohttp.ClientSession() as session:
             async with session.get("http://realmplayers.com/CharacterList.aspx?search={}".format(name),
                                    timeout=10) as resp:
-                timeout = False
                 if resp.status != 200:
                     await client.send_message(bot_channel, "Sorry, but something is wrong with the web site. "
                                                            "Try again later!")
@@ -60,17 +59,14 @@ async def playername(message, bot_channel, client):
         sent_message = await client.send_message(message.channel, 'There are several users called {}. '
                                                                   'Please pick the correct one:{}'.format(
                                                                     name, alternative_string))
-        timeout = True
 
         def check(msg):
-            timeout = False
             return msg.content.isdigit() and 0 < int(msg.content) <= len(match)
         response = await client.wait_for_message(timeout=20, author=message.author, check=check)
         await client.delete_message(sent_message)
-        await client.delete_message(response)
-        if timeout:
-            return
-        player_tuple = matches[int(response.content) - 1]
+        if response:
+            await client.delete_message(response)
+            player_tuple = matches[int(response.content) - 1]
 
     player_url = "http://realmplayers.com/CharacterViewer.aspx?realm={}&player={}".format(
                 player_tuple[0], player_tuple[1])
@@ -78,7 +74,6 @@ async def playername(message, bot_channel, client):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(player_url, timeout=10) as resp:
-                timeout = False
                 if resp.status != 200:
                     await client.send_message(bot_channel,
                                               "Sorry, but something is wrong with the web site. Try again later!")

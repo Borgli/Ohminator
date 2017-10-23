@@ -393,6 +393,17 @@ commands["!upload"] = upload
 commands["!up"] = upload
 commands["!u"] = upload
 
+# Default intro commands
+commands["!defaultintro"] = default_intro
+commands["!di"] = default_intro
+commands["!defaultintros"] = list_default_intros
+commands["!dis"] = list_default_intros
+commands["!ldi"] = list_default_intros
+commands["!deletedefaultintro"] = delete_default_intro
+commands["!ddi"] = delete_default_intro
+commands["!uploaddefaultintro"] = upload_default_intro
+commands["!udi"] = upload_default_intro
+
 # Wow commands
 commands["!playername"] = playername
 
@@ -683,13 +694,21 @@ async def on_reaction_add(reaction, user):
 
 
 async def on_voice_state_update(before, after):
+    if after.id == client.user.id:
+        return
     if after.voice_channel is None or after.voice.is_afk or (before.voice_channel is after.voice_channel):
         return
     server = get_server(after.server)
     if server is None:
         return
+
     member = server.get_member(after.id)
-    if not member.has_intro():
+    default_intros = listdir('servers/{}/default_intros'.format(server.server_loc))
+    if member.has_intro():
+        intro_source = 'servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc)
+    elif len(default_intros) > 0:
+        intro_source = 'servers/{}/default_intros'.format(server.server_loc)
+    else:
         return
 
     # Handles playing intros when the bot is summoned
@@ -725,10 +744,9 @@ async def on_voice_state_update(before, after):
         server.intro_player.stop()
 
     try:
-        intro_list = listdir('servers/{}/members/{}/intros'.format(server.server_loc, member.member_loc))
+        intro_list = listdir(intro_source)
         server.intro_player = voice_client.create_ffmpeg_player(
-            'servers/{}/members/{}/intros/{}'.format(server.server_loc, member.member_loc,
-                                                     random.choice(intro_list)),
+            '{}/{}'.format(intro_source, random.choice(intro_list)),
             after=server.intro_manager.after_intro)
         server.intro_player.volume = 0.25
         server.intro_player.start()

@@ -170,6 +170,9 @@ class Playlist:
                         await asyncio.sleep(30, loop=self.client.loop)
                     else:
                         traceback.print_exc()
+                except asyncio.TimeoutError as f:
+                    print("Pinned messages had a timeout error on server {}".format(self.server.name))
+                    await asyncio.sleep(60, loop=self.client.loop)
                 except:
                     logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
                                   exc_info=True)

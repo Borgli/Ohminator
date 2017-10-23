@@ -2,7 +2,7 @@ import pickle
 
 from Member import Member
 from os.path import isdir
-from os import mkdir
+from os import mkdir, listdir
 from os.path import exists
 import asyncio
 from Playlist import Playlist
@@ -74,6 +74,10 @@ class Server:
             if not isdir('servers/{}/channels/{}'.format(self.server_loc, channel_loc)):
                 mkdir('servers/{}/channels/{}'.format(self.server_loc, channel_loc))
             self.channel_list.append(Channel(client, self, channel))
+
+        # Create default intros folder if it doesn't exist
+        if not exists('servers/{}/default_intros'.format(self.server_loc)):
+            mkdir('servers/{}/default_intros'.format(self.server_loc))
 
         self.playlist = Playlist(client, self)
         self.intro_manager = IntroManager(client, self)

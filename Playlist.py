@@ -293,27 +293,27 @@ class Playlist:
         while not self.client.is_closed:
             await self.play_next.wait()
             await self.add_to_playlist_lock.acquire()
-            if len(self.yt_playlist) > 0:
-                something_to_play = False
-                while True:
-                    if len(self.yt_playlist) <= 0:
-                        self.play_next.clear()
-                        self.add_to_playlist_lock.release()
-                        break
-                    player = self.yt_playlist.pop(0)
-                    self.server.active_player = await player.get_new_player()
-                    self.server.active_playlist_element = player
-                    if self.server.active_player is not None:
-                        something_to_play = True
-                        break
-                if something_to_play:
-                    self.now_playing = self.server.active_player.title
-                    await self.client.send_message(self.server.bot_channel,
-                                                   embed=utils.create_now_playing_embed(
-                                                       self.server.active_playlist_element))
-                    self.server.active_player.start()
-            self.play_next.clear()
-            self.add_to_playlist_lock.release()
+            try:
+                if len(self.yt_playlist) > 0:
+                    something_to_play = False
+                    while True:
+                        if len(self.yt_playlist) <= 0:
+                            break
+                        player = self.yt_playlist.pop(0)
+                        self.server.active_player = await player.get_new_player()
+                        self.server.active_playlist_element = player
+                        if self.server.active_player is not None:
+                            something_to_play = True
+                            break
+                    if something_to_play:
+                        self.now_playing = self.server.active_player.title
+                        await self.client.send_message(self.server.bot_channel,
+                                                       embed=utils.create_now_playing_embed(
+                                                           self.server.active_playlist_element))
+                        self.server.active_player.start()
+            finally:
+                self.play_next.clear()
+                self.add_to_playlist_lock.release()
 
     async def should_clear_now_playing(self):
         while not self.client.is_closed:

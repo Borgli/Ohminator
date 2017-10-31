@@ -14,12 +14,14 @@ class IntroManager:
         while not self.client.is_closed:
             await self.intro_finished.wait()
             await self.intro_counter_lock.acquire()
-            self.intro_counter -= 1
-            if self.intro_counter == 0:
-                if self.ohm_server.active_player is not None:
-                    self.ohm_server.active_player.resume()
-            self.intro_counter_lock.release()
-            self.intro_finished.clear()
+            try:
+                self.intro_counter -= 1
+                if self.intro_counter == 0:
+                    if self.ohm_server.active_player is not None:
+                        self.ohm_server.active_player.resume()
+            finally:
+                self.intro_counter_lock.release()
+                self.intro_finished.clear()
 
     def after_intro(self):
         self.client.loop.call_soon_threadsafe(self.intro_finished.set)

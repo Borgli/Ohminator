@@ -88,7 +88,6 @@ async def intro(message, bot_channel, client):
                 after=server.intro_manager.after_intro)
             await server.intro_manager.intro_counter_lock.acquire()
             server.intro_manager.intro_counter += 1
-            server.intro_manager.intro_counter_lock.release()
             server.intro_player.volume = 0.25
             server.intro_player.start()
         except IndexError:
@@ -101,6 +100,8 @@ async def intro(message, bot_channel, client):
             print(e)
             await client.send_message(bot_channel,
                                       '{}: Could not play intro!'.format(message.author.name))
+        finally:
+            server.intro_manager.intro_counter_lock.release()
     else:
         await client.send_message(bot_channel,
                                   '{}: You dont have an intro!'.format(message.author.name))
@@ -255,7 +256,6 @@ async def default_intro(message, bot_channel, client):
                 after=server.intro_manager.after_intro)
             await server.intro_manager.intro_counter_lock.acquire()
             server.intro_manager.intro_counter += 1
-            server.intro_manager.intro_counter_lock.release()
             server.intro_player.volume = 0.25
             server.intro_player.start()
         except IndexError:
@@ -268,6 +268,8 @@ async def default_intro(message, bot_channel, client):
             print(e)
             await client.send_message(bot_channel,
                                       '{}: Could not play intro!'.format(message.author.name))
+        finally:
+            server.intro_manager.intro_counter_lock.release()
     else:
         await client.send_message(bot_channel,
                                   '{}: You dont have an intro!'.format(message.author.name))

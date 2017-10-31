@@ -601,18 +601,20 @@ async def playbuttons(message, bot_channel, client):
     server = get_server(message.server)
     lock = asyncio.locks.Lock()
     await lock.acquire()
-    await client.send_message(message.channel, 'Here are buttons for controlling the playlist.\n'
-                                               'Use reactions to trigger them!')
-    play = await client.send_message(message.channel, 'Play :arrow_forward:')
-    pause = await client.send_message(message.channel, 'Pause :pause_button:')
-    stop = await client.send_message(message.channel, 'Stop :stop_button:')
-    next = await client.send_message(message.channel, 'Next song :track_next:')
-    volume_up = await client.send_message(message.channel, 'Volume up :heavy_plus_sign:')
-    volume_down = await client.send_message(message.channel, 'Volume down :heavy_minus_sign:')
-    queue = await client.send_message(message.channel, 'Current queue :notes:')
-    await client.send_message(message.channel, '----------------------------------------')
-    server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
-    lock.release()
+    try:
+        await client.send_message(message.channel, 'Here are buttons for controlling the playlist.\n'
+                                                   'Use reactions to trigger them!')
+        play = await client.send_message(message.channel, 'Play :arrow_forward:')
+        pause = await client.send_message(message.channel, 'Pause :pause_button:')
+        stop = await client.send_message(message.channel, 'Stop :stop_button:')
+        next = await client.send_message(message.channel, 'Next song :track_next:')
+        volume_up = await client.send_message(message.channel, 'Volume up :heavy_plus_sign:')
+        volume_down = await client.send_message(message.channel, 'Volume down :heavy_minus_sign:')
+        queue = await client.send_message(message.channel, 'Current queue :notes:')
+        await client.send_message(message.channel, '----------------------------------------')
+        server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
+    finally:
+        lock.release()
 
 commands["!playbuttons"] = playbuttons
 
@@ -752,9 +754,10 @@ async def on_voice_state_update(before, after):
         server.intro_player.start()
         await server.intro_manager.intro_counter_lock.acquire()
         server.intro_manager.intro_counter += 1
-        server.intro_manager.intro_counter_lock.release()
     except Exception as e:
         print(e)
+    finally:
+        server.intro_manager.intro_counter_lock.release()
 
 
 async def on_server_join(server):

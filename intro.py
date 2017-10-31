@@ -230,6 +230,10 @@ async def default_intro(message, bot_channel, client):
         given_index = 0
         try:
             intro_list = os.listdir('servers/{}/default_intros'.format(server.server_loc))
+            if len(intro_list) == 0:
+                await client.send_message(bot_channel,
+                                          '{}: No default intros have been added!'.format(message.author.name))
+                return
             try:
                 parameters = message.content.split()
                 if len(parameters) > 1:

@@ -1,5 +1,9 @@
 # Ohminator, a Discord bot
 
+The bot uses [discord.py](https://github.com/Rapptz/discord.py), an API wrapper for Discord written in Python. Currently, the bot is based on the async branch, but will probably be migrated over to the rewrite branch in the future. 
+
+Documentation can be found [here](https://discordpy.readthedocs.io/en/latest/).
+
 ## How to install:
 1. Download or clone the repository.
 2. Install the following dependencies:

@@ -6,9 +6,9 @@ import discord
 from os import mkdir, listdir
 from os.path import isdir
 from random import randint
-#from dateutil.parser import parse
+from dateutil.parser import parse
 
-#import steamapi
+import steamapi
 import youtube_dl
 
 import utils

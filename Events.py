@@ -101,11 +101,11 @@ async def on_message(message):
             await commands[key](message, bot_channel, client)
             return
 
+    parameters = cmd.split()
     # Commands that require high performance can not be awaited and are therefore implemented here
-    if cmd.lower().startswith('!yt') or cmd.lower().startswith('!play') or cmd.lower().startswith('!p'):
+    if parameters[0].lower() == '!yt' or parameters[0].lower() == '!play' or parameters[0].lower() == '!p':
         await client.delete_message(message)
 
-        parameters = message.content.split()
         if len(parameters) < 2:
             await client.send_message(bot_channel,
                                       '{}: Usage: !yt or !play or !p [link or search term]!'.format(

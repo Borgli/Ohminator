@@ -14,7 +14,7 @@ Documentation can be found [here](https://discordpy.readthedocs.io/en/latest/).
   * `python3 -m pip install -U rocket-snake`
   * `python3 -m pip install -U gtts`
   * `python3 -m pip install -U pymongo`
-  * `python3 -m pip install -U dateutil`
+  * `python3 -m pip install -U python-dateutil`
 4. Download [steamapi](https://github.com/smiley/steamapi) and follow the install instructions in that repository.
 5. Install [FFmpeg](https://www.ffmpeg.org/) for audio:
   * `sudo apt-get install ffmpeg`

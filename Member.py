@@ -15,6 +15,10 @@ class Member:
         self.server = server
         self.birthday = dict()
 
+        # This is for the poll function
+        self.question = None
+        self.options = list()
+
         if not isdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc)):
             mkdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc))
 

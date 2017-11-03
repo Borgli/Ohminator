@@ -6,9 +6,9 @@ import discord
 from os import mkdir, listdir
 from os.path import isdir
 from random import randint
-from dateutil.parser import parse
+#from dateutil.parser import parse
 
-import steamapi
+#import steamapi
 import youtube_dl
 
 import utils
@@ -20,6 +20,7 @@ from audio import *
 from intro import *
 from others import *
 from wow import *
+from poll import *
 
 commands = dict()
 running = False
@@ -340,6 +341,11 @@ commands["!mybirthday"] = my_birthday
 commands["!setbirthday"] = set_birthday
 commands["!roll"] = roll
 commands["!broadcast"] = broadcast
+
+# Poll commands
+commands["!poll"] = get_question
+commands["!question?"] = see_question
+
 
 # Audio commands
 commands["!tts"] = text_to_speech

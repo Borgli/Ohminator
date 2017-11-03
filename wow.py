@@ -1,17 +1,42 @@
+from functools import wraps
+
 import aiohttp
 import re
 import asyncio
 
 import discord
 
-async def lastraid(message, bot_channel, client):
-    await client.delete_message(message)
+async def lastraid_player(message, bot_channel, client):
+    return await lastraid(message, bot_channel, client, player=True)
 
-async def itemname(message, bot_channel, client):
-    await client.delete_message(message)
+async def lastraid_guild(message, bot_channel, client):
+    return await lastraid(message, bot_channel, client, player=False)
 
 
-async def playername(message, bot_channel, client):
+def get_session(url):
+    def wrapper(func):
+        @wraps(func)
+        async def wrapped(message, bot_channel, client):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, timeout=10) as resp:
+                        if resp.status != 200:
+                            await client.send_message(bot_channel, "Sorry, but something is wrong with the web site. "
+                                                                   "Try again later!")
+                            raise aiohttp.ClientConnectionError("Response status not 200.")
+                        return await func(message, bot_channel, client, resp)
+            except asyncio.TimeoutError as e:
+                await client.send_message(bot_channel, 'Sorry, web site took too long to respond. Try again later.')
+                raise e
+            except aiohttp.ClientConnectionError as e:
+                await client.send_message(bot_channel, 'Sorry, the bot can not connect to the web site at this moment. '
+                                                       'Try again later.')
+                raise e
+        return wrapped
+    return wrapper
+
+
+async def lastraid(message, bot_channel, client, player):
     await client.delete_message(message)
     parameters = message.content.split()
     if len(parameters) < 2:
@@ -45,31 +70,29 @@ async def playername(message, bot_channel, client):
                                                'Try again later.')
         return
 
-    if len(matches) < 1:
-        await client.send_message(bot_channel, 'Sorry, could not find any player with name "{}".'.format(name))
+
+async def itemname(message, bot_channel, client):
+    await client.delete_message(message)
+
+
+async def playername(message, bot_channel, client):
+    await client.delete_message(message)
+    parameters = message.content.split()
+    if len(parameters) < 2:
+        await client.send_message("USAGE: !playername [player name]")
         return
 
-    player_tuple = matches[0]
-    if len(matches) > 1:
-        alternative_string = ""
-        cnt = 1
-        for match in matches:
-            alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[0])
-            cnt += 1
-        sent_message = await client.send_message(message.channel, 'There are several users called {}. '
-                                                                  'Please pick the correct one:{}'.format(
-                                                                    name, alternative_string))
+    name = parameters[1]
+    if not name.isalpha():
+        await client.send_message(bot_channel, "Sorry, but the player name can only contain letters.")
+        return
 
-        def check(msg):
-            return msg.content.isdigit() and 0 < int(msg.content) <= len(match)
-        response = await client.wait_for_message(timeout=20, author=message.author, check=check)
-        await client.delete_message(sent_message)
-        if response:
-            await client.delete_message(response)
-            player_tuple = matches[int(response.content) - 1]
+    name = parameters[1].lower().capitalize()
 
-    player_url = "http://realmplayers.com/CharacterViewer.aspx?realm={}&player={}".format(
-                player_tuple[0], player_tuple[1])
+    try:
+        player_url = await get_player_url(message, bot_channel, client, name)
+    except:
+        return
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -127,3 +150,39 @@ async def playername(message, bot_channel, client):
     except aiohttp.ClientConnectionError:
         await client.send_message(bot_channel, 'Sorry, the bot can not connect to the web site at this moment. '
                                                'Try again later.')
+
+async def get_player_url(message, bot_channel, client, name):
+    @get_session("http://realmplayers.com/CharacterList.aspx?search={}".format(name))
+    async def get_matches(message, bot_channel, client, resp):
+        name_select_doc = await resp.text()
+        pattern = 'realm=(\w+?)&player={0}\">({0})<\/a>'.format(name)
+        return re.findall(pattern, name_select_doc)
+
+    matches = await get_matches(message, bot_channel, client)
+
+    if len(matches) < 1:
+        await client.send_message(bot_channel, 'Sorry, could not find any player with name "{}".'.format(name))
+        return
+
+    player_tuple = matches[0]
+    if len(matches) > 1:
+        alternative_string = ""
+        cnt = 1
+        for match in matches:
+            alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[0])
+            cnt += 1
+
+        sent_message = await client.send_message(message.channel, 'There are several users called {}. '
+                                                                  'Please pick the correct one:{}'.format(
+            name, alternative_string))
+
+        def check(msg):
+            return msg.content.isdigit() and 0 < int(msg.content) <= len(matches)
+
+        response = await client.wait_for_message(timeout=20, author=message.author, check=check)
+        await client.delete_message(sent_message)
+        if response:
+            await client.delete_message(response)
+            player_tuple = matches[int(response.content) - 1]
+
+    return "http://realmplayers.com/CharacterViewer.aspx?realm={}&player={}".format(player_tuple[0], player_tuple[1])

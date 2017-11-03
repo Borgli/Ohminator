@@ -215,7 +215,7 @@ class Playlist:
         opts = {
             'format': 'webm[abr>0]/bestaudio/best',
             'quiet': True,
-            'logger': MyLogger()
+            'logger': self.MyLogger()
         }
         if option is not None and isinstance(option, dict):
             opts.update(option)
@@ -250,34 +250,36 @@ class Playlist:
             entries = list(info.get("entries"))
             if len(entries) > 1:
                 # PLAYLIST
-                playlist_element = self.add_to_queue(option, entries, append)
+                playlist_element = self.add_to_queue(option, entries, append, ydl)
                 await self.client.send_message(self.server.bot_channel,
                                                     '{}: The playlist {} has been added to the queue.'
                                                     ''.format(name, info["title"]))
             else:
                 entry = entries[0]
-                playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt, entry)
+                playlist_element = PlaylistElement(link, self.server, self.client, option, ydl, self.after_yt, entry)
                 if append:
                     self.yt_playlist.append(playlist_element)
                     await self.client.send_message(self.server.bot_channel,
                                                     '{}: {} has been added to the queue.'.format(name, entry["title"]))
         else:
             # NORMAL
-            playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt, info)
+            playlist_element = PlaylistElement(link, self.server, self.client, option, self.after_yt, ydl, info)
             if append:
                 self.yt_playlist.append(playlist_element)
                 await self.client.send_message(self.server.bot_channel,
                                                '{}: {} has been added to the queue.'.format(name, info.get("title")))
+        if append:
+            await playlist_element.download_next_song()
         return playlist_element
 
-    def add_to_queue(self, option, entries, append):
+    def add_to_queue(self, option, entries, append, ydl):
         entry = entries.pop(0)
-        playlist_element = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt, entry)
+        playlist_element = PlaylistElement(entry["url"], self.server, self.client, option, ydl, self.after_yt, entry)
         if append and not (playlist_element.title == '[Deleted video]' or playlist_element.title == '[Private video]'):
             self.yt_playlist.append(playlist_element)
 
         for entry in entries:
-            p_e = PlaylistElement(entry["url"], self.server, self.client, option, self.after_yt, entry)
+            p_e = PlaylistElement(entry["url"], self.server, self.client, option, ydl, self.after_yt, entry)
             title = entry.get('title')
             if title == '[Deleted video]' or title == '[Private video]':
                 continue
@@ -300,7 +302,7 @@ class Playlist:
                         if len(self.yt_playlist) <= 0:
                             break
                         player = self.yt_playlist.pop(0)
-                        self.server.active_player = await player.get_new_player()
+                        self.server.active_player = await player.get_next_player()
                         self.server.active_playlist_element = player
                         if self.server.active_player is not None:
                             something_to_play = True
@@ -311,6 +313,8 @@ class Playlist:
                                                        embed=utils.create_now_playing_embed(
                                                            self.server.active_playlist_element))
                         self.server.active_player.start()
+                        if len(self.yt_playlist) > 0:
+                            self.yt_playlist[0].download_next_song()
             finally:
                 self.play_next.clear()
                 self.add_to_playlist_lock.release()
@@ -321,14 +325,13 @@ class Playlist:
             self.now_playing = ""
             self.clear_now_playing.clear()
 
+    # The sole purpose of this class is to suppress output from youtube-dl
+    class MyLogger(object):
+        def debug(self, msg):
+            pass
 
-# The sole purpose of this class is to suppress output from youtube-dl
-class MyLogger(object):
-    def debug(self, msg):
-        pass
+        def warning(self, msg):
+            pass
 
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        pass
+        def error(self, msg):
+            pass

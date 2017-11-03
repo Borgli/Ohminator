@@ -40,35 +40,76 @@ async def lastraid(message, bot_channel, client, player):
     await client.delete_message(message)
     parameters = message.content.split()
     if len(parameters) < 2:
-        await client.send_message("USAGE: !playername [player name]")
+        await client.send_message("USAGE: !lastraidplayer [player name] or !lastraidguild [guild name]")
         return
 
     name = parameters[1]
     if not name.isalpha():
-        await client.send_message(bot_channel, "Sorry, but the player name can only contain letters.")
+        await client.send_message(bot_channel, "Sorry, but the {} name can only contain letters.".format("player" if player else "guild"))
         return
 
     name = parameters[1].lower().capitalize()
+    raid_link = "http://realmplayers.com/RaidStats/RaidList.aspx?realm={}&guild={}"
+    if player:
+        player_url = await get_player_url(message, bot_channel, client, name)
 
-    matches = list()
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get("http://realmplayers.com/CharacterList.aspx?search={}".format(name),
-                                   timeout=10) as resp:
-                if resp.status != 200:
-                    await client.send_message(bot_channel, "Sorry, but something is wrong with the web site. "
-                                                           "Try again later!")
-                    return
-                name_select_doc = await resp.text()
-                pattern = 'realm=(\w+?)&player={0}\">({0})<\/a>'.format(name)
-                matches = re.findall(pattern, name_select_doc)
-    except asyncio.TimeoutError:
-        await client.send_message(bot_channel, 'Sorry, web site took too long to respond. Try again later.')
-        return
-    except aiohttp.ClientConnectionError:
-        await client.send_message(bot_channel, 'Sorry, the bot can not connect to the web site at this moment. '
-                                               'Try again later.')
-        return
+        # Get guild url from the player
+        @get_session(player_url)
+        async def get_guild_url(message, bot_channel, client, resp):
+            player_doc = await resp.text()
+            pattern = "class='char-guild'>.+?<a href='GuildViewer\.aspx\?realm=(\w+?)\&guild=(\w+?)'>"
+            return re.search(pattern, player_doc)
+
+        match = await get_guild_url(message, bot_channel, client)
+        if match:
+            raid_link = raid_link.format(match.group(1), match.group(2))
+        else:
+            await client.send_message(bot_channel, "The given player doesn't seem to be part of any guilds.")
+            return
+    else:
+        # Get guild url from searching after the guild
+        @get_session("http://realmplayers.com/CharacterList.aspx?search={}".format(name))
+        async def get_guild_url(message, bot_channel, client, resp):
+            search_doc = await resp.text()
+            pattern = 'realm=(\w+?)&guild=({0})\">&lt;({0})&gt;<\/a>'.format(name)
+            return re.findall(pattern, search_doc)
+
+        matches = await get_guild_url(message, bot_channel, client)
+
+        if len(matches) < 1:
+            await client.send_message(bot_channel, 'Sorry, could not find any player with name "{}".'.format(name))
+            return
+
+        guild_tuple = matches[0]
+        response = await prompt_user(message, bot_channel, client, name, matches)
+        if response:
+            await client.delete_message(response)
+            guild_tuple = matches[int(response.content) - 1]
+
+        raid_link = raid_link.format(guild_tuple[0], guild_tuple[1])
+
+    # Get raid link
+    @get_session(raid_link)
+    async def get_last_raid_url(message, bot_channel, client, resp):
+        search_doc = await resp.text()
+        pattern = '<a href="(.+?)"><img src="(.+?)"\/>(.+?)<\/a><\/td><td><a href="(.+?)"><img src="(.+?)"\/>(.+?)<\/a><\/td><td>(.+?)<\/td><td>(.+?)<\/td><td>(.+?)<\/td><\/tr>'
+        return re.search(pattern, search_doc)
+
+    match = await get_last_raid_url(message, bot_channel, client)
+    if match:
+        embed = discord.Embed()
+        raid_stats = "http://realmplayers.com/RaidStats/{}"
+        embed.set_author(name=match.group(3), url=raid_stats.format(match.group(1)), icon_url=raid_stats.format(match.group(2)))
+        embed.set_thumbnail(url=raid_stats.format(match.group(5)))
+        embed.colour = discord.Colour.dark_blue()
+        embed.title = match.group(6).strip(" ")
+        embed.url = raid_stats.format(match.group(4))
+        embed.description = "On server {}".format(match.group(9))
+        embed.add_field(name="Start", value=match.group(7)).add_field(name="End", value=match.group(8))
+        await client.send_message(bot_channel, embed=embed)
+    else:
+        await client.send_message(bot_channel,
+                                  "There doesn't seem to be any raids recorded for this guild.")
 
 
 async def itemname(message, bot_channel, client):
@@ -143,6 +184,25 @@ async def playername(message, bot_channel, client):
 
     await create_embed(message, bot_channel, client)
 
+async def prompt_user(message, bot_channel, client, name, matches, player=True):
+    if len(matches) > 1:
+        alternative_string = ""
+        cnt = 1
+        for match in matches:
+            alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[0])
+            cnt += 1
+
+        sent_message = await client.send_message(message.channel, 'There are several {} called {}. '
+                                                                  'Please pick the correct one:{}'.format(
+            "players" if player else "guilds", name, alternative_string))
+
+        def check(msg):
+            return msg.content.isdigit() and 0 < int(msg.content) <= len(matches)
+
+        response = await client.wait_for_message(timeout=20, author=message.author, check=check)
+        await client.delete_message(sent_message)
+        return response
+
 
 async def get_player_url(message, bot_channel, client, name):
     @get_session("http://realmplayers.com/CharacterList.aspx?search={}".format(name))
@@ -158,24 +218,9 @@ async def get_player_url(message, bot_channel, client, name):
         return
 
     player_tuple = matches[0]
-    if len(matches) > 1:
-        alternative_string = ""
-        cnt = 1
-        for match in matches:
-            alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[0])
-            cnt += 1
-
-        sent_message = await client.send_message(message.channel, 'There are several users called {}. '
-                                                                  'Please pick the correct one:{}'.format(
-            name, alternative_string))
-
-        def check(msg):
-            return msg.content.isdigit() and 0 < int(msg.content) <= len(matches)
-
-        response = await client.wait_for_message(timeout=20, author=message.author, check=check)
-        await client.delete_message(sent_message)
-        if response:
-            await client.delete_message(response)
-            player_tuple = matches[int(response.content) - 1]
+    response = await prompt_user(message, bot_channel, client, name, matches)
+    if response:
+        await client.delete_message(response)
+        player_tuple = matches[int(response.content) - 1]
 
     return "http://realmplayers.com/CharacterViewer.aspx?realm={}&player={}".format(player_tuple[0], player_tuple[1])

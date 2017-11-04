@@ -346,6 +346,9 @@ commands["!broadcast"] = broadcast
 commands["!poll"] = get_question
 commands["!question?"] = see_question
 
+commands["!ext"] = extend_time
+commands["!voteq"] = vote_question
+
 
 # Audio commands
 commands["!tts"] = text_to_speech

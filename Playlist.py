@@ -156,10 +156,12 @@ class Playlist:
                 except (ValueError, AttributeError, discord.errors.NotFound) as f:
                     remove(pickle_loc)
                     traceback.print_exc()
+                    return
                 except discord.errors.Forbidden as f:
                     print(
                         "Missing privilege to post to channel {} on server {}".format(channel.name,
                                                                                    self.server.name))
+                    return
                 except discord.errors.HTTPException as f:
                     if f.response.status == 400:
                         remove(pickle_loc)
@@ -170,6 +172,7 @@ class Playlist:
                         await asyncio.sleep(30, loop=self.client.loop)
                     else:
                         traceback.print_exc()
+                        return
                 except asyncio.TimeoutError as f:
                     print("Pinned messages had a timeout error on server {}".format(self.server.name))
                     await asyncio.sleep(60, loop=self.client.loop)
@@ -177,7 +180,8 @@ class Playlist:
                     logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
                                   exc_info=True)
                     traceback.print_exc()
-                    await asyncio.sleep(60, loop=self.client.loop)
+                    #await asyncio.sleep(60, loop=self.client.loop)
+                    return
 
             # 0.5 second intervals
             await asyncio.sleep(0.5, loop=self.client.loop)

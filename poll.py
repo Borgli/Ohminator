@@ -79,7 +79,7 @@ async def vote_question(message, bot_channel, client):
     await print_q_and_a(message, bot_channel, client)
     server = utils.get_server(message.server)
     while server.poll_time > 0:
-        time.sleep(0.9)
+        time.sleep(1)
         server.poll_time -= 1
         # Need code her til store votes, both index and react voting
 

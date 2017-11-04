@@ -347,7 +347,7 @@ commands["!poll"] = get_question
 commands["!question?"] = see_question
 
 commands["!ext"] = extend_time
-commands["!voteq"] = vote_question
+commands["!voteq"] = voteq
 
 
 # Audio commands

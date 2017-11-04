@@ -81,7 +81,24 @@ async def vote_question(message, bot_channel, client):
     while server.poll_time > 0:
         time.sleep(1)
         server.poll_time -= 1
-        # Need code her til store votes, both index and react voting
+        # Need code her til store votes, both index and react voting, will be done in method voteq i think. 
 
     await client.send_message(message.channel,
                               'Vote complete! Calculating results')
+
+# shall handel !voteq [index], and maybe vote true react ^^
+async def voteq(message, bot_channel, client,):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    parameters = message.content.split()
+    try:
+        index = int(parameters[1]) - 1
+    except ValueError:
+        await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
+        return
+    except IndexError:
+        await client.send_message(bot_channel, '{}: Please give an index to vote for!'.format(message.author.name))
+        return
+
+def make_pyplot():
+    # Make nice and pretty graph of the results from voting

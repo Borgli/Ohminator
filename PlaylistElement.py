@@ -1,4 +1,5 @@
 import time
+import traceback
 
 
 class PlaylistElement:
@@ -19,7 +20,9 @@ class PlaylistElement:
         self.player = None
         if entry:
             self.title = entry.get("title")
-            self.duration = int(entry.get("duration"))
+            self.duration = entry.get("duration")
+            if self.duration:
+                self.duration = int(self.duration)
             self.description = entry.get("description")
 
             def is_yt_link():
@@ -35,14 +38,13 @@ class PlaylistElement:
 
     async def get_new_player(self):
         voice_client = self.client.voice_client_in(self.server)
-        try:
-            player = await voice_client.create_ytdl_player(self.webpage_url, options=self.option,
-                                                           after=self.after_yt, ytdl_options={'quiet':True})
-        except:
-            return None
+        player = await voice_client.create_ytdl_player(self.webpage_url, options=self.option,
+                                                       after=self.after_yt, ytdl_options={'quiet':True})
         self.player = player
         self.title = player.title
-        self.duration = int(player.duration)
+        self.duration = player.duration
+        if self.duration:
+            self.duration = int(self.duration)
         self.start_time = time.time()
         player.volume = 0.25
         return player

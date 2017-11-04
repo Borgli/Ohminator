@@ -126,7 +126,7 @@ class Playlist:
                                                                                      '**Current queue:**\n{}\n'.format(
                             self.now_playing, queue.strip()))
                     else:
-                        if player is None or self.server.active_player.is_done():
+                        if player is None or not self.server.active_player or self.server.active_player.is_done():
                             await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
                                                                                          '**Current queue:**\n{}\n'.format(
                                 self.now_playing, queue.strip()))
@@ -304,7 +304,10 @@ class Playlist:
                         if len(self.yt_playlist) <= 0:
                             break
                         player = self.yt_playlist.pop(0)
-                        self.server.active_player = await player.get_new_player()
+                        try:
+                            self.server.active_player = await player.get_new_player()
+                        except:
+                            continue
                         self.server.active_playlist_element = player
                         if self.server.active_player is not None:
                             something_to_play = True

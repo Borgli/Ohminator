@@ -1,7 +1,7 @@
 import utils
-import time
 
 
+# Handel issue with more then one poll
 async def get_question(message, bot_channel, client):
     parameters = message.content.split()
     if len(parameters) < 2:
@@ -45,9 +45,7 @@ async def print_q_and_a(message, bot_channel, client):
     server = utils.get_server(message.server)
     member = server.get_member(message.author.id)
     await client.send_message(message.channel,
-                              'Poll question: **{}**'.format(member.question))
-    await client.send_message(message.channel,
-                              'Alternatives:\n')
+                              'Poll question: **{}**        {}Alternatives:\n'.format(member.question, '\n'))
 
     counter = 0;
     for string in member.options:
@@ -56,11 +54,11 @@ async def print_q_and_a(message, bot_channel, client):
                                   '**{}: {}**'.format(counter, string))
 
     await client.send_message(message.channel,
-                              'You now have 30 seconds to vote.'
-                              '\nTo extend voting time by 30 seconds use !ext.'
-                              '\nTo vote react to each option or use !vote [index].')
+                              'Start your voting peps! '
+                              '\nTo vote react to each option or use !voteq [index].'
+                              '\nWhen voting is complete type done')
 
-
+# not in use - Refactor at later time
 async def extend_time(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -77,17 +75,19 @@ async def extend_time(message, bot_channel, client):
 
 async def vote_question(message, bot_channel, client):
     await print_q_and_a(message, bot_channel, client)
-    server = utils.get_server(message.server)
-    while server.poll_time > 0:
-        time.sleep(1)
-        server.poll_time -= 1
-        # Need code her til store votes, both index and react voting, will be done in method voteq i think. 
+
+    response = await client.wait_for_message(timeout=None, channel=message.channel)
+    while response and response.content != 'done':
+        await client.delete_message(response)
+        response = await client.wait_for_message(timeout=None, channel=message.channel)
+        # Need code her til store votes, both index and react voting, will be done in method voteq i think.
 
     await client.send_message(message.channel,
                               'Vote complete! Calculating results')
 
+
 # shall handel !voteq [index], and maybe vote true react ^^
-async def voteq(message, bot_channel, client,):
+async def voteq(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
     parameters = message.content.split()
@@ -100,5 +100,7 @@ async def voteq(message, bot_channel, client,):
         await client.send_message(bot_channel, '{}: Please give an index to vote for!'.format(message.author.name))
         return
 
+
+# Make nice and pretty graph of the results from voting
 def make_pyplot():
-    # Make nice and pretty graph of the results from voting
+    print("hei")

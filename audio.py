@@ -192,7 +192,7 @@ async def volume(message, bot_channel, client):
             current_volume = server.active_player.volume
         else:
             try:
-                current_volume = float(parameters[1])/100.0
+                current_volume = float(parameters[1])/2/100.0
             except ValueError:
                 await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
                 return
@@ -207,15 +207,19 @@ async def volume(message, bot_channel, client):
             icon = ':loud_sound:'
 
         if len(parameters) < 2:
-            await client.send_message(bot_channel, '{}: {}, the volume for the current track is {}%!'.format(icon, message.author.name, int(current_volume*100.0)))
+            await client.send_message(bot_channel, '{}: {}, the volume for the current track is {}%!'.format(
+                icon, message.author.name, int(current_volume*2*100.0)))
         elif parameters[1] == current_volume:
-            await client.send_message(bot_channel, '{}: {}, the volume is already the given value!'.format(icon, message.author.name))
+            await client.send_message(bot_channel, '{}: {}, the volume is already the given value!'.format(
+                icon, message.author.name))
         else:
             if current_volume < 0.0:
                 current_volume = 0.0
             elif current_volume > 0.5:
                 current_volume = 0.5
-            await client.send_message(bot_channel, '{}: {}, the volume was changed from {}% to {}%!'.format(icon, message.author.name, int(server.active_player.volume*100.0), int(current_volume*100.0)))
+
+            await client.send_message(bot_channel, '{}: {}, the volume was changed from {}% to {}%!'.format(
+                icon, message.author.name, int(server.active_player.volume*2*100.0), int(current_volume*2*100.0)))
             server.active_player.volume = current_volume
 
 async def stop(message, bot_channel, client):

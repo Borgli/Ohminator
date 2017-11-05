@@ -40,7 +40,7 @@ async def lastraid(message, bot_channel, client, player):
     await client.delete_message(message)
     parameters = message.content.split()
     if len(parameters) < 2:
-        await client.send_message("USAGE: !lastraidplayer [player name] or !lastraidguild [guild name]")
+        await client.send_message(bot_channel, "USAGE: !lastraidplayer [player name] or !lastraidguild [guild name]")
         return
 
     name = parameters[1]
@@ -128,13 +128,127 @@ async def lastraid(message, bot_channel, client, player):
 
 async def itemname(message, bot_channel, client):
     await client.delete_message(message)
+    parameters = message.content.split()
+    if len(parameters) < 2:
+        await client.send_message(bot_channel, "USAGE: !itemname [item name]")
+        return
+
+    item_search = " ".join(parameters[1:])
+
+    @get_session("http://db.vanillagaming.org/?search={}".format(item_search))
+    async def search_for_item(message, bot_channel, client, resp):
+        return await resp.text(), resp.url
+
+    try:
+        search_doc, search_doc_url = await search_for_item(message, bot_channel, client)
+    except:
+        return
+
+    embed = None
+
+    # Three cases:
+    # Case one: Several items with this name, and user must choose the correct one
+    # Case two: No items were found with that name
+    # Case three: Item found right away and we are at the item page
+    def no_results_embed():
+        embed = discord.Embed()
+        embed.title = 'No results for "{}"'.format(item_search)
+        embed.description = "Please try some different keywords or check your spelling."
+        embed.colour = discord.Colour.dark_red()
+        embed.set_thumbnail(url="http://db.vanillagaming.org/templates/wowhead/images/noresults.jpg")
+        return embed
+
+    # Case one:
+    # Subcases:
+    # Subcase one: Normal view with several items to choose from
+    # Subcase two: Not a list of items, but something else
+    search_results = re.search("Search results for .+", search_doc)
+    if search_results:
+        shows_items = re.search("template:'item'", search_doc)
+        if shows_items:
+            # Subcase one
+            pattern = ""
+            item_list = re.findall(pattern, search_doc)
+            if len(item_list) > 0:
+                alternative_string = ""
+                cnt = 1
+                number_of_items = 5
+                for item in item_list[:number_of_items]:
+                    alternative_string += "\n**[{}]**: {}, level {}, requirement {}, type {}".format(cnt, item[0], item[1], item[2], item[3])
+                    cnt += 1
+
+                sent_message = await client.send_message(message.channel, 'Search results for {}\n'
+                                                                          'Please pick one:{}'.format(
+                    item_search, alternative_string))
+
+                def check(msg):
+                    return msg.content.isdigit() and 0 < int(msg.content) <= number_of_items
+
+                response = await client.wait_for_message(timeout=20, author=message.author, check=check)
+                await client.delete_message(sent_message)
+                item_tuple = item_list[0]
+                if response:
+                    await client.delete_message(response)
+                    item_tuple = item_list[int(response.content) - 1]
+
+                @get_session("")
+                async def get_item_url(message, bot_channel, client, resp):
+                    return await resp.text()
+
+            else:
+                embed = no_results_embed()
+        else:
+            # Subcase two
+            embed = no_results_embed()
+
+    # Case two:
+    no_result = re.search("No results for .+", search_doc)
+    if no_result:
+        embed = no_results_embed()
+
+    # Case three:
+    # Subcases:
+    # Subcase one: Item was found and we are now on the item page
+    # Subcase two: Something else was found and we are now on that page
+    item_url = "db\.vanillagaming\.org/\?item=(\d+)"
+    is_item = re.search(item_url, str(search_doc_url))
+    if is_item:
+        # Subcase one
+        tool_tip = re.search("class=\"q3\">(.+?)</b>(.+)", search_doc)
+        if not tool_tip:
+            await client.send_message(bot_channel,
+                                      "Sorry, the web site has been changed and the bot needs an update.\n"
+                                      "Please notify the developer.")
+            return
+        tool_tip_content = re.findall(">([^\/<>]+?)<", tool_tip.group(2))
+        tool_tip_description = ""
+        for line in tool_tip_content:
+            tool_tip_description += "\n{}".format(line)
+
+        embed = discord.Embed()
+        embed.title = tool_tip.group(1)
+        embed.colour = discord.Colour.dark_blue()
+        embed.url = "http://{}".format(is_item.group(0))
+        icon_name = re.search("ShowIconName.'(.+?)'.", search_doc)
+        if icon_name:
+           embed.set_thumbnail(url="http://db.vanillagaming.org/images/icons/large/{}.jpg".format(icon_name.group(1)))
+        embed.description = tool_tip_description
+    else:
+        # Subcase two
+        embed = no_results_embed()
+
+    # None of the three cases
+    if not embed:
+        embed = no_results_embed()
+
+    await client.send_message(bot_channel, embed=embed)
 
 
 async def playername(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
     if len(parameters) < 2:
-        await client.send_message("USAGE: !playername [player name]")
+        await client.send_message(bot_channel, "USAGE: !playername [player name]")
         return
 
     name = parameters[1]

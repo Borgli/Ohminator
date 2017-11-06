@@ -158,23 +158,91 @@ async def itemname(message, bot_channel, client):
         embed.set_thumbnail(url="http://db.vanillagaming.org/templates/wowhead/images/noresults.jpg")
         return embed
 
+    async def create_item_embed(item_page, url):
+        item_url = "db\.vanillagaming\.org/\?item=(\d+)"
+        is_item = re.search(item_url, str(url))
+        if is_item:
+            # Subcase one
+            tool_tip = re.search("class=\"tooltip\" .+?\s+?.+?class=\"(.+?)\">(.+?)</b>(.+)", item_page)
+            if not tool_tip:
+                await client.send_message(bot_channel,
+                                          "Sorry, the web site has been changed and the bot needs an update.\n"
+                                          "Please notify the developer.")
+                return
+            tool_tip_content = re.findall(">([^<>]+?)<", tool_tip.group(3))
+            tool_tip_links = re.findall("<a href=\"(.+?)\".*?>(.+?)<", tool_tip.group(3))
+            links = {k: v for v, k in tool_tip_links}
+            tool_tip_description = "\n"
+            not_in_set = True
+            in_equip_part = -1
+            for line in tool_tip_content:
+                if in_equip_part == 0 and line != "Equip: ":
+                    tool_tip_description += "\n"
+                    in_equip_part = -1
+                elif in_equip_part > 0:
+                    in_equip_part -= 1
+                # Formatting...
+                if line in links:
+                    tool_tip_description += "[{}]({})\n".format(line,
+                                                                "http://db.vanillagaming.org/{}".format(links[line]))
+                else:
+                    if line == "Equip: ":
+                        in_equip_part = 1
+                        tool_tip_description += "{}".format(line)
+                    elif line.endswith("Set: "):
+                        if not_in_set:
+                            not_in_set = False
+                            tool_tip_description += "\n"
+                        tool_tip_description += "{}".format(line)
+                    elif line.strip(" ").startswith("(") and line.endswith(")"):
+                        tool_tip_description = tool_tip_description[:-1] + "{}\n".format(line)
+                    elif line == "Classes: ":
+                        tool_tip_description += "{}".format(line)
+                    else:
+                        tool_tip_description += "{}\n".format(line)
+
+            embed = discord.Embed()
+            embed.title = tool_tip.group(2)
+            embed.colour = colours[tool_tip.group(1)]
+            embed.url = "http://{}".format(is_item.group(0))
+            icon_name = re.search("ShowIconName.'(.+?)'.", item_page)
+            if icon_name:
+                embed.set_thumbnail(
+                    url="http://db.vanillagaming.org/images/icons/large/{}.jpg".format(icon_name.group(1)))
+            embed.description = tool_tip_description
+        else:
+            # Subcase two
+            embed = no_results_embed()
+        return embed
+
     # Case one:
     # Subcases:
     # Subcase one: Normal view with several items to choose from
     # Subcase two: Not a list of items, but something else
     search_results = re.search("Search results for .+", search_doc)
     if search_results:
-        shows_items = re.search("template:'item'", search_doc)
+        shows_items = re.search("template:'item'.+", search_doc)
         if shows_items:
             # Subcase one
-            pattern = ""
-            item_list = re.findall(pattern, search_doc)
-            if len(item_list) > 0:
+            pattern = "{(.+?)}"
+            item_list = re.findall(pattern, shows_items.group(0))
+            item_list_dict = list()
+            for item in item_list:
+                attributes = item.split(",")
+                item_dict = dict()
+                for attribute in attributes:
+                    pair = attribute.split(":")
+                    item_dict[pair[0]] = pair[1]
+                item_list_dict.append(item_dict)
+
+            if len(item_list_dict) > 0:
                 alternative_string = ""
                 cnt = 1
-                number_of_items = 5
-                for item in item_list[:number_of_items]:
-                    alternative_string += "\n**[{}]**: {}, level {}, requirement {}, type {}".format(cnt, item[0], item[1], item[2], item[3])
+                number_of_items = 15
+                for item in item_list_dict[:number_of_items]:
+                    alternative_string += "\n**[{}]**: {}, level {}{}".format(
+                        cnt, item["name"].replace("'", "").replace("\\", "'")[1:], item["level"],
+                        "" if "reqlevel" not in item else ", requirement {}".format(item["reqlevel"]))
                     cnt += 1
 
                 sent_message = await client.send_message(message.channel, 'Search results for {}\n'
@@ -186,56 +254,33 @@ async def itemname(message, bot_channel, client):
 
                 response = await client.wait_for_message(timeout=20, author=message.author, check=check)
                 await client.delete_message(sent_message)
-                item_tuple = item_list[0]
+                item_dict = item_list_dict[0]
                 if response:
                     await client.delete_message(response)
-                    item_tuple = item_list[int(response.content) - 1]
+                    item_dict = item_list_dict[int(response.content) - 1]
 
-                @get_session("")
+                @get_session("http://db.vanillagaming.org/?item={}".format(item_dict["id"]))
                 async def get_item_url(message, bot_channel, client, resp):
                     return await resp.text()
 
+                response = await get_item_url(message, bot_channel, client)
+                embed = await create_item_embed(response, "http://db.vanillagaming.org/?item={}".format(item_dict["id"]))
             else:
                 embed = no_results_embed()
         else:
             # Subcase two
             embed = no_results_embed()
-
-    # Case two:
-    no_result = re.search("No results for .+", search_doc)
-    if no_result:
-        embed = no_results_embed()
-
-    # Case three:
-    # Subcases:
-    # Subcase one: Item was found and we are now on the item page
-    # Subcase two: Something else was found and we are now on that page
-    item_url = "db\.vanillagaming\.org/\?item=(\d+)"
-    is_item = re.search(item_url, str(search_doc_url))
-    if is_item:
-        # Subcase one
-        tool_tip = re.search("class=\"q3\">(.+?)</b>(.+)", search_doc)
-        if not tool_tip:
-            await client.send_message(bot_channel,
-                                      "Sorry, the web site has been changed and the bot needs an update.\n"
-                                      "Please notify the developer.")
-            return
-        tool_tip_content = re.findall(">([^\/<>]+?)<", tool_tip.group(2))
-        tool_tip_description = ""
-        for line in tool_tip_content:
-            tool_tip_description += "\n{}".format(line)
-
-        embed = discord.Embed()
-        embed.title = tool_tip.group(1)
-        embed.colour = discord.Colour.dark_blue()
-        embed.url = "http://{}".format(is_item.group(0))
-        icon_name = re.search("ShowIconName.'(.+?)'.", search_doc)
-        if icon_name:
-           embed.set_thumbnail(url="http://db.vanillagaming.org/images/icons/large/{}.jpg".format(icon_name.group(1)))
-        embed.description = tool_tip_description
     else:
-        # Subcase two
-        embed = no_results_embed()
+        # Case two:
+        no_result = re.search("No results for .+", search_doc)
+        if no_result:
+            embed = no_results_embed()
+        else:
+            # Case three:
+            # Subcases:
+            # Subcase one: Item was found and we are now on the item page
+            # Subcase two: Something else was found and we are now on that page
+            embed = await create_item_embed(search_doc, search_doc_url)
 
     # None of the three cases
     if not embed:
@@ -357,8 +402,9 @@ async def prompt_user(message, bot_channel, client, name, matches, player=True):
     if len(matches) > 1:
         alternative_string = ""
         cnt = 1
-        for match in matches:
-            alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[0])
+        max_alternatives = 10
+        for match in matches[:max_alternatives]:
+            alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[2])
             cnt += 1
 
         sent_message = await client.send_message(message.channel, 'There are several {} called {}. '
@@ -366,7 +412,7 @@ async def prompt_user(message, bot_channel, client, name, matches, player=True):
             "players" if player else "guilds", name, alternative_string))
 
         def check(msg):
-            return msg.content.isdigit() and 0 < int(msg.content) <= len(matches)
+            return msg.content.isdigit() and 0 < int(msg.content) <= max_alternatives
 
         response = await client.wait_for_message(timeout=20, author=message.author, check=check)
         await client.delete_message(sent_message)
@@ -377,7 +423,7 @@ async def get_player_url(message, bot_channel, client, name):
     @get_session("http://realmplayers.com/CharacterList.aspx?search={}".format(name))
     async def get_matches(message, bot_channel, client, resp):
         name_select_doc = await resp.text()
-        pattern = 'realm=(\w+?)&player={0}\">({0})<\/a>'.format(name)
+        pattern = 'realm=(\w+?)&player=.+?\">(.+?)<\/a>.+?</font></td><td>(.+?)<\/td><td><div title='.format(name)
         return re.findall(pattern, name_select_doc)
 
     matches = await get_matches(message, bot_channel, client)
@@ -426,4 +472,11 @@ images = {
     "vf-ri_female_gnome": 'http://images3.wikia.nocookie.net/__cb20070124142633/wowwiki/images/7/7b/Ui-charactercreate-races_gnome-female.png',
     "vf-ri_female_nightelf": 'http://images1.wikia.nocookie.net/__cb20070124142738/wowwiki/images/a/a7/Ui-charactercreate-races_nightelf-female.png',
     "vf-ri_female_draenei": 'http://img3.wikia.nocookie.net/__cb20070124142432/wowwiki/images/b/b3/Ui-charactercreate-races_draenei-female.png'
+}
+
+colours = {
+    "q1": discord.Colour.dark_grey(),
+    "q2": discord.Colour.dark_green(),
+    "q3": discord.Colour.dark_blue(),
+    "q4": discord.Colour.dark_purple()
 }

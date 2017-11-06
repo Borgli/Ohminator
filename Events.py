@@ -345,9 +345,7 @@ commands["!broadcast"] = broadcast
 # Poll commands
 commands["!poll"] = get_question
 commands["!question?"] = see_question
-
 commands["!ext"] = extend_time
-
 
 # Audio commands
 commands["!tts"] = text_to_speech
@@ -413,11 +411,11 @@ commands["!uploaddefaultintro"] = upload_default_intro
 commands["!udi"] = upload_default_intro
 
 # Wow commands
-commands["!playername"] = playername
-commands["!lastraidplayer"] = lastraid_player
+commands["!player"] = playername
+commands["!raidplayer"] = lastraid_player
 commands["!lastraid"] = lastraid_player
-commands["!lastraidguild"] = lastraid_guild
-commands["!itemname"] = itemname
+commands["!raidguild"] = lastraid_guild
+commands["!item"] = itemname
 
 async def slot(message, bot_channel, client):
     await client.delete_message(message)

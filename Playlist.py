@@ -111,7 +111,7 @@ class Playlist:
                     # Remove previously pinned messages
                     pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
                     for message in pinned_messages:
-                        if message.id != pinned_message.id:
+                        if message.id != pinned_message.id and message.author.id == self.client.user.id:
                             await self.client.delete_message(message)
 
                     # Pin the message
@@ -126,7 +126,7 @@ class Playlist:
                                                                                      '**Current queue:**\n{}\n'.format(
                             self.now_playing, queue.strip()))
                     else:
-                        if player is None or self.server.active_player.is_done():
+                        if player is None or not self.server.active_player or self.server.active_player.is_done():
                             await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
                                                                                          '**Current queue:**\n{}\n'.format(
                                 self.now_playing, queue.strip()))
@@ -156,10 +156,12 @@ class Playlist:
                 except (ValueError, AttributeError, discord.errors.NotFound) as f:
                     remove(pickle_loc)
                     traceback.print_exc()
+                    return
                 except discord.errors.Forbidden as f:
                     print(
                         "Missing privilege to post to channel {} on server {}".format(channel.name,
                                                                                    self.server.name))
+                    return
                 except discord.errors.HTTPException as f:
                     if f.response.status == 400:
                         remove(pickle_loc)
@@ -170,6 +172,7 @@ class Playlist:
                         await asyncio.sleep(30, loop=self.client.loop)
                     else:
                         traceback.print_exc()
+                        return
                 except asyncio.TimeoutError as f:
                     print("Pinned messages had a timeout error on server {}".format(self.server.name))
                     await asyncio.sleep(60, loop=self.client.loop)
@@ -177,7 +180,8 @@ class Playlist:
                     logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
                                   exc_info=True)
                     traceback.print_exc()
-                    await asyncio.sleep(60, loop=self.client.loop)
+                    #await asyncio.sleep(60, loop=self.client.loop)
+                    return
 
             # 0.5 second intervals
             await asyncio.sleep(0.5, loop=self.client.loop)
@@ -300,7 +304,10 @@ class Playlist:
                         if len(self.yt_playlist) <= 0:
                             break
                         player = self.yt_playlist.pop(0)
-                        self.server.active_player = await player.get_new_player()
+                        try:
+                            self.server.active_player = await player.get_new_player()
+                        except:
+                            continue
                         self.server.active_playlist_element = player
                         if self.server.active_player is not None:
                             something_to_play = True

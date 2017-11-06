@@ -21,11 +21,12 @@ def create_now_playing_embed(now_playing):
     embed.colour = discord.Colour.dark_green()
     embed.description = "[{}]({})\n{}".format(now_playing.title, now_playing.webpage_url,
                                               'It is {} seconds long'.format(now_playing.duration))
-    low_res_thumbnail = now_playing.thumbnail
-    url_splitted = low_res_thumbnail.split('/')
-    url_splitted[-1] = 'mqdefault.jpg'
-    high_res_thumbnail = '/'.join(url_splitted)
-    embed.set_thumbnail(url=high_res_thumbnail)
+    if now_playing.thumbnail:
+        low_res_thumbnail = now_playing.thumbnail
+        url_splitted = low_res_thumbnail.split('/')
+        url_splitted[-1] = 'mqdefault.jpg'
+        high_res_thumbnail = '/'.join(url_splitted)
+        embed.set_thumbnail(url=high_res_thumbnail)
     return embed
 
 

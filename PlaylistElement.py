@@ -1,4 +1,5 @@
 import time
+import traceback
 
 
 class PlaylistElement:
@@ -20,24 +21,30 @@ class PlaylistElement:
         if entry:
             self.title = entry.get("title")
             self.duration = entry.get("duration")
+            if self.duration:
+                self.duration = int(self.duration)
             self.description = entry.get("description")
+
+            def is_yt_link():
+                return link.startswith("ytsearch") or link.startswith("https://www.youtube.com/")
             self.thumbnail = entry.get("thumbnail")
-            if not self.thumbnail:
+            if not self.thumbnail and is_yt_link():
                 self.thumbnail = "https://i.ytimg.com/vi/{}/mqdefault.jpg".format(entry.get("url"))
             self.webpage_url = entry.get("webpage_url")
-            if not self.webpage_url:
+            if not self.webpage_url and is_yt_link():
                 self.webpage_url = "https://www.youtube.com/watch?v={}".format(entry.get("url"))
+            elif not self.webpage_url:
+                self.webpage_url = link
 
     async def get_new_player(self):
         voice_client = self.client.voice_client_in(self.server)
-        try:
-            player = await voice_client.create_ytdl_player(self.webpage_url, options=self.option,
-                                                           after=self.after_yt, ytdl_options={'quiet':True})
-        except:
-            return None
+        player = await voice_client.create_ytdl_player(self.webpage_url, options=self.option,
+                                                       after=self.after_yt, ytdl_options={'quiet':True})
         self.player = player
         self.title = player.title
         self.duration = player.duration
+        if self.duration:
+            self.duration = int(self.duration)
         self.start_time = time.time()
         player.volume = 0.25
         return player

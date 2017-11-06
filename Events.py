@@ -417,6 +417,7 @@ commands["!playername"] = playername
 commands["!lastraidplayer"] = lastraid_player
 commands["!lastraid"] = lastraid_player
 commands["!lastraidguild"] = lastraid_guild
+commands["!itemname"] = itemname
 
 async def slot(message, bot_channel, client):
     await client.delete_message(message)

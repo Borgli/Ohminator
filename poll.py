@@ -1,5 +1,7 @@
 import utils
-
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+import os
 
 # Handel issue with more then one poll
 async def get_question(message, bot_channel, client):
@@ -52,7 +54,7 @@ async def print_q_and_a(message, bot_channel, client):
     for string in member.options:
         counter += 1
         alternatives.append(await client.send_message(message.channel,
-                                                      '**{}: {}**'.format(counter, string.content)))
+                                                      '{}: {}'.format(counter, string.content)))
 
     member.options = alternatives
 
@@ -98,17 +100,54 @@ async def vote_question(message, bot_channel, client):
     for msg in member.options:
         counter = 0;
         for reaction in msg.reactions:
-            counter =+ reaction.count
+            counter += reaction.count
 
-        await client.send_message(message.channel,
-                                  '{}'.format(counter))
+        member.result.append(counter)
 
     await client.send_message(message.channel,
-                                'Vote complete! Calculating results')
+                              'Vote complete! Calculating results')
+
+    make_dict_of_alt(message)
+    count = 0
+    for x in range(len(member.result)):
+        if member.result[x] == 0:
+            count += 1
+
+    if count == len(member.result):
+        await client.send_message(message.channel,
+                                  'Nobody voted, poll terminated!')
+        return
+
+    await make_pyplot(message, bot_channel, client)
+
+    member.dict.clear()
+    member.options.clear()
+    member.result.clear()
 
 
-        # Make nice and pretty graph of the results from voting
+def make_dict_of_alt(message):
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+
+    for res in range(len(member.result)):
+        member.dict[member.options[res].content] = member.result[res];
 
 
-def make_pyplot():
-    print("hei")
+# Make nice and pretty graph of the results from voting
+async def make_pyplot(message, bot_channel, client):
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    server.get_channel(message.channel.id)
+
+    ax = plt.figure().gca()
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.xlabel("Alternatives")
+    plt.ylabel("Votes")
+    plt.bar(range(len(member.dict)), member.dict.values(), align='center')
+    plt.xticks(range(len(member.dict)), member.dict.keys())
+
+    plt.savefig('servers/{}/members/{}/foo.png'.format(server.server_loc,
+                                                       server.get_channel(message.channel.id).channel_loc))
+    await client.send_file(message.channel,
+                           'servers/{}/members/{}/foo.png'.format(server.server_loc,
+                                                                  server.get_channel(message.channel.id).channel_loc))

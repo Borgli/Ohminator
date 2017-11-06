@@ -18,6 +18,8 @@ class Member:
         # This is for the poll function
         self.question = None
         self.options = list()
+        self.result = list()
+        self.dict = dict()
 
         if not isdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc)):
             mkdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc))

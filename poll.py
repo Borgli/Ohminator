@@ -48,10 +48,13 @@ async def print_q_and_a(message, bot_channel, client):
                               'Poll question: **{}**        {}Alternatives:\n'.format(member.question, '\n'))
 
     counter = 0;
+    alternatives = list()
     for string in member.options:
         counter += 1
-        await client.send_message(message.channel,
-                                  '**{}: {}**'.format(counter, string.content))
+        alternatives.append(await client.send_message(message.channel,
+                                                      '**{}: {}**'.format(counter, string.content)))
+
+    member.options = alternatives
 
     await client.send_message(message.channel,
                               'Start your voting peps! '
@@ -80,27 +83,32 @@ async def vote_question(message, bot_channel, client):
     member = server.get_member(message.author.id)
     tempoptions = list()
 
-    option = await client.wait_for_message(timeout=None, channel=message.channel)
-    while option and option.content != 'done':
-        await client.delete_message(option)
-        option = await client.wait_for_message(timeout=None, channel=message.channel)
+    option_message = await client.wait_for_message(timeout=None, channel=message.channel)
+    while option_message and option_message.content != 'done':
+        await client.delete_message(option_message)
+        option_message = await client.wait_for_message(timeout=None, channel=message.channel)
 
     for option_message in member.options:
         temp = await client.get_message(option_message.channel, option_message.id)
         tempoptions.append(temp)
 
-
     for index in range(0, len(member.options)):
-        tempoptions[index] = member.options[index]
+        member.options[index] = tempoptions[index]
 
-    for option.id in member.options:
+    for msg in member.options:
+        counter = 0;
+        for reaction in msg.reactions:
+            counter =+ reaction.count
+
         await client.send_message(message.channel,
-                                  '{}'.format(option.id.reactions))
+                                  '{}'.format(counter))
 
     await client.send_message(message.channel,
-                              'Vote complete! Calculating results')
+                                'Vote complete! Calculating results')
 
 
-# Make nice and pretty graph of the results from voting
+        # Make nice and pretty graph of the results from voting
+
+
 def make_pyplot():
     print("hei")

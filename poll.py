@@ -1,5 +1,6 @@
 import utils
 
+
 # Handel issue with more then one poll
 async def get_question(message, bot_channel, client):
     parameters = message.content.split()
@@ -77,11 +78,20 @@ async def vote_question(message, bot_channel, client):
     await print_q_and_a(message, bot_channel, client)
     server = utils.get_server(message.server)
     member = server.get_member(message.author.id)
+    tempoptions = list()
 
     option = await client.wait_for_message(timeout=None, channel=message.channel)
     while option and option.content != 'done':
         await client.delete_message(option)
         option = await client.wait_for_message(timeout=None, channel=message.channel)
+
+    for option_message in member.options:
+        temp = await client.get_message(option_message.channel, option_message.id)
+        tempoptions.append(temp)
+
+
+    for index in range(0, len(member.options)):
+        tempoptions[index] = member.options[index]
 
     for option.id in member.options:
         await client.send_message(message.channel,
@@ -89,6 +99,7 @@ async def vote_question(message, bot_channel, client):
 
     await client.send_message(message.channel,
                               'Vote complete! Calculating results')
+
 
 # Make nice and pretty graph of the results from voting
 def make_pyplot():

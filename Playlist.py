@@ -111,7 +111,7 @@ class Playlist:
                     # Remove previously pinned messages
                     pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
                     for message in pinned_messages:
-                        if message.id != pinned_message.id:
+                        if message.id != pinned_message.id and message.author.id == self.client.user.id:
                             await self.client.delete_message(message)
 
                     # Pin the message

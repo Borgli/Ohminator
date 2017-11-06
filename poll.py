@@ -1,9 +1,16 @@
 import utils
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
-import os
 
-# Handel issue with more then one poll
+#ToDo:
+# 1: Fikse problemet med en poll per kanal.
+# 2: Fikse en option for votes per users.
+# 3: Fikse alternativ utskriften til bilde.
+# 4: Fikse random sletting av siste bot utskift (dette skjer når voting skal starte).
+# 5: Mulighet for tidsramme på polls
+# 6: Rydde oppe i kode og utskrifter så det ser så pent ut som mulig.
+# 7: Dokumentasjon
+
 async def get_question(message, bot_channel, client):
     parameters = message.content.split()
     if len(parameters) < 2:
@@ -146,8 +153,8 @@ async def make_pyplot(message, bot_channel, client):
     plt.bar(range(len(member.dict)), member.dict.values(), align='center')
     plt.xticks(range(len(member.dict)), member.dict.keys())
 
-    plt.savefig('servers/{}/members/{}/foo.png'.format(server.server_loc,
+    plt.savefig('servers/{}/channels/{}/foo.png'.format(server.server_loc,
                                                        server.get_channel(message.channel.id).channel_loc))
     await client.send_file(message.channel,
-                           'servers/{}/members/{}/foo.png'.format(server.server_loc,
+                           'servers/{}/channels/{}/foo.png'.format(server.server_loc,
                                                                   server.get_channel(message.channel.id).channel_loc))

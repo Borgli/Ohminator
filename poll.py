@@ -1,6 +1,5 @@
 import utils
 
-
 # Handel issue with more then one poll
 async def get_question(message, bot_channel, client):
     parameters = message.content.split()
@@ -20,11 +19,11 @@ async def get_question(message, bot_channel, client):
                               'What alternatives do you like for this poll?'
                               '\nType done when finished.')
 
-    response = await client.wait_for_message(timeout=60, author=message.author)
-    while response and response.content != 'done':
-        await client.delete_message(response)
-        member.options.append(response.content)
-        response = await client.wait_for_message(timeout=60, author=message.author)
+    option = await client.wait_for_message(timeout=60, author=message.author)
+    while option and option.content != 'done':
+        await client.delete_message(option)
+        member.options.append(option)
+        option = await client.wait_for_message(timeout=60, author=message.author)
 
     await vote_question(message, bot_channel, client)
 
@@ -51,12 +50,13 @@ async def print_q_and_a(message, bot_channel, client):
     for string in member.options:
         counter += 1
         await client.send_message(message.channel,
-                                  '**{}: {}**'.format(counter, string))
+                                  '**{}: {}**'.format(counter, string.content))
 
     await client.send_message(message.channel,
                               'Start your voting peps! '
-                              '\nTo vote react to each option or use !voteq [index].'
+                              '\nTo vote react to each option!.'
                               '\nWhen voting is complete type done')
+
 
 # not in use - Refactor at later time
 async def extend_time(message, bot_channel, client):
@@ -75,31 +75,20 @@ async def extend_time(message, bot_channel, client):
 
 async def vote_question(message, bot_channel, client):
     await print_q_and_a(message, bot_channel, client)
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
 
-    response = await client.wait_for_message(timeout=None, channel=message.channel)
-    while response and response.content != 'done':
-        await client.delete_message(response)
-        response = await client.wait_for_message(timeout=None, channel=message.channel)
-        # Need code her til store votes, both index and react voting, will be done in method voteq i think.
+    option = await client.wait_for_message(timeout=None, channel=message.channel)
+    while option and option.content != 'done':
+        await client.delete_message(option)
+        option = await client.wait_for_message(timeout=None, channel=message.channel)
+
+    for option.id in member.options:
+        await client.send_message(message.channel,
+                                  '{}'.format(option.id.reactions))
 
     await client.send_message(message.channel,
                               'Vote complete! Calculating results')
-
-
-# shall handel !voteq [index], and maybe vote true react ^^
-async def voteq(message, bot_channel, client):
-    await client.delete_message(message)
-    server = utils.get_server(message.server)
-    parameters = message.content.split()
-    try:
-        index = int(parameters[1]) - 1
-    except ValueError:
-        await client.send_message(bot_channel, '{}: Please give a numeric value!'.format(message.author.name))
-        return
-    except IndexError:
-        await client.send_message(bot_channel, '{}: Please give an index to vote for!'.format(message.author.name))
-        return
-
 
 # Make nice and pretty graph of the results from voting
 def make_pyplot():

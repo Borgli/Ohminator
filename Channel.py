@@ -12,6 +12,13 @@ class Channel:
         self.type = channel.type
         self.discord_channel = channel
 
+        # This is for the poll function
+        self.question = None
+        self.options = list()
+        self.result = list()
+        self.dict = dict()
+        self.poll_time = int()
+
         self.settings_pickle = 'servers/{}/channels/{}/settings.pickle'.format(server.server_loc, self.channel_loc)
         if exists(self.settings_pickle):
             # Load settings

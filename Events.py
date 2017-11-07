@@ -343,10 +343,10 @@ commands["!roll"] = roll
 commands["!broadcast"] = broadcast
 
 # Poll commands
-commands["!poll"] = get_question
+commands["!poll"] = get_question_and_alt
 commands["!question?"] = see_question
 
-commands["!ext"] = extend_time
+#commands["!ext"] = extend_time
 
 
 # Audio commands
@@ -413,11 +413,11 @@ commands["!uploaddefaultintro"] = upload_default_intro
 commands["!udi"] = upload_default_intro
 
 # Wow commands
-commands["!playername"] = playername
-commands["!lastraidplayer"] = lastraid_player
-commands["!lastraid"] = lastraid_player
-commands["!lastraidguild"] = lastraid_guild
-commands["!itemname"] = itemname
+#commands["!playername"] = playername
+#commands["!lastraidplayer"] = lastraid_player
+#commands["!lastraid"] = lastraid_player
+#commands["!lastraidguild"] = lastraid_guild
+#commands["!itemname"] = itemname
 
 async def slot(message, bot_channel, client):
     await client.delete_message(message)

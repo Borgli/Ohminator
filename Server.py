@@ -41,9 +41,6 @@ class Server:
         self.next_tts_created = False
         self.active_tts = None
 
-        # added for polling
-        self.poll_time = 30
-
         # Handle server document
         self.server_doc = db.Servers.find_one({"_id": discord_server.id})
         if self.server_doc is None:

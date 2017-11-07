@@ -252,6 +252,8 @@ async def help(message, bot_channel, client):
         await print_help_page('help_all_1.txt')
         await print_help_page('help_all_2.txt', False)
         await print_help_page('help_all_3.txt', False)
+    elif message.content.lower().startswith('!help wow'):
+        await print_help_page('help_wow.txt')
     else:
         await print_help_page('help.txt')
         await print_help_page('summary.txt', False)

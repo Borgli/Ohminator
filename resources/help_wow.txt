@@ -1,6 +1,5 @@
 ```Markdown
-!repeat or !again or !a     - Repeats the currently playing song.
-!shuffle or !sh             - Shuffles the playlist queue.
+List of World of Warcraft vanilla commands:
 !player [player name]       - Retrieves WoW vanilla player information from http://realmplayers.com.
 !raidplayer [player name]   - Retrieves WoW vanilla link to last raid of given player from http://realmplayers.com.
 !raidplayer [guild name]    - Retrieves WoW vanilla link to last raid of given guild from http://realmplayers.com.

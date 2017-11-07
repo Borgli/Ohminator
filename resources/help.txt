@@ -6,6 +6,7 @@ List of help commands:
 !help utils                 - Prints out all utility commands.
 !help others                - Prints out all commands not in a category.
 !help all                   - Prints out every command available.
+!help wow                   - Prints out all World of Warcraft vanilla commands.
 !summary                    - Prints out a short description of Ohminator.
 
 Quick summary:

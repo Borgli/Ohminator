@@ -3,6 +3,7 @@ from functools import wraps
 import aiohttp
 import re
 import asyncio
+import ast
 
 import discord
 
@@ -210,6 +211,53 @@ async def itemname(message, bot_channel, client):
                 embed.set_thumbnail(
                     url="http://db.vanillagaming.org/images/icons/large/{}.jpg".format(icon_name.group(1)))
             embed.description = tool_tip_description
+
+            # Add "dropped by" or "sold by" part
+            dropped_or_sold_by = re.search("id:'(dropped-by|sold-by)'.+", item_page)
+            if dropped_or_sold_by:
+                item_list = re.findall("{(.+?)}", dropped_or_sold_by.group(0))
+
+                item_list_dict = list()
+                for item in item_list:
+                    attributes = re.compile(",(?![-\d])").split(item)
+                    item_dict = dict()
+                    for attribute in attributes:
+                        pair = attribute.split(":")
+                        item_dict[pair[0]] = pair[1]
+                    item_list_dict.append(item_dict)
+
+                if len(item_list_dict) > 0:
+                    embed.description += "\n{}\n".format("Dropped By:" if dropped_or_sold_by.group(1) == "dropped-by" else "Sold By:")
+                    max_items = 5
+                    for item in item_list_dict[:max_items]:
+                        item["react"] = ast.literal_eval(item["react"])
+                        if dropped_or_sold_by.group(1) == "dropped-by":
+                            if item["boss"] == "'1'":
+                                level = "?? (Boss)"
+                            else:
+                                level = "{}-{}".format(item["minlevel"], item["maxlevel"]) \
+                                    if item["minlevel"] != item["maxlevel"] else item["minlevel"]
+                            embed.description += "[{}]({}), Level: {}, {}, \nReact: {}, {}, %: {}\n".format(
+                                item["name"].strip("'"), "http://db.vanillagaming.org/?npc={}".format(item["id"]),
+                                level, "[Location](http://db.vanillagaming.org/?zone={})".format(item["location"].strip("[").strip("]")),
+                                "{}{}".format("A" if item["react"][0] != -1 else "", "H" if item["react"][1] != -1 else ""),
+                                "[Type](http://db.vanillagaming.org/?npcs={})".format(item["type"]), item["percent"]
+                            )
+                        else:
+                            item["cost"] = item["cost"].strip("[").strip("]")
+                            bronze = "" if len(item["cost"]) < 1 else item["cost"][-2:]
+                            silver = "" if len(item["cost"]) < 3 else item["cost"][-4:-2]
+                            gold = "" if len(item["cost"]) < 5 else item["cost"][:-4]
+
+                            embed.description += "[{}]({}) ({}), Level: {}, {}, \nReact: {}, Stock: {}, Cost: {}\n".format(
+                                item["name"].strip("'"), "http://db.vanillagaming.org/?npc={}".format(item["id"]), item["tag"].strip("'"),
+                                "{}-{}".format(item["minlevel"], item["maxlevel"]) if item["minlevel"] != item["maxlevel"]
+                                else item["minlevel"], "[Location](http://db.vanillagaming.org/?zone={})".format(item["location"].strip("[").strip("]")),
+                                "{}{}".format("A" if item["react"][0] != -1 else "", "H" if item["react"][1] != -1 else ""),
+                                "∞" if item["stock"] == "-1" else item["stock"], "{}{}{}".format(
+                                    "{}, ".format(gold) if gold != "" else "", "{}, ".format(silver) if silver != "" else "", bronze)
+                            )
+
         else:
             # Subcase two
             embed = no_results_embed()

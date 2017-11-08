@@ -44,12 +44,12 @@ async def lastraid(message, bot_channel, client, player):
         await client.send_message(bot_channel, "USAGE: !lastraidplayer [player name] or !lastraidguild [guild name]")
         return
 
-    name = parameters[1]
+    name = " ".join(parameters[1:])
     if not name.isalpha():
         await client.send_message(bot_channel, "Sorry, but the {} name can only contain letters.".format("player" if player else "guild"))
         return
 
-    name = parameters[1].lower().capitalize()
+    name = name.lower().capitalize()
     raid_link = "http://realmplayers.com/RaidStats/RaidList.aspx?realm={}&guild={}"
     if player:
         try:
@@ -79,7 +79,7 @@ async def lastraid(message, bot_channel, client, player):
         @get_session("http://realmplayers.com/CharacterList.aspx?search={}".format(name))
         async def get_guild_url(message, bot_channel, client, resp):
             search_doc = await resp.text()
-            pattern = 'realm=(\w+?)&guild=({0})\">&lt;({0})&gt;<\/a>'.format(name)
+            pattern = 'realm=(\w+?)&guild=({})\">&lt;.+?&gt;<\/a></td><td>.*?</td><td>.*?</td><td>.*?</td><td>.*?</td><td>(.+?)</td>'.format(name)
             return re.findall(pattern, search_doc)
 
         try:
@@ -88,7 +88,7 @@ async def lastraid(message, bot_channel, client, player):
             return
 
         if len(matches) < 1:
-            await client.send_message(bot_channel, 'Sorry, could not find any player with name "{}".'.format(name))
+            await client.send_message(bot_channel, 'Sorry, could not find any guild with name "{}".'.format(name))
             return
 
         guild_tuple = matches[0]
@@ -219,7 +219,7 @@ async def itemname(message, bot_channel, client):
 
                 item_list_dict = list()
                 for item in item_list:
-                    attributes = re.compile(",(?![-\d])").split(item)
+                    attributes = re.compile(",(?=[a-zA-Z0-9 !'-]+?:)").split(item)
                     item_dict = dict()
                     for attribute in attributes:
                         pair = attribute.split(":")
@@ -227,12 +227,15 @@ async def itemname(message, bot_channel, client):
                     item_list_dict.append(item_dict)
 
                 if len(item_list_dict) > 0:
-                    embed.description += "\n{}\n".format("Dropped By:" if dropped_or_sold_by.group(1) == "dropped-by" else "Sold By:")
+                    if dropped_or_sold_by.group(1) == "dropped-by" and float(item_list_dict[0]["percent"]) < 0.1:
+                        embed.description += "\n{}\n".format("World Drop:")
+                    else:
+                        embed.description += "\n{}\n".format("Dropped By:" if dropped_or_sold_by.group(1) == "dropped-by" else "Sold By:")
                     max_items = 5
                     for item in item_list_dict[:max_items]:
                         item["react"] = ast.literal_eval(item["react"])
                         if dropped_or_sold_by.group(1) == "dropped-by":
-                            if item["boss"] == "'1'":
+                            if "boss" in item and item["boss"] == "'1'":
                                 level = "?? (Boss)"
                             else:
                                 level = "{}-{}".format(item["minlevel"], item["maxlevel"]) \
@@ -276,14 +279,14 @@ async def itemname(message, bot_channel, client):
             item_list = re.findall(pattern, shows_items.group(0))
             item_list_dict = list()
             for item in item_list:
-                attributes = item.split(",")
+                attributes = re.compile(",(?=[a-zA-Z0-9 !'-]+?:)").split(item)
                 item_dict = dict()
                 for attribute in attributes:
                     pair = attribute.split(":")
                     item_dict[pair[0]] = pair[1]
                 item_list_dict.append(item_dict)
 
-            if len(item_list_dict) > 0:
+            if len(item_list_dict) > 1:
                 alternative_string = ""
                 cnt = 1
                 number_of_items = 15
@@ -298,7 +301,7 @@ async def itemname(message, bot_channel, client):
                     item_search, alternative_string))
 
                 def check(msg):
-                    return msg.content.isdigit() and 0 < int(msg.content) <= number_of_items
+                    return msg.content.isdigit() and 0 < int(msg.content) <= len(item_list_dict[:number_of_items])
 
                 response = await client.wait_for_message(timeout=20, author=message.author, check=check)
                 await client.delete_message(sent_message)
@@ -313,6 +316,14 @@ async def itemname(message, bot_channel, client):
 
                 response = await get_item_url(message, bot_channel, client)
                 embed = await create_item_embed(response, "http://db.vanillagaming.org/?item={}".format(item_dict["id"]))
+            elif len(item_list_dict) == 1:
+                @get_session("http://db.vanillagaming.org/?item={}".format(item_list_dict[0]["id"]))
+                async def get_item_url(message, bot_channel, client, resp):
+                    return await resp.text()
+
+                response = await get_item_url(message, bot_channel, client)
+                embed = await create_item_embed(response,
+                                                "http://db.vanillagaming.org/?item={}".format(item_list_dict[0]["id"]))
             else:
                 embed = no_results_embed()
         else:
@@ -344,12 +355,12 @@ async def playername(message, bot_channel, client):
         await client.send_message(bot_channel, "USAGE: !playername [player name]")
         return
 
-    name = parameters[1]
+    name = " ".join(parameters[1:])
     if not name.isalpha():
         await client.send_message(bot_channel, "Sorry, but the player name can only contain letters.")
         return
 
-    name = parameters[1].lower().capitalize()
+    name = name.lower().capitalize()
 
     try:
         player_url = await get_player_url(message, bot_channel, client, name)
@@ -460,7 +471,7 @@ async def prompt_user(message, bot_channel, client, name, matches, player=True):
             "players" if player else "guilds", name, alternative_string))
 
         def check(msg):
-            return msg.content.isdigit() and 0 < int(msg.content) <= max_alternatives
+            return msg.content.isdigit() and 0 < int(msg.content) <= len(matches[:max_alternatives])
 
         response = await client.wait_for_message(timeout=20, author=message.author, check=check)
         await client.delete_message(sent_message)
@@ -526,5 +537,6 @@ colours = {
     "q1": discord.Colour.dark_grey(),
     "q2": discord.Colour.dark_green(),
     "q3": discord.Colour.dark_blue(),
-    "q4": discord.Colour.dark_purple()
+    "q4": discord.Colour.dark_purple(),
+    "q5": discord.Colour.dark_orange()
 }

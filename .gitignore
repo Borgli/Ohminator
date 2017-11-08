@@ -69,3 +69,6 @@ token.txt
 
 # PyCharm
 .idea/
+
+# Servers folder
+servers/

@@ -1,7 +1,6 @@
 import traceback
 
 from utils import *
-import discord
 
 
 async def assign_default_role(client, member, role_name):
@@ -20,7 +19,8 @@ async def notify_of_joining_person(client, member):
     await client.send_message(bot_channel, '**{}** just joined {}. Welcome!'.format(member.name, member.server))
 
 
-# Will be used later for broadcasting Ohminator announcement
+# Used for broadcasting Ohminator announcements
+@register_command("broadcast")
 async def broadcast(message, bot_channel, client):
     await client.delete_message(message)
     if message.author.id != "159315181288030208":
@@ -53,6 +53,8 @@ async def broadcast(message, bot_channel, client):
                                   "{}: Use: !broadcast [all/channel id/server name] [announcement]"
                                   .format(message.author.name))
 
+
+@register_command("move")
 async def move(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()

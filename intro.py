@@ -5,9 +5,11 @@ import re
 import shutil
 import urllib.request
 
+from utils import register_command
 import utils
 
 
+@register_command("introstop", "stopintro", "is")
 async def introstop(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -17,6 +19,8 @@ async def introstop(message, bot_channel, client):
         await client.send_message(bot_channel, '{} stopped the intro!'.format(message.author.name))
         server.intro_player.stop()
 
+
+@register_command("intro", "i")
 async def intro(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -106,6 +110,8 @@ async def intro(message, bot_channel, client):
         await client.send_message(bot_channel,
                                   '{}: You dont have an intro!'.format(message.author.name))
 
+
+@register_command("myintros", "intros", "mi")
 async def myintros(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -119,6 +125,8 @@ async def myintros(message, bot_channel, client):
     await client.send_message(bot_channel,
                               '{}: Intro list:{}'.format(message.author.mention, intro_print))
 
+
+@register_command("deleteintro", "introdelete")
 async def deleteintro(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -151,6 +159,8 @@ async def deleteintro(message, bot_channel, client):
                                       message.author.name))
         return
 
+
+@register_command("upload", "up", "u")
 async def upload(message, bot_channel, client):
     if len(message.attachments) > 0:
         try:
@@ -182,6 +192,8 @@ async def upload(message, bot_channel, client):
     else:
         await client.send_message(bot_channel, '{}: Please use this command while uploading a file to discord.'.format(message.author.name))
 
+
+@register_command("defaultintro", "di")
 async def default_intro(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -274,6 +286,8 @@ async def default_intro(message, bot_channel, client):
         await client.send_message(bot_channel,
                                   '{}: You dont have an intro!'.format(message.author.name))
 
+
+@register_command("defaultintros", "dis", "ldi", "listdefaultintros")
 async def list_default_intros(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -286,6 +300,8 @@ async def list_default_intros(message, bot_channel, client):
     await client.send_message(bot_channel,
                               '{}: Default intro list:{}'.format(message.author.mention, intro_print))
 
+
+@register_command("deletedefaultintro", "ddi")
 async def delete_default_intro(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -317,6 +333,8 @@ async def delete_default_intro(message, bot_channel, client):
                                       message.author.name))
         return
 
+
+@register_command("uploaddefaultintro", "udi")
 async def upload_default_intro(message, bot_channel, client):
     if len(message.attachments) > 0:
         try:

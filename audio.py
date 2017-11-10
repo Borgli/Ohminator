@@ -6,11 +6,13 @@ import traceback
 from tempfile import mkstemp
 
 from gtts import gTTS
+from utils import register_command
 
 import utils
 import discord
 
 
+@register_command("tts", "say")
 async def text_to_speech(message, bot_channel, client):
     await client.delete_message(message)
     text = message.content[5:]
@@ -144,6 +146,7 @@ async def connect_to_voice_channel(message, bot_channel, client, voice_channel=N
         return
 
 
+@register_command("summon", "lock", "acquire")
 async def summon(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -174,6 +177,8 @@ async def summon(message, bot_channel, client):
                                                    "to use this command without a channel id.\n"
                                                    "Usage: !summon [(channel id)]".format(message.author.name))
 
+
+@register_command("unsummon", "desummon", "release")
 async def unsummon(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -181,6 +186,8 @@ async def unsummon(message, bot_channel, client):
                               .format(message.author.name, server.playlist.summoned_channel.name))
     server.playlist.summoned_channel = None
 
+
+@register_command("volume", "sv")
 async def volume(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -222,6 +229,8 @@ async def volume(message, bot_channel, client):
                 icon, message.author.name, int(server.active_player.volume*2*100.0), int(current_volume*2*100.0)))
             server.active_player.volume = current_volume
 
+
+@register_command("stop", "s", "stahp", "stap")
 async def stop(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -233,6 +242,8 @@ async def stop(message, bot_channel, client):
         server.playlist.yt_playlist.clear()
         server.active_player.stop()
 
+
+@register_command("pause", "pa")
 async def pause(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -246,6 +257,8 @@ async def pause(message, bot_channel, client):
         server.active_playlist_element.pause_time = time.time()
         server.active_player.pause()
 
+
+@register_command("resume", "r")
 async def resume(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -256,6 +269,8 @@ async def resume(message, bot_channel, client):
         server.active_playlist_element.start_time += (server.active_playlist_element.pause_time-server.active_playlist_element.start_time)
         server.active_player.resume()
 
+
+@register_command("repeat", "again", "a")
 async def repeat(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -267,6 +282,8 @@ async def repeat(message, bot_channel, client):
                                                                               server.active_playlist_element.title))
         server.playlist.yt_playlist.insert(0, server.active_playlist_element)
 
+
+@register_command("shuffle", "sh")
 async def shuffle(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -278,6 +295,8 @@ async def shuffle(message, bot_channel, client):
         random.shuffle(server.playlist.yt_playlist)
         server.playlist.yt_playlist.sort(key=lambda element: len(element.vote_list), reverse=True)
 
+
+@register_command("delete", "d", "remove")
 async def delete(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -298,6 +317,8 @@ async def delete(message, bot_channel, client):
     except IndexError:
         await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(message.author.name, index+1))
 
+
+@register_command("skip", "sk")
 async def skip(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -307,6 +328,8 @@ async def skip(message, bot_channel, client):
         await client.send_message(bot_channel, ':track_next:: {} skipped the song!'.format(message.author.name))
         server.active_player.stop()
 
+
+@register_command("next", "n")
 async def next(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -318,6 +341,7 @@ async def next(message, bot_channel, client):
         await client.send_message(bot_channel,
                                   '{}: There is no next song as the queue is empty!'.format(message.author.name))
 
+# Unused. Should be refactored! Has been replaced by queue_page function.
 async def q(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -345,6 +369,8 @@ async def q(message, bot_channel, client):
     else:
         await client.send_message(bot_channel, '{}: There is nothing in the queue!'.format(message.author.name))
 
+
+@register_command("vote", "v")
 async def vote(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -376,6 +402,8 @@ async def vote(message, bot_channel, client):
     except IndexError:
         await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(message.author.name, index+1))
 
+
+@register_command("queue", "q", "queuepage")
 async def queue_page(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)

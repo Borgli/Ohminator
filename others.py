@@ -10,7 +10,10 @@ import traceback
 
 import time
 
+from utils import register_command
 
+
+@register_command("rlstats", "getrlrank", "rlrank")
 async def get_rl_rank(message, bot_channel, client):
     await client.delete_message(message)
     rl_client = rocket_snake.RLS_Client("EQJLFCC1HG2RIV2PHW7WDLW077DCPSX5")
@@ -41,6 +44,8 @@ async def get_rl_rank(message, bot_channel, client):
             await client.send_message(bot_channel, "{}: Sorry, something went wrong fetching the stats!\n"
                                                    "Please try again later.".format(message.author.name))
 
+
+@register_command("sharedgames")
 async def sharedgames(message, bot_channel, client):
     await client.delete_message(message)
     content = message.content.split()

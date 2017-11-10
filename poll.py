@@ -1,7 +1,9 @@
 import utils
+from utils import register_command
 
 
-# Handel issue with more then one poll
+# Handle issue with more then one poll
+@register_command("poll")
 async def get_question(message, bot_channel, client):
     parameters = message.content.split()
     if len(parameters) < 2:
@@ -29,6 +31,7 @@ async def get_question(message, bot_channel, client):
     await vote_question(message, bot_channel, client)
 
 
+@register_command("question?")
 async def see_question(message, bot_channel, client):
     server = utils.get_server(message.server)
     member = server.get_member(message.author.id)
@@ -63,6 +66,7 @@ async def print_q_and_a(message, bot_channel, client):
 
 
 # not in use - Refactor at later time
+@register_command("ext")
 async def extend_time(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)

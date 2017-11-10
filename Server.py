@@ -40,6 +40,7 @@ class Server:
         self.next_tts = asyncio.Event()
         self.next_tts_created = False
         self.active_tts = None
+        self.prefix = '!'
 
         self.wow_lock = asyncio.Lock()
 

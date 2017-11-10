@@ -5,7 +5,7 @@ import re
 import asyncio
 import ast
 
-import utils
+from utils import *
 
 import discord
 
@@ -25,11 +25,13 @@ def wow_lock():
 
 
 @wow_lock()
+@register_command("lastraid", "raidplayer")
 async def lastraid_player(message, bot_channel, client):
     return await lastraid(message, bot_channel, client, player=True)
 
 
 @wow_lock()
+@register_command("raidguild")
 async def lastraid_guild(message, bot_channel, client):
     return await lastraid(message, bot_channel, client, player=False)
 
@@ -206,6 +208,7 @@ async def lastraid(message, bot_channel, client, player):
 
 
 @wow_lock()
+@register_command("item")
 async def itemname(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -431,6 +434,7 @@ async def itemname(message, bot_channel, client):
 
 
 @wow_lock()
+@register_command("player")
 async def playername(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()

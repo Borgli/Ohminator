@@ -96,15 +96,17 @@ async def on_message(message):
     if len(cmd.split()) < 1:
         return
 
+    server = get_server(message.server)
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
-        if cmd.lower().split()[0] == key:
+        if cmd.lower().split()[0] == server.prefix + key:
             await commands[key](message, bot_channel, client)
             return
 
     parameters = cmd.split()
     # Commands that require high performance can not be awaited and are therefore implemented here
-    if parameters[0].lower() == '!yt' or parameters[0].lower() == '!play' or parameters[0].lower() == '!p':
+    if parameters[0].lower() == server.prefix + 'yt' or parameters[0].lower() == server.prefix + 'play' \
+            or parameters[0].lower() == server.prefix + 'p':
         await client.delete_message(message)
 
         if len(parameters) < 2:
@@ -122,7 +124,6 @@ async def on_message(message):
                                           message.author.name))
             return
 
-        server = get_server(message.server)
         if server.playlist.summoned_channel:
             # Restricts users to only be able to add songs to playlist if they are in the channel the bot is locked to.
             if message.author.voice.voice_channel == server.playlist.summoned_channel:
@@ -222,12 +223,10 @@ async def on_message(message):
             server.playlist.add_to_playlist_lock.release()
 
 
+@register_command("ping")
 async def ping(message, bot_channel, client):
     await client.delete_message(message)
     await client.send_message(bot_channel, 'Pong!')
-
-
-commands["!ping"] = ping
 
 
 async def print_page(resource, message, bot_channel, client, prefix_user=True):
@@ -236,6 +235,8 @@ async def print_page(resource, message, bot_channel, client, prefix_user=True):
     help_page = "{}{}".format("{}:\n".format(message.author.name) if prefix_user else "", content)
     await client.send_message(bot_channel, help_page)
 
+
+@register_command("help", "commands", "command", "info")
 async def help(message, bot_channel, client):
     await client.delete_message(message)
     async def print_help_page(help_resource, prefix_user=True):
@@ -259,17 +260,13 @@ async def help(message, bot_channel, client):
         await print_help_page('summary.txt', False)
 
 
-commands["!help"] = help
-commands["!commands"] = help
-commands["!command"] = help
-commands["!info"] = help
-
+@register_command("summary")
 async def summary(message, bot_channel, client):
     await client.delete_message(message)
     return await print_page('summary.txt', message, bot_channel, client)
 
-commands["!summary"] = summary
 
+@register_command("roll")
 async def roll(message, bot_channel, client):
     await client.delete_message(message)
     try:
@@ -281,6 +278,7 @@ async def roll(message, bot_channel, client):
                                   '{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
 
 
+@register_command("setbirthday")
 async def set_birthday(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -311,6 +309,7 @@ async def set_birthday(message, bot_channel, client):
                               '\nPlease verify that this is correct.'.format(message.author.name, date.date()))
 
 
+@register_command("mybirthday")
 async def my_birthday(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -323,6 +322,8 @@ async def my_birthday(message, bot_channel, client):
                                   "{}: You don't have a birthday saved to Ohminator!"
                                   "\nYou can add one by using the !setbirthday command.".format(message.author.name))
 
+
+@register_command("clearbirthday")
 async def clear_birthday(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
@@ -335,90 +336,8 @@ async def clear_birthday(message, bot_channel, client):
         pickle.dump(member.birthday, f)
     await client.send_message(bot_channel, '{}: Your birthday has been cleared.'.format(message.author.name))
 
-commands["!clearbirthday"] = clear_birthday
-commands["!rlstats"] = get_rl_rank
-commands["!getrlrank"] = get_rl_rank
-commands["!rlrank"] = get_rl_rank
-commands["!mybirthday"] = my_birthday
-commands["!setbirthday"] = set_birthday
-commands["!roll"] = roll
-commands["!broadcast"] = broadcast
 
-# Poll commands
-commands["!poll"] = get_question
-commands["!question?"] = see_question
-commands["!ext"] = extend_time
-
-# Audio commands
-commands["!tts"] = text_to_speech
-commands["!say"] = text_to_speech
-commands["!volume"] = volume
-commands["!sv"] = volume
-commands["!stop"] = stop
-commands["!s"] = stop
-commands["!stahp"] = stop
-commands["!stap"] = stop
-commands["!pause"] = pause
-commands["!pa"] = pause
-commands["!resume"] = resume
-commands["!r"] = resume
-commands["!delete"] = delete
-commands["!d"] = delete
-commands["!remove"] = delete
-commands["!skip"] = skip
-commands["!sk"] = skip
-commands["!q"] = queue_page
-commands["!queue"] = queue_page
-commands["!next"] = next
-commands["!n"] = next
-commands["!vote"] = vote
-commands["!v"] = vote
-commands["!queuepage"] = queue_page
-commands["!summon"] = summon
-commands["!lock"] = summon
-commands["!unsummon"] = unsummon
-commands["!desummon"] = unsummon
-commands["!release"] = unsummon
-commands["!repeat"] = repeat
-commands["!again"] = repeat
-commands["!a"] = repeat
-commands["!shuffle"] = shuffle
-commands["!sh"] = shuffle
-
-# Intro commands
-commands["!introstop"] = introstop
-commands["!stopintro"] = introstop
-commands["!is"] = introstop
-commands["!intro"] = intro
-commands["!i"] = intro
-commands["!myintros"] = myintros
-commands["!intros"] = myintros
-commands["!mi"] = myintros
-commands["!deleteintro"] = deleteintro
-commands["!introdelete"] = deleteintro
-commands["!di"] = deleteintro
-commands["!upload"] = upload
-commands["!up"] = upload
-commands["!u"] = upload
-
-# Default intro commands
-commands["!defaultintro"] = default_intro
-commands["!di"] = default_intro
-commands["!defaultintros"] = list_default_intros
-commands["!dis"] = list_default_intros
-commands["!ldi"] = list_default_intros
-commands["!deletedefaultintro"] = delete_default_intro
-commands["!ddi"] = delete_default_intro
-commands["!uploaddefaultintro"] = upload_default_intro
-commands["!udi"] = upload_default_intro
-
-# Wow commands
-commands["!player"] = playername
-commands["!raidplayer"] = lastraid_player
-commands["!lastraid"] = lastraid_player
-commands["!raidguild"] = lastraid_guild
-commands["!item"] = itemname
-
+@register_command("slot", "spin")
 async def slot(message, bot_channel, client):
     await client.delete_message(message)
     if message.channel != bot_channel:
@@ -451,17 +370,15 @@ async def slot(message, bot_channel, client):
                                                             first_column[2], second_column[2], third_column[2], result)
     await client.send_message(bot_channel, '{}: Good luck!\n\n{}'.format(message.author.name, slot_string))
 
-commands["!slot"] = slot
-commands["!spin"] = slot
 
+@register_command("joined")
 async def joined(message, bot_channel, client):
     await client.delete_message(message)
     await client.send_message(bot_channel, '{}: You joined the Ohm server {}!'.format(message.author.name,
                                                                                       message.author.joined_at))
 
-commands["!joined"] = joined
 
-
+@register_command("suggest")
 async def suggest(message, bot_channel, client):
     suggestion = message.content[9:]
     if len(suggestion) < 3:
@@ -475,9 +392,6 @@ async def suggest(message, bot_channel, client):
         f.write("Suggestion from {} on server {}:\n{}\n".format(message.author, message.server, suggestion))
     await client.send_message(bot_channel,
                               '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
-
-
-commands["!suggest"] = suggest
 
 
 async def join(message, bot_channel, client):
@@ -497,6 +411,8 @@ async def leave(message, bot_channel, client):
                               '{}: You have left the queue!\n'
                               'Current queue: {}'.format(message.author.mention, server.print_queue()))
 
+
+@register_command("team")
 async def team(message, bot_channel, client):
     subcommands = {
         "join": join,
@@ -509,9 +425,7 @@ async def team(message, bot_channel, client):
             await subcommands[parameters[1]](message, bot_channel, client)
 
 
-commands["!team"] = team
-
-
+@register_command("split")
 async def split(message, bot_channel, client):
     await client.delete_message(message)
     try:
@@ -543,9 +457,7 @@ async def split(message, bot_channel, client):
         index += 1
 
 
-commands["!split"] = split
-
-
+@register_command("removeteams")
 async def removeteams(message, bot_channel, client):
     await client.delete_message(message)
     team_number = 1
@@ -558,9 +470,7 @@ async def removeteams(message, bot_channel, client):
         team_number += 1
 
 
-commands["!removeteams"] = removeteams
-
-
+@register_command("getbotinvite", "gbi")
 async def get_bot_invite(message, bot_channel, client):
     await client.delete_message(message)
     permissions = discord.Permissions.all()
@@ -569,9 +479,7 @@ async def get_bot_invite(message, bot_channel, client):
                                               discord.utils.oauth_url('176432800331857920', permissions=permissions)))
 
 
-commands["!getbotinvite"] = get_bot_invite
-commands["!gbi"] = get_bot_invite
-
+@register_command("settings")
 async def settings(message, bot_channel, client):
     await client.delete_message(message)
     tokens = message.content.split()
@@ -605,9 +513,8 @@ async def settings(message, bot_channel, client):
             await client.send_message(message.channel,
                                       '{}: The setting {} does not exist.'.format(message.author.name, tokens[2]))
 
-commands["!settings"] = settings
 
-
+@register_command("playbuttons")
 async def playbuttons(message, bot_channel, client):
     await client.delete_message(message)
     server = get_server(message.server)
@@ -628,9 +535,6 @@ async def playbuttons(message, bot_channel, client):
     finally:
         lock.release()
 
-commands["!playbuttons"] = playbuttons
-commands["!sharedgames"] = sharedgames
-commands["!move"] = move
 
 async def on_reaction_add(reaction, user):
     server = get_server(reaction.message.server)

@@ -25,6 +25,7 @@ Documentation can be found [here](https://discordpy.readthedocs.io/en/latest/).
 
 Example:
 ```python
+@register_command("roll")
 async def roll(message, bot_channel, client):
     await client.delete_message(message)
     try:
@@ -35,9 +36,12 @@ async def roll(message, bot_channel, client):
         await client.send_message(bot_channel,
                                   '{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
 ```
-2. Register function in file [Events.py](Events.py) using the `commands` dictionary. The key should be the command string and value should be the function object.
+2. Register function by using decorator `@register_command("command name one", "command name two", ect)`. Command prefix (like '!') must be omitted as this is added automatically. `register_command` is found in the `utils` module. Use `from utils import register_command` to access it.
 
 Example:
 ```python
-commands["!roll"] = roll
+@register_command("ping")
+async def ping(message, bot_channel, client):
+    await client.delete_message(message)
+    await client.send_message(bot_channel, 'Pong!')
 ```

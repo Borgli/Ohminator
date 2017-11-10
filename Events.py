@@ -1,26 +1,27 @@
-import asyncio
-import pickle
-import threading
-import urllib.request
 import discord
+import asyncio
+import youtube_dl
+import time
+import traceback
+import random
+
 from os import mkdir, listdir
 from os.path import isdir
-from random import randint
-from dateutil.parser import parse
-
-import steamapi
-import youtube_dl
 
 import utils
+
 from Member import Member
-from PlayButtons import PlayButtons
 from Server import Server
-from admin import *
-from audio import *
-from intro import *
-from others import *
-from wow import *
-from poll import *
+from admin import notify_of_joining_person, notify_of_leaving_person, assign_default_role
+
+# Plugins
+import admin
+import audio
+import intro
+import others
+import poll
+import teams
+import wow
 
 commands = utils.commands
 running = False
@@ -41,6 +42,18 @@ class Events:
         bot.async_event(on_member_join)
         bot.async_event(on_reaction_add)
         client.loop.create_task(set_global_text())
+
+
+async def set_global_text():
+    await client.wait_until_ready()
+    await asyncio.sleep(10, loop=client.loop)
+    while not client.is_closed:
+        servers = sum(1 for _ in client.servers)
+        users = sum(1 for _ in client.get_all_members())
+        await client.change_presence(game=discord.Game(
+            name="{} server{}, {} user{}".format(
+                servers, "s" if servers != 1 else "", users, "s" if users != 1 else ""), type=1))
+        await asyncio.sleep(300, loop=client.loop)
 
 
 async def on_ready():
@@ -74,29 +87,18 @@ async def on_ready():
         print('Done!')
         running = True
 
-async def set_global_text():
-    await client.wait_until_ready()
-    await asyncio.sleep(10, loop=client.loop)
-    while not client.is_closed:
-        servers = sum(1 for _ in client.servers)
-        users = sum(1 for _ in client.get_all_members())
-        await client.change_presence(game=discord.Game(
-            name="{} server{}, {} user{}".format(
-                servers, "s" if servers != 1 else "", users, "s" if users != 1 else ""), type=1))
-        await asyncio.sleep(300, loop=client.loop)
-
 
 async def on_message(message):
     cmd = message.content
 
-    bot_channel = get_bot_channel(message.server)
+    bot_channel = utils.get_bot_channel(message.server)
     if bot_channel is None:
         bot_channel = message.channel
 
     if len(cmd.split()) < 1:
         return
 
-    server = get_server(message.server)
+    server = utils.get_server(message.server)
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
         if cmd.lower().split()[0] == server.prefix + key:
@@ -223,321 +225,8 @@ async def on_message(message):
             server.playlist.add_to_playlist_lock.release()
 
 
-@register_command("ping")
-async def ping(message, bot_channel, client):
-    await client.delete_message(message)
-    await client.send_message(bot_channel, 'Pong!')
-
-
-async def print_page(resource, message, bot_channel, client, prefix_user=True):
-    with open('resources/{}'.format(resource)) as f:
-        content = f.read()
-    help_page = "{}{}".format("{}:\n".format(message.author.name) if prefix_user else "", content)
-    await client.send_message(bot_channel, help_page)
-
-
-@register_command("help", "commands", "command", "info")
-async def help(message, bot_channel, client):
-    await client.delete_message(message)
-    async def print_help_page(help_resource, prefix_user=True):
-        return await print_page(help_resource, message, bot_channel, client, prefix_user)
-    if message.content.lower().startswith('!help audio'):
-        await print_help_page('help_audio.txt')
-    elif message.content.lower().startswith('!help intro'):
-        await print_help_page('help_intro.txt')
-    elif message.content.lower().startswith('!help util'):
-        await print_help_page('help_utils.txt')
-    elif message.content.lower().startswith('!help other'):
-        await print_help_page('help_others.txt')
-    elif message.content.lower().startswith('!help all'):
-        await print_help_page('help_all_1.txt')
-        await print_help_page('help_all_2.txt', False)
-        await print_help_page('help_all_3.txt', False)
-    elif message.content.lower().startswith('!help wow'):
-        await print_help_page('help_wow.txt')
-    else:
-        await print_help_page('help.txt')
-        await print_help_page('summary.txt', False)
-
-
-@register_command("summary")
-async def summary(message, bot_channel, client):
-    await client.delete_message(message)
-    return await print_page('summary.txt', message, bot_channel, client)
-
-
-@register_command("roll")
-async def roll(message, bot_channel, client):
-    await client.delete_message(message)
-    try:
-        options = message.content.split()
-        rand = randint(int(options[1]), int(options[2]))
-        await client.send_message(bot_channel, '{}: You rolled {}!'.format(message.author.name, rand))
-    except:
-        await client.send_message(bot_channel,
-                                  '{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
-
-
-@register_command("setbirthday")
-async def set_birthday(message, bot_channel, client):
-    await client.delete_message(message)
-    parameters = message.content.split()
-    if len(parameters) < 2:
-        await client.send_message(bot_channel,
-                                  '{}: Use: !setbirthday [your birthday]'.format(message.author.name))
-        return
-    try:
-        date = parse(" ".join(parameters[1:]), dayfirst=True, fuzzy=True)
-    except ValueError:
-        await client.send_message(bot_channel,
-                                  '{}: Invalid birth date! Please try a different format like day/month/year'.format(message.author.name))
-        return
-    except OverflowError:
-        await client.send_message(bot_channel,
-                                  '{}: The number you gave overflowed!'.format(message.author.name))
-        return
-    server = utils.get_server(message.server)
-    member = server.get_member(message.author.id)
-    member.birthday['birthday'] = date.date()
-    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc, member.member_loc)
-    # Save birthday to pickle
-    with open(birthday_pickle, 'w+b') as f:
-        pickle.dump(member.birthday, f)
-    await client.send_message(bot_channel,
-                              '{}: Your birthday was set successfully.'
-                              '\nIt was saved as {}.'
-                              '\nPlease verify that this is correct.'.format(message.author.name, date.date()))
-
-
-@register_command("mybirthday")
-async def my_birthday(message, bot_channel, client):
-    await client.delete_message(message)
-    server = utils.get_server(message.server)
-    member = server.get_member(message.author.id)
-    if 'birthday' in member.birthday:
-        await client.send_message(bot_channel,
-                                  '{}: Your birthday is {}'.format(message.author.name, member.birthday['birthday'].ctime()))
-    else:
-        await client.send_message(bot_channel,
-                                  "{}: You don't have a birthday saved to Ohminator!"
-                                  "\nYou can add one by using the !setbirthday command.".format(message.author.name))
-
-
-@register_command("clearbirthday")
-async def clear_birthday(message, bot_channel, client):
-    await client.delete_message(message)
-    server = utils.get_server(message.server)
-    member = server.get_member(message.author.id)
-    member.birthday = dict()
-    # Save birthday to pickle
-    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc,
-                                                                     member.member_loc)
-    with open(birthday_pickle, 'w+b') as f:
-        pickle.dump(member.birthday, f)
-    await client.send_message(bot_channel, '{}: Your birthday has been cleared.'.format(message.author.name))
-
-
-@register_command("slot", "spin")
-async def slot(message, bot_channel, client):
-    await client.delete_message(message)
-    if message.channel != bot_channel:
-        await client.send_message(message.channel, '{}: Check bot-spam for the result!'.format(message.author.name))
-    symbols = {
-        ':moneybag:': 600,
-        ':four_leaf_clover:': 300,
-        ':heart:': 120,
-        ':bulb:': 100,
-        ':sun_with_face:': 80,
-        ':alien:': 40,
-        ':apple:': 30,
-        ':cherries:': 0,
-    }
-    symbols_list = list(symbols.keys())
-    rand = randint(8, 63)
-    num = len(symbols_list)
-    first_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
-    rand = randint(8, 63)
-    second_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
-    rand = randint(8, 63)
-    third_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
-
-    if first_column[1] is second_column[1] is third_column[1]:
-        result = "Congratulations, you won!"
-    else:
-        result = "Sorry, but you lost..."
-    slot_string = "  {}{}{}\n>{}{}{}<\n  {}{}{}\n\n{}".format(first_column[0], second_column[0], third_column[0],
-                                                            first_column[1], second_column[1], third_column[1],
-                                                            first_column[2], second_column[2], third_column[2], result)
-    await client.send_message(bot_channel, '{}: Good luck!\n\n{}'.format(message.author.name, slot_string))
-
-
-@register_command("joined")
-async def joined(message, bot_channel, client):
-    await client.delete_message(message)
-    await client.send_message(bot_channel, '{}: You joined the Ohm server {}!'.format(message.author.name,
-                                                                                      message.author.joined_at))
-
-
-@register_command("suggest")
-async def suggest(message, bot_channel, client):
-    suggestion = message.content[9:]
-    if len(suggestion) < 3:
-        await client.send_message(bot_channel,
-                                  "{}: Please suggest something proper.".format(message.author.mention))
-        return
-    server = get_server(message.server)
-    member = server.get_member(message.author.id)
-    suggestion_loc = 'suggestions.txt'.format(server.server_loc, member.member_loc)
-    with open(suggestion_loc, 'a') as f:
-        f.write("Suggestion from {} on server {}:\n{}\n".format(message.author, message.server, suggestion))
-    await client.send_message(bot_channel,
-                              '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
-
-
-async def join(message, bot_channel, client):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    if message.author not in server.split_list:
-        server.split_list.append(message.author)
-        await client.send_message(bot_channel,
-                                  '{}: You have joined the queue!\n'
-                                  'Current queue: {}'.format(message.author.mention, server.print_queue()))
-
-async def leave(message, bot_channel, client):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    server.split_list.remove(message.author)
-    await client.send_message(bot_channel,
-                              '{}: You have left the queue!\n'
-                              'Current queue: {}'.format(message.author.mention, server.print_queue()))
-
-
-@register_command("team")
-async def team(message, bot_channel, client):
-    subcommands = {
-        "join": join,
-        "leave": leave
-    }
-    parameters = message.content.lower().split()
-    # Check if there are subcommands.
-    if len(parameters) > 1:
-        if parameters[1] in subcommands:
-            await subcommands[parameters[1]](message, bot_channel, client)
-
-
-@register_command("split")
-async def split(message, bot_channel, client):
-    await client.delete_message(message)
-    try:
-        num_teams = int(message.content.split()[1])
-    except:
-        await client.send_message(bot_channel,
-                                  '{}: Invalid parameter for !split. Use number of teams!'.format(message.author.name))
-        return
-
-    channel_list = list()
-    for team_number in range(num_teams):
-        channel = discord.utils.get(message.author.server.channels, name='Team {}'.format(team_number + 1))
-        if channel is None:
-            channel_list.append(
-                await client.create_channel(message.author.server, 'Team {}'.format(team_number + 1),
-                                            type=discord.ChannelType.voice))
-        else:
-            channel_list.append(channel)
-
-    server = get_server(message.server)
-    division = len(server.split_list) / float(num_teams)
-    random.shuffle(server.split_list)
-    teams = [server.split_list[int(round(division * i)): int(round(division * (i + 1)))] for i in range(num_teams)]
-
-    index = 0
-    for team in teams:
-        for member in team:
-            await client.move_member(member, channel_list[index])
-        index += 1
-
-
-@register_command("removeteams")
-async def removeteams(message, bot_channel, client):
-    await client.delete_message(message)
-    team_number = 1
-    while True:
-        channel = discord.utils.get(message.author.server.channels, name='Team {}'.format(team_number))
-        if channel is None:
-            break
-        else:
-            await client.delete_channel(channel)
-        team_number += 1
-
-
-@register_command("getbotinvite", "gbi")
-async def get_bot_invite(message, bot_channel, client):
-    await client.delete_message(message)
-    permissions = discord.Permissions.all()
-    await client.send_message(message.channel,
-                              '{}: {}'.format(message.author.name,
-                                              discord.utils.oauth_url('176432800331857920', permissions=permissions)))
-
-
-@register_command("settings")
-async def settings(message, bot_channel, client):
-    await client.delete_message(message)
-    tokens = message.content.split()
-    if len(tokens) < 2:
-        await client.send_message(message.channel,
-                                  '{}: Usage !settings [client name or id] [([permission to change]'
-                                  ' [value to change to])]'.format(message.author.name))
-        return
-    server = get_server(message.server)
-    if tokens[1] == message.server.id:
-        settings_source = server
-    else:
-        settings_source = server.get_channel(tokens[1])
-    if len(tokens) < 3:
-        # No other arguments -> list all settings for given channel
-        settings_str = "Settings for {} {}:".format("server" if settings_source == server else "channel", settings_source.name)
-        for key, val in settings_source.list_settings().items():
-            settings_str += "\n{}: {}".format(key, val)
-        await client.send_message(message.channel,
-                                  '{}: {}'.format(message.author.name, settings_str))
-    elif len(tokens) < 4:
-        await client.send_message(message.channel,
-                                  '{}: Usage !settings [client/server name or id] [([permission to change]'
-                                  ' [value to change to])]'.format(message.author.name))
-    else:
-        if tokens[2] in settings_source.list_settings().keys():
-            settings_source.change_settings({tokens[2] : tokens[3]})
-            await client.send_message(message.channel,
-                                      '{}: The setting {} har been changed to {}.'.format(message.author.name, tokens[2], tokens[3]))
-        else:
-            await client.send_message(message.channel,
-                                      '{}: The setting {} does not exist.'.format(message.author.name, tokens[2]))
-
-
-@register_command("playbuttons")
-async def playbuttons(message, bot_channel, client):
-    await client.delete_message(message)
-    server = get_server(message.server)
-    lock = asyncio.locks.Lock()
-    await lock.acquire()
-    try:
-        await client.send_message(message.channel, 'Here are buttons for controlling the playlist.\n'
-                                                   'Use reactions to trigger them!')
-        play = await client.send_message(message.channel, 'Play :arrow_forward:')
-        pause = await client.send_message(message.channel, 'Pause :pause_button:')
-        stop = await client.send_message(message.channel, 'Stop :stop_button:')
-        next = await client.send_message(message.channel, 'Next song :track_next:')
-        volume_up = await client.send_message(message.channel, 'Volume up :heavy_plus_sign:')
-        volume_down = await client.send_message(message.channel, 'Volume down :heavy_minus_sign:')
-        queue = await client.send_message(message.channel, 'Current queue :notes:')
-        await client.send_message(message.channel, '----------------------------------------')
-        server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
-    finally:
-        lock.release()
-
-
 async def on_reaction_add(reaction, user):
-    server = get_server(reaction.message.server)
+    server = utils.get_server(reaction.message.server)
     if server.playbuttons is not None:
         await server.playbuttons.handle_message(reaction.message, server, client)
 
@@ -551,7 +240,7 @@ async def on_voice_state_update(before, after):
         return
     if after.voice_channel is None or after.voice.is_afk or (before.voice_channel is after.voice_channel):
         return
-    server = get_server(after.server)
+    server = utils.get_server(after.server)
     if server is None:
         return
 
@@ -630,14 +319,14 @@ async def on_server_join(server):
 
 
 async def on_server_remove(server):
-    server = get_server(server)
+    server = utils.get_server(server)
     for task in server.playlist.task_list:
         task.cancel()
-    server_list.remove(server)
+    utils.server_list.remove(server)
 
 
 async def on_member_join(member):
-    server = get_server(member.server)
+    server = utils.get_server(member.server)
     member_loc = '{}-{}'.format(member.name, member.id)
     if not isdir('servers/{}/members/{}'.format(server.server_loc, member_loc)):
         mkdir('servers/{}/members/{}'.format(server.server_loc, member_loc))

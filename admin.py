@@ -71,3 +71,100 @@ async def move(message, bot_channel, client):
                 await client.move_member(member=member, channel=channel)
             except:
                 traceback.print_exc()
+
+
+@register_command("settings")
+async def settings(message, bot_channel, client):
+    await client.delete_message(message)
+    tokens = message.content.split()
+    if len(tokens) < 2:
+        await client.send_message(message.channel,
+                                  '{}: Usage !settings [client name or id] [([permission to change]'
+                                  ' [value to change to])]'.format(message.author.name))
+        return
+    server = get_server(message.server)
+    if tokens[1] == message.server.id:
+        settings_source = server
+    else:
+        settings_source = server.get_channel(tokens[1])
+    if len(tokens) < 3:
+        # No other arguments -> list all settings for given channel
+        settings_str = "Settings for {} {}:".format("server" if settings_source == server else "channel", settings_source.name)
+        for key, val in settings_source.list_settings().items():
+            settings_str += "\n{}: {}".format(key, val)
+        await client.send_message(message.channel,
+                                  '{}: {}'.format(message.author.name, settings_str))
+    elif len(tokens) < 4:
+        await client.send_message(message.channel,
+                                  '{}: Usage !settings [client/server name or id] [([permission to change]'
+                                  ' [value to change to])]'.format(message.author.name))
+    else:
+        if tokens[2] in settings_source.list_settings().keys():
+            settings_source.change_settings({tokens[2] : tokens[3]})
+            await client.send_message(message.channel,
+                                      '{}: The setting {} har been changed to {}.'.format(message.author.name, tokens[2], tokens[3]))
+        else:
+            await client.send_message(message.channel,
+                                      '{}: The setting {} does not exist.'.format(message.author.name, tokens[2]))
+
+
+@register_command("getbotinvite", "gbi")
+async def get_bot_invite(message, bot_channel, client):
+    await client.delete_message(message)
+    permissions = discord.Permissions.all()
+    await client.send_message(message.channel,
+                              '{}: {}'.format(message.author.name,
+                                              discord.utils.oauth_url('176432800331857920', permissions=permissions)))
+
+
+@register_command("suggest")
+async def suggest(message, bot_channel, client):
+    suggestion = message.content[9:]
+    if len(suggestion) < 3:
+        await client.send_message(bot_channel,
+                                  "{}: Please suggest something proper.".format(message.author.mention))
+        return
+    server = get_server(message.server)
+    member = server.get_member(message.author.id)
+    suggestion_loc = 'suggestions.txt'.format(server.server_loc, member.member_loc)
+    with open(suggestion_loc, 'a') as f:
+        f.write("Suggestion from {} on server {}:\n{}\n".format(message.author, message.server, suggestion))
+    await client.send_message(bot_channel,
+                              '{}: Your suggestion has been noted. Thank you!'.format(message.author.mention))
+
+
+async def print_page(resource, message, bot_channel, client, prefix_user=True):
+    with open('resources/{}'.format(resource)) as f:
+        content = f.read()
+    help_page = "{}{}".format("{}:\n".format(message.author.name) if prefix_user else "", content)
+    await client.send_message(bot_channel, help_page)
+
+
+@register_command("help", "commands", "command", "info")
+async def help(message, bot_channel, client):
+    await client.delete_message(message)
+    async def print_help_page(help_resource, prefix_user=True):
+        return await print_page(help_resource, message, bot_channel, client, prefix_user)
+    if message.content.lower().startswith('!help audio'):
+        await print_help_page('help_audio.txt')
+    elif message.content.lower().startswith('!help intro'):
+        await print_help_page('help_intro.txt')
+    elif message.content.lower().startswith('!help util'):
+        await print_help_page('help_utils.txt')
+    elif message.content.lower().startswith('!help other'):
+        await print_help_page('help_others.txt')
+    elif message.content.lower().startswith('!help all'):
+        await print_help_page('help_all_1.txt')
+        await print_help_page('help_all_2.txt', False)
+        await print_help_page('help_all_3.txt', False)
+    elif message.content.lower().startswith('!help wow'):
+        await print_help_page('help_wow.txt')
+    else:
+        await print_help_page('help.txt')
+        await print_help_page('summary.txt', False)
+
+
+@register_command("summary")
+async def summary(message, bot_channel, client):
+    await client.delete_message(message)
+    return await print_page('summary.txt', message, bot_channel, client)

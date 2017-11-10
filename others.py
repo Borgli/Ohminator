@@ -2,15 +2,19 @@ import re
 import threading
 import urllib.request
 import steamapi
+import pickle
 
 import math
 import rocket_snake
 import discord
 import traceback
+import utils
 
 import time
 
 from utils import register_command
+from random import randint
+from dateutil.parser import parse
 
 
 @register_command("rlstats", "getrlrank", "rlrank")
@@ -109,3 +113,121 @@ async def sharedgames(message, bot_channel, client):
         if cnt == 40:
             break
     await client.send_message(bot_channel, "{} share these games:\n{}".format(user_string[:-2], print_string))
+
+
+@register_command("slot", "spin")
+async def slot(message, bot_channel, client):
+    await client.delete_message(message)
+    if message.channel != bot_channel:
+        await client.send_message(message.channel, '{}: Check bot-spam for the result!'.format(message.author.name))
+    symbols = {
+        ':moneybag:': 600,
+        ':four_leaf_clover:': 300,
+        ':heart:': 120,
+        ':bulb:': 100,
+        ':sun_with_face:': 80,
+        ':alien:': 40,
+        ':apple:': 30,
+        ':cherries:': 0,
+    }
+    symbols_list = list(symbols.keys())
+    rand = randint(8, 63)
+    num = len(symbols_list)
+    first_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
+    rand = randint(8, 63)
+    second_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
+    rand = randint(8, 63)
+    third_column = [symbols_list[(rand-1)%num], symbols_list[rand%num], symbols_list[(rand+1)%num]]
+
+    if first_column[1] is second_column[1] is third_column[1]:
+        result = "Congratulations, you won!"
+    else:
+        result = "Sorry, but you lost..."
+    slot_string = "  {}{}{}\n>{}{}{}<\n  {}{}{}\n\n{}".format(first_column[0], second_column[0], third_column[0],
+                                                            first_column[1], second_column[1], third_column[1],
+                                                            first_column[2], second_column[2], third_column[2], result)
+    await client.send_message(bot_channel, '{}: Good luck!\n\n{}'.format(message.author.name, slot_string))
+
+
+@register_command("ping")
+async def ping(message, bot_channel, client):
+    await client.delete_message(message)
+    await client.send_message(bot_channel, 'Pong!')
+
+
+@register_command("joined")
+async def joined(message, bot_channel, client):
+    await client.delete_message(message)
+    await client.send_message(bot_channel, '{}: You joined the Ohm server {}!'.format(message.author.name,
+                                                                                      message.author.joined_at))
+
+
+@register_command("roll")
+async def roll(message, bot_channel, client):
+    await client.delete_message(message)
+    try:
+        options = message.content.split()
+        rand = randint(int(options[1]), int(options[2]))
+        await client.send_message(bot_channel, '{}: You rolled {}!'.format(message.author.name, rand))
+    except:
+        await client.send_message(bot_channel,
+                                  '{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
+
+
+@register_command("setbirthday")
+async def set_birthday(message, bot_channel, client):
+    await client.delete_message(message)
+    parameters = message.content.split()
+    if len(parameters) < 2:
+        await client.send_message(bot_channel,
+                                  '{}: Use: !setbirthday [your birthday]'.format(message.author.name))
+        return
+    try:
+        date = parse(" ".join(parameters[1:]), dayfirst=True, fuzzy=True)
+    except ValueError:
+        await client.send_message(bot_channel,
+                                  '{}: Invalid birth date! Please try a different format like day/month/year'.format(message.author.name))
+        return
+    except OverflowError:
+        await client.send_message(bot_channel,
+                                  '{}: The number you gave overflowed!'.format(message.author.name))
+        return
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    member.birthday['birthday'] = date.date()
+    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc, member.member_loc)
+    # Save birthday to pickle
+    with open(birthday_pickle, 'w+b') as f:
+        pickle.dump(member.birthday, f)
+    await client.send_message(bot_channel,
+                              '{}: Your birthday was set successfully.'
+                              '\nIt was saved as {}.'
+                              '\nPlease verify that this is correct.'.format(message.author.name, date.date()))
+
+
+@register_command("mybirthday")
+async def my_birthday(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    if 'birthday' in member.birthday:
+        await client.send_message(bot_channel,
+                                  '{}: Your birthday is {}'.format(message.author.name, member.birthday['birthday'].ctime()))
+    else:
+        await client.send_message(bot_channel,
+                                  "{}: You don't have a birthday saved to Ohminator!"
+                                  "\nYou can add one by using the !setbirthday command.".format(message.author.name))
+
+
+@register_command("clearbirthday")
+async def clear_birthday(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+    member = server.get_member(message.author.id)
+    member.birthday = dict()
+    # Save birthday to pickle
+    birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc,
+                                                                     member.member_loc)
+    with open(birthday_pickle, 'w+b') as f:
+        pickle.dump(member.birthday, f)
+    await client.send_message(bot_channel, '{}: Your birthday has been cleared.'.format(message.author.name))

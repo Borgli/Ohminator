@@ -6,10 +6,12 @@ import traceback
 from tempfile import mkstemp
 
 from gtts import gTTS
-from utils import register_command
+from utils import register_command, get_server
+from PlayButtons import PlayButtons
 
 import utils
 import discord
+import asyncio
 
 
 @register_command("tts", "say")
@@ -401,6 +403,28 @@ async def vote(message, bot_channel, client):
 
     except IndexError:
         await client.send_message(bot_channel, '{}: Index {} is out of queue bounds!'.format(message.author.name, index+1))
+
+
+@register_command("playbuttons")
+async def playbuttons(message, bot_channel, client):
+    await client.delete_message(message)
+    server = get_server(message.server)
+    lock = asyncio.locks.Lock()
+    await lock.acquire()
+    try:
+        await client.send_message(message.channel, 'Here are buttons for controlling the playlist.\n'
+                                                   'Use reactions to trigger them!')
+        play = await client.send_message(message.channel, 'Play :arrow_forward:')
+        pause = await client.send_message(message.channel, 'Pause :pause_button:')
+        stop = await client.send_message(message.channel, 'Stop :stop_button:')
+        next = await client.send_message(message.channel, 'Next song :track_next:')
+        volume_up = await client.send_message(message.channel, 'Volume up :heavy_plus_sign:')
+        volume_down = await client.send_message(message.channel, 'Volume down :heavy_minus_sign:')
+        queue = await client.send_message(message.channel, 'Current queue :notes:')
+        await client.send_message(message.channel, '----------------------------------------')
+        server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
+    finally:
+        lock.release()
 
 
 @register_command("queue", "q", "queuepage")

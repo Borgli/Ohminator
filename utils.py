@@ -1,6 +1,24 @@
+from functools import wraps
+
 import discord
 
 server_list = list()
+commands = dict()
+
+
+# Registers new commands
+def register_command(*args):
+    def wrapper(func):
+        for command in args:
+            if command in commands:
+                raise CommandAlreadyExistsError(command)
+            commands[command] = func
+
+        @wraps(func)
+        async def wrapped(message, bot_channel, client):
+            return await func(message, bot_channel, client)
+        return wrapped
+    return wrapper
 
 
 def get_server(discord_server):
@@ -33,5 +51,11 @@ def create_now_playing_embed(now_playing):
 class NoChannelFoundError(BaseException):
     pass
 
+
 class NoMemberFoundError(BaseException):
     pass
+
+
+class CommandAlreadyExistsError(BaseException):
+    def __init__(self, command):
+        super(CommandAlreadyExistsError, self).__init__("Command '{}' already exists!".format(command))

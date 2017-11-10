@@ -22,7 +22,7 @@ from others import *
 from wow import *
 from poll import *
 
-commands = dict()
+commands = utils.commands
 running = False
 client = None
 db = None

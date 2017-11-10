@@ -5,11 +5,31 @@ import re
 import asyncio
 import ast
 
+import utils
+
 import discord
 
+
+def wow_lock():
+    def wrapper(func):
+        @wraps(func)
+        async def wrapped(message, bot_channel, client):
+            server = utils.get_server(message.server)
+            try:
+                await server.wow_lock.acquire()
+                return await func(message, bot_channel, client)
+            finally:
+                server.wow_lock.release()
+        return wrapped
+    return wrapper
+
+
+@wow_lock()
 async def lastraid_player(message, bot_channel, client):
     return await lastraid(message, bot_channel, client, player=True)
 
+
+@wow_lock()
 async def lastraid_guild(message, bot_channel, client):
     return await lastraid(message, bot_channel, client, player=False)
 
@@ -20,7 +40,7 @@ def get_session(url):
         async def wrapped(message, bot_channel, client):
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=10) as resp:
+                    async with session.get(url, timeout=20) as resp:
                         if resp.status != 200:
                             await client.send_message(bot_channel, "Sorry, but something is wrong with the web site. "
                                                                    "Try again later!")
@@ -50,30 +70,87 @@ async def lastraid(message, bot_channel, client, player):
         return
 
     name = name.lower().capitalize()
-    raid_link = "http://realmplayers.com/RaidStats/RaidList.aspx?realm={}&guild={}"
     if player:
         try:
-            player_url = await get_player_url(message, bot_channel, client, name)
+            player_url, player_info = await get_player_url(message, bot_channel, client, name)
         except:
             return
 
-        # Get guild url from the player
-        @get_session(player_url)
-        async def get_guild_url(message, bot_channel, client, resp):
+        player_overview_url = "http://realmplayers.com/RaidStats/PlayerOverview.aspx?realm={}&player={}".format(
+            player_info[0], player_info[1])
+
+        # Get raid stats url from the player
+        @get_session(player_overview_url)
+        async def get_raid_url(message, bot_channel, client, resp):
             player_doc = await resp.text()
-            pattern = "class='char-guild'>.+?<a href='GuildViewer\.aspx\?realm=(\w+?)\&guild=(\w+?)'>"
+            pattern = '<h2>Attended raids</h2><a href=\"(.+?)\">'
             return re.search(pattern, player_doc)
 
         try:
-            match = await get_guild_url(message, bot_channel, client)
+            match = await get_raid_url(message, bot_channel, client)
         except:
             return
 
         if match:
-            raid_link = raid_link.format(match.group(1), match.group(2))
+            # Get character info to find out if horde or alliance
+            @get_session(player_url)
+            async def get_player_doc(message, bot_channel, client, resp):
+                return await resp.text()
+
+            try:
+                player_doc = await get_player_doc(message, bot_channel, client)
+            except:
+                return
+
+            is_alliance = re.search('alliance_bg', player_doc)
+            if is_alliance:
+                player_race_icon = race_icons["alliance"]
+            else:
+                player_race_icon = race_icons["horde"]
+
+            server = re.search("<span class='divider'>/</span>(.+?)</li>", player_doc)
+            if not server:
+                await client.send_message(bot_channel,
+                                          "Sorry, the web site has been changed and the bot needs an update.\n"
+                                          "Please notify the developer.")
+                return
+
+            raid_stats = "http://realmplayers.com/RaidStats/{}"
+
+            # Get raid info to get full title and time
+            @get_session(raid_stats.format(match.group(1)))
+            async def get_raid_doc(message, bot_channel, client, resp):
+                return await resp.text()
+
+            try:
+                raid_doc = await get_raid_doc(message, bot_channel, client)
+            except:
+                return
+
+            raid_info = re.search("<a href='(RaidList\.aspx\?Guild=.+?&realm=.+?)'>(.+?)</a></li>"
+                                  "<li class='active'><span class='divider'>/</span>(.+?)</li>", raid_doc)
+            times = re.search("between (\d{4}(?:-\d{1,2}){2} (?:\d{2}:){2}\d{2}) and "
+                              "(\d{4}(?:-\d{1,2}){2} (?:\d{2}:){2}\d{2})", raid_doc)
+            if not raid_info or not times:
+                await client.send_message(bot_channel,
+                                          "Sorry, the web site has been changed and the bot needs an update.\n"
+                                          "Please notify the developer.")
+                return
+
+            embed = discord.Embed()
+            embed.set_author(name=raid_info.group(2), url=raid_stats.format(raid_info.group(1)),
+                             icon_url=player_race_icon)
+            embed.set_thumbnail(url=raid_icons[re.sub("\(.+?\)", '', raid_info.group(3))])
+            embed.colour = discord.Colour.dark_blue()
+            embed.title = raid_info.group(3).strip(" ")
+            embed.url = raid_stats.format(match.group(1))
+            embed.description = "Last recorded raid for **[{}]({})**\n".format(player_info[1], player_url)
+            embed.description += "On server {}".format(server.group(1).strip(" "))
+            embed.add_field(name="Start", value=times.group(1)).add_field(name="End", value=times.group(2))
+            await client.send_message(bot_channel, embed=embed)
         else:
-            await client.send_message(bot_channel, "The given player doesn't seem to be part of any guilds.")
-            return
+            await client.send_message(bot_channel, "The given player doesn't seem to have any raids on record.")
+
     else:
         # Get guild url from searching after the guild
         @get_session("http://realmplayers.com/CharacterList.aspx?search={}".format(name))
@@ -97,36 +174,38 @@ async def lastraid(message, bot_channel, client, player):
             await client.delete_message(response)
             guild_tuple = matches[int(response.content) - 1]
 
-        raid_link = raid_link.format(guild_tuple[0], guild_tuple[1])
+        raid_link = "http://realmplayers.com/RaidStats/RaidList.aspx?realm={}&guild={}".format(guild_tuple[0], guild_tuple[1])
 
-    # Get raid link
-    @get_session(raid_link)
-    async def get_last_raid_url(message, bot_channel, client, resp):
-        search_doc = await resp.text()
-        pattern = '<a href="(.+?)"><img src="(.+?)"\/>(.+?)<\/a><\/td><td><a href="(.+?)"><img src="(.+?)"\/>(.+?)<\/a><\/td><td>(.+?)<\/td><td>(.+?)<\/td><td>(.+?)<\/td><\/tr>'
-        return re.search(pattern, search_doc)
+        # Get raid link
+        @get_session(raid_link)
+        async def get_last_raid_url(message, bot_channel, client, resp):
+            search_doc = await resp.text()
+            pattern = '<a href="(.+?)"><img src="(.+?)"\/>(.+?)<\/a><\/td><td><a href="(.+?)">' \
+                      '<img src="(.+?)"\/>(.+?)<\/a><\/td><td>(.+?)<\/td><td>(.+?)<\/td><td>(.+?)<\/td><\/tr>'
+            return re.search(pattern, search_doc)
 
-    try:
-        match = await get_last_raid_url(message, bot_channel, client)
-    except:
-        return
+        try:
+            match = await get_last_raid_url(message, bot_channel, client)
+        except:
+            return
 
-    if match:
-        embed = discord.Embed()
-        raid_stats = "http://realmplayers.com/RaidStats/{}"
-        embed.set_author(name=match.group(3), url=raid_stats.format(match.group(1)), icon_url=raid_stats.format(match.group(2)))
-        embed.set_thumbnail(url=raid_stats.format(match.group(5)))
-        embed.colour = discord.Colour.dark_blue()
-        embed.title = match.group(6).strip(" ")
-        embed.url = raid_stats.format(match.group(4))
-        embed.description = "On server {}".format(match.group(9))
-        embed.add_field(name="Start", value=match.group(7)).add_field(name="End", value=match.group(8))
-        await client.send_message(bot_channel, embed=embed)
-    else:
-        await client.send_message(bot_channel,
-                                  "There doesn't seem to be any raids recorded for this guild.")
+        if match:
+            embed = discord.Embed()
+            raid_stats = "http://realmplayers.com/RaidStats/{}"
+            embed.set_author(name=match.group(3), url=raid_stats.format(match.group(1)), icon_url=raid_stats.format(match.group(2)))
+            embed.set_thumbnail(url=raid_stats.format(match.group(5)))
+            embed.colour = discord.Colour.dark_blue()
+            embed.title = match.group(6).strip(" ")
+            embed.url = raid_stats.format(match.group(4))
+            embed.description = "On server {}".format(match.group(9))
+            embed.add_field(name="Start", value=match.group(7)).add_field(name="End", value=match.group(8))
+            await client.send_message(bot_channel, embed=embed)
+        else:
+            await client.send_message(bot_channel,
+                                      "There doesn't seem to be any raids recorded for this guild.")
 
 
+@wow_lock()
 async def itemname(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -149,8 +228,8 @@ async def itemname(message, bot_channel, client):
 
     # Three cases:
     # Case one: Several items with this name, and user must choose the correct one
-    # Case two: No items were found with that name
-    # Case three: Item found right away and we are at the item page
+    # Case two: Item found right away and we are at the item page
+    # Case three: No items were found with that name
     def no_results_embed():
         embed = discord.Embed()
         embed.title = 'No results for "{}"'.format(item_search)
@@ -295,19 +374,22 @@ async def itemname(message, bot_channel, client):
                         cnt, item["name"].replace("'", "").replace("\\", "'")[1:], item["level"],
                         "" if "reqlevel" not in item else ", requirement {}".format(item["reqlevel"]))
                     cnt += 1
+                alternative_string += "\n**[0]**: None of the above"
 
                 sent_message = await client.send_message(message.channel, 'Search results for {}\n'
                                                                           'Please pick one:{}'.format(
                     item_search, alternative_string))
 
                 def check(msg):
-                    return msg.content.isdigit() and 0 < int(msg.content) <= len(item_list_dict[:number_of_items])
+                    return msg.content.isdigit() and 0 <= int(msg.content) <= len(item_list_dict[:number_of_items])
 
                 response = await client.wait_for_message(timeout=20, author=message.author, check=check)
                 await client.delete_message(sent_message)
                 item_dict = item_list_dict[0]
                 if response:
                     await client.delete_message(response)
+                    if int(response.content) == 0:
+                        return
                     item_dict = item_list_dict[int(response.content) - 1]
 
                 @get_session("http://db.vanillagaming.org/?item={}".format(item_dict["id"]))
@@ -348,6 +430,7 @@ async def itemname(message, bot_channel, client):
     await client.send_message(bot_channel, embed=embed)
 
 
+@wow_lock()
 async def playername(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -363,7 +446,7 @@ async def playername(message, bot_channel, client):
     name = name.lower().capitalize()
 
     try:
-        player_url = await get_player_url(message, bot_channel, client, name)
+        player_url, player_info = await get_player_url(message, bot_channel, client, name)
     except:
         return
 
@@ -465,13 +548,13 @@ async def prompt_user(message, bot_channel, client, name, matches, player=True):
         for match in matches[:max_alternatives]:
             alternative_string += "\n**[{}]**: {} on server {}".format(cnt, match[1], match[2])
             cnt += 1
-
+        alternative_string += "\n**[0]**: None of the above"
         sent_message = await client.send_message(message.channel, 'There are several {} called {}. '
                                                                   'Please pick the correct one:{}'.format(
             "players" if player else "guilds", name, alternative_string))
 
         def check(msg):
-            return msg.content.isdigit() and 0 < int(msg.content) <= len(matches[:max_alternatives])
+            return msg.content.isdigit() and 0 <= int(msg.content) <= len(matches[:max_alternatives])
 
         response = await client.wait_for_message(timeout=20, author=message.author, check=check)
         await client.delete_message(sent_message)
@@ -489,15 +572,18 @@ async def get_player_url(message, bot_channel, client, name):
 
     if len(matches) < 1:
         await client.send_message(bot_channel, 'Sorry, could not find any player with name "{}".'.format(name))
-        return
+        raise Exception
 
     player_tuple = matches[0]
     response = await prompt_user(message, bot_channel, client, name, matches)
     if response:
         await client.delete_message(response)
+        if int(response.content) == 0:
+            raise Exception
         player_tuple = matches[int(response.content) - 1]
 
-    return "http://realmplayers.com/CharacterViewer.aspx?realm={}&player={}".format(player_tuple[0], player_tuple[1])
+    return "http://realmplayers.com/CharacterViewer.aspx?realm={}&player={}".format(player_tuple[0], player_tuple[1]),\
+           player_tuple[:2]
 
 images = {
     "vf-ci_druid": 'http://images.wikia.com/wowwiki/images/6/6f/Ui-charactercreate-classes_druid.png',
@@ -539,4 +625,57 @@ colours = {
     "q3": discord.Colour.dark_blue(),
     "q4": discord.Colour.dark_purple(),
     "q5": discord.Colour.dark_orange()
+}
+
+raid_icons = {
+    "Zul'Gurub": "http://realmplayers.com/RaidStats/assets/img/raid/raid-zulgurub.png",
+    "Molten Core": "http://realmplayers.com/RaidStats/assets/img/raid/raid-moltencore.png",
+    "Onyxia's Lair": "http://realmplayers.com/RaidStats/assets/img/raid/raid-onyxia.png",
+    "Karazhan": "http://realmplayers.com/RaidStats/assets/img/raid/raid-karazhan.gif",
+    "Blackwing Lair": "http://realmplayers.com/RaidStats/assets/img/raid/raid-blackwinglair.png",
+    "Tempest Keep": "http://realmplayers.com/RaidStats/assets/img/raid/raid-tempestkeep.gif",
+    "Naxxramas": "http://realmplayers.com/RaidStats/assets/img/raid/raid-naxxramas.png",
+    "Serpentshrine Cavern": "http://realmplayers.com/RaidStats/assets/img/raid/raid-serpentshrinecavern.gif",
+    "Ruins of Ahn'Qiraj": "http://realmplayers.com/RaidStats/assets/img/raid/raid-aqruins.png",
+    "Ahn'Qiraj Temple": "http://realmplayers.com/RaidStats/assets/img/raid/raid-aqtemple.png",
+    "Magtheridon's Lair": "http://realmplayers.com/RaidStats/assets/img/raid/raid-magtheridon.gif",
+    "Gruul's Lair": "http://realmplayers.com/RaidStats/assets/img/raid/raid-gruul.gif",
+    "Black Temple": "http://realmplayers.com/RaidStats/assets/img/raid/raid-blacktemple.gif",
+    "Hyjal Summit": "http://realmplayers.com/RaidStats/assets/img/raid/raid-hyjalsummit.gif",
+    "Sunwell Plateau": "http://realmplayers.com/RaidStats/assets/img/raid/raid-sunwellplateau.gif"
+}
+
+race_icons = {
+    "horde": "http://realmplayers.com/RaidStats/assets/img/Horde_32.png",
+    "alliance": "http://realmplayers.com/RaidStats/assets/img/Alliance_32.png"
+}
+
+# Not currently used, but it exists and might come in handy in the future
+server_abbreviation = {
+    "REB": "Rebirth",
+    "KRO": "Kronos",
+    "KR2": "Kronos II",
+    "VG": "VanillaGaming",
+    "Ely": "Elysium",
+    "ZeK": "Zeth'Kur",
+    "Ana": "Anathema",
+    "Dar": "Darrowshire",
+    "NEF": "Nefarian(DE)",
+    "NG": "NostalGeek(FR)",
+    "NES": "Nemesis",
+    "NST": "Nostralia",
+    "ELY": "Elysium(Old)",
+    "WS2": "Warsong(Feenix)",
+    "ArA": "Archangel",
+    "VWH": "Wildhammer",
+    "VST": "Stonetalon",
+    "EXC": "ExcaliburTBC",
+    "HG": "WarGate",
+    "HLF": "Hellfire I",
+    "HF2": "Hellfire II",
+    "OUT": "Outland",
+    "MDV": "Medivh",
+    "FLM": "Felmyst",
+    "FMW": "Firemaw",
+    "AR": "Ares"
 }

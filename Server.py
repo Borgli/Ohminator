@@ -41,6 +41,8 @@ class Server:
         self.next_tts_created = False
         self.active_tts = None
 
+        self.wow_lock = asyncio.Lock()
+
         # added for polling
         self.poll_time = 30
 

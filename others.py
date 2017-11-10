@@ -95,8 +95,9 @@ async def sharedgames(message, bot_channel, client):
 
     def games_filter(shared_game):
         url = urllib.request.urlopen("http://store.steampowered.com/app/{}".format(shared_game.game.appid)).read().decode('utf-8')
-        if re.search(">Multi-player</a>", url) or re.search(">Co-op</a>", url):
+        if re.search("(?:>Multi-player</a>|>Co-op</a>|>\s+?Multiplayer\s+?<|>\s+?Co-op\s+?<)", url):
             sharedgames_list_temp.append(shared_game)
+
     thread_list = list()
     for game in sharedgames_list:
         thread = threading.Thread(target=games_filter, args=[game])

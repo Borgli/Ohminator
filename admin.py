@@ -134,8 +134,11 @@ async def suggest(message, bot_channel, client):
 
 
 async def print_page(resource, message, bot_channel, client, prefix_user=True):
-    with open('resources/{}'.format(resource)) as f:
-        content = f.read()
+    if resource == 'web-page-ad':
+        content = "**Go to http://www.ohminator.com for a web version of the documentation.**"
+    else:
+        with open('resources/{}'.format(resource)) as f:
+            content = f.read()
     help_page = "{}{}".format("{}:\n".format(message.author.name) if prefix_user else "", content)
     await client.send_message(bot_channel, help_page)
 
@@ -160,7 +163,8 @@ async def help(message, bot_channel, client):
     elif message.content.lower().startswith('!help wow'):
         await print_help_page('help_wow.txt')
     else:
-        await print_help_page('help.txt')
+        await print_help_page('web-page-ad')
+        await print_help_page('help.txt', False)
         await print_help_page('summary.txt', False)
 
 

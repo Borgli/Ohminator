@@ -1,1 +1,1 @@
-Output channel for Ohminator. You should mute this channel. Type !help to get started.
+Output channel for Ohminator. You should mute this channel. Type !help to get started or visit http://ohminator.com.

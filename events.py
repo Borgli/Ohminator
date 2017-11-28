@@ -1,27 +1,20 @@
-import discord
 import asyncio
-import youtube_dl
+import random
 import time
 import traceback
-import random
-
 from os import mkdir, listdir
 from os.path import isdir
 
-import utils
+import discord
+import youtube_dl
 
-from Member import Member
-from Server import Server
+import utils
+from member import Member
+from server import Server
 from admin import notify_of_joining_person, notify_of_leaving_person, assign_default_role
 
 # Plugins
-import admin
-import audio
-import intro
-import others
-import poll
-import teams
-import wow
+from plugins import *
 
 commands = utils.commands
 running = False

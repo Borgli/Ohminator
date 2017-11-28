@@ -1,6 +1,6 @@
 import pickle
 
-from Stats import Stats
+from stats import Stats
 from os.path import exists, isdir
 from os import mkdir, listdir
 

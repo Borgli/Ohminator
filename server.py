@@ -1,17 +1,18 @@
 import pickle
 
-from Member import Member
+from member import Member
 from os.path import isdir
 from os import mkdir, listdir
 from os.path import exists
 import asyncio
-from Playlist import Playlist
-from IntroManager import IntroManager
+from playlist import Playlist
 import discord
-from Channel import Channel
+from channel import Channel
 from settings import ServerSettings
 import datetime
 from utils import *
+from plugins.intro import IntroManager
+
 
 class Server:
     def __init__(self, discord_server: discord.Server, client: discord.Client, db):

@@ -1,7 +1,7 @@
 import discord
 import pymongo
 
-import Events
+import events
 
 client = discord.Client()
 
@@ -9,7 +9,7 @@ db_client = pymongo.MongoClient("mongodb://Ohminator:an4MgtGkIlgOLo0h@ohminator-
 db = db_client.Ohminator
 
 # Contains all events in the event loop and all event handling
-events = Events.Events(client, db)
+events = events.Events(client, db)
 
 # Reads token
 with open("token.txt", 'r') as f:

@@ -72,9 +72,12 @@ async def sharedgames(message, bot_channel, client):
     start = time.time()
     for user in users:
         try:
-            steam_user = steamapi.user.SteamUser(userurl=user)
+            try:
+                steam_user = steamapi.user.SteamUser(userid=int(user))
+            except ValueError:
+                steam_user = steamapi.user.SteamUser(userurl=user)
         except steamapi.errors.UserNotFoundError:
-            continue
+            await client.send_message(bot_channel, "{}: Could not find user '{}'.".format(message.author.name, user))
         user_string += "**{}**, ".format(steam_user.name)
         games = steam_user.games
         if first_injection:

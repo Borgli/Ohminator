@@ -176,7 +176,8 @@ async def summary(message, bot_channel, client):
 
 @register_command("showtotalusers")
 async def show_total_number_users(message, bot_channel, client):
+    await client.delete_message(message)
     servers = sum(1 for _ in client.servers)
     users = sum(1 for _ in client.get_all_members())
-    await client.send_message(bot_channel, "Ohminator is currently serving {} server{}, {} user{}.".format(
-            servers, "s" if servers != 1 else "", users, "s" if users != 1 else ""))
+    await client.send_message(bot_channel, "{}: Ohminator is currently serving {} server{}, {} user{}.".format(
+            message.author.name, servers, "s" if servers != 1 else "", users, "s" if users != 1 else ""))

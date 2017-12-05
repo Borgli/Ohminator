@@ -27,7 +27,7 @@ class Playlist:
         self.play_next = asyncio.Event()
         self.clear_now_playing = asyncio.Event()
         self.after_yt_lock = asyncio.Lock()
-        self.add_to_playlist_lock = asyncio.Lock()
+        self.playlist_lock = asyncio.Lock()
         self.summoned_channel = None
 
         if not exists("logs"):
@@ -295,7 +295,7 @@ class Playlist:
     async def play_next_yt(self):
         while not self.client.is_closed:
             await self.play_next.wait()
-            await self.add_to_playlist_lock.acquire()
+            await self.playlist_lock.acquire()
             try:
                 if len(self.yt_playlist) > 0:
                     something_to_play = False
@@ -319,7 +319,7 @@ class Playlist:
                         self.server.active_player.start()
             finally:
                 self.play_next.clear()
-                self.add_to_playlist_lock.release()
+                self.playlist_lock.release()
 
     async def should_clear_now_playing(self):
         while not self.client.is_closed:

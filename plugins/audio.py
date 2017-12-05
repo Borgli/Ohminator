@@ -21,7 +21,7 @@ async def text_to_speech(message, bot_channel, client):
     if not server.next_tts_created:
         client.loop.create_task(play_next_tts(server, client))
         server.next_tts_created = True
-    await server.playlist.add_to_playlist_lock.acquire()
+    await server.playlist.playlist_lock.acquire()
     if message.author.voice_channel is None or message.author.voice.is_afk:
         await client.send_message(bot_channel,
                                   '{}: Please join a voice channel to use text-to-speech!'.format(
@@ -84,12 +84,12 @@ async def text_to_speech(message, bot_channel, client):
         server.active_tts = voice_client.create_ffmpeg_player(filename, after=after_tts)
         server.active_tts.start()
     finally:
-        server.playlist.add_to_playlist_lock.release()
+        server.playlist.playlist_lock.release()
 
 async def play_next_tts(server, client):
     while not client.is_closed:
         await server.next_tts.wait()
-        await server.playlist.add_to_playlist_lock.acquire()
+        await server.playlist.playlist_lock.acquire()
         try:
             if (server.intro_player is not None and server.intro_player.is_playing()) or (server.active_player is not None
                     and (not server.active_player.is_done() or server.active_player.is_playing())):
@@ -124,7 +124,7 @@ async def play_next_tts(server, client):
                         server.active_tts.start()
         finally:
             server.next_tts.clear()
-            server.playlist.add_to_playlist_lock.release()
+            server.playlist.playlist_lock.release()
 
 async def connect_to_voice_channel(message, bot_channel, client, voice_channel=None):
     if voice_channel:
@@ -323,11 +323,15 @@ async def delete(message, bot_channel, client):
 async def skip(message, bot_channel, client):
     await client.delete_message(message)
     server = utils.get_server(message.server)
-    if server.active_player is None or not server.active_player.is_playing():
-        await client.send_message(bot_channel, '{}: Nothing to skip!'.format(message.author.name))
-    else:
-        await client.send_message(bot_channel, ':track_next:: {} skipped the song!'.format(message.author.name))
-        server.active_player.stop()
+    await server.playlist.playlist_lock.acquire()
+    try:
+        if server.active_player is None and len(server.playlist.yt_playlist) > 0:
+            await client.send_message(bot_channel, '{}: Nothing to skip!'.format(message.author.name))
+        else:
+            await client.send_message(bot_channel, ':track_next:: {} skipped the song!'.format(message.author.name))
+            server.active_player.stop()
+    finally:
+        server.playlist.playlist_lock.release()
 
 
 @register_command("next", "n")

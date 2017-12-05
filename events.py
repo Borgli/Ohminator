@@ -41,8 +41,6 @@ async def set_global_text():
     await client.wait_until_ready()
     await asyncio.sleep(10, loop=client.loop)
     while not client.is_closed:
-        servers = sum(1 for _ in client.servers)
-        users = sum(1 for _ in client.get_all_members())
         await client.change_presence(game=discord.Game(
             name="ohminator.com | !help", type=1))
         await asyncio.sleep(300, loop=client.loop)

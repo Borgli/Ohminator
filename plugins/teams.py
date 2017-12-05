@@ -11,21 +11,39 @@ async def join(message, bot_channel, client):
         await client.send_message(bot_channel,
                                   '{}: You have joined the queue!\n'
                                   'Current queue: {}'.format(message.author.mention, server.print_queue()))
+    else:
+        await client.send_message(bot_channel, '{}: You are already in the queue!'.format(message.author.mention))
 
 async def leave(message, bot_channel, client):
     await client.delete_message(message)
     server = get_server(message.server)
-    server.split_list.remove(message.author)
-    await client.send_message(bot_channel,
-                              '{}: You have left the queue!\n'
-                              'Current queue: {}'.format(message.author.mention, server.print_queue()))
+    if message.author in server.split_list:
+        server.split_list.remove(message.author)
+        await client.send_message(bot_channel,
+                                  '{}: You have left the queue!\n'
+                                  'Current queue: {}'.format(message.author.mention, server.print_queue()))
+    else:
+        await client.send_message(bot_channel, '{}: You are not in the queue!'.format(message.author.mention))
+
+async def team_queue(message, bot_channel, client):
+    await client.delete_message(message)
+    server = get_server(message.server)
+    await client.send_message(bot_channel, '{}: Current queue: {}'.format(message.author.mention, server.print_queue()))
+
+async def team_clear_queue(message, bot_channel, client):
+    await client.delete_message(message)
+    server = get_server(message.server)
+    server.split_list.clear()
+    await client.send_message(bot_channel, '{}: The team queue has been cleared.'.format(message.author.name))
 
 
 @register_command("team")
 async def team(message, bot_channel, client):
     subcommands = {
         "join": join,
-        "leave": leave
+        "leave": leave,
+        "queue": team_queue,
+        "clear": team_clear_queue
     }
     parameters = message.content.lower().split()
     # Check if there are subcommands.

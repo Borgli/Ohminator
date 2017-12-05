@@ -112,6 +112,8 @@ class Server:
         raise NoChannelFoundError
 
     def print_queue(self):
+        if len(self.split_list) == 0:
+            return 'The queue is empty!'
         print_line = str()
         first = True
         for entry in self.split_list:

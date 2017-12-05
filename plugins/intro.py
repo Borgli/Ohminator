@@ -56,7 +56,7 @@ async def intro(message, bot_channel, client):
         return
 
     member = server.get_member(message.author.id)
-    if message.author.name is not None and member.has_intro:
+    if message.author.name is not None and member.has_intro():
         # Handles playing intros when the bot is summoned
         if server.playlist.summoned_channel:
             if message.author.voice.voice_channel == server.playlist.summoned_channel:

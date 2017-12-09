@@ -146,7 +146,7 @@ async def on_message(message):
         # Three cases: Case one: An intro is currently playing, so we either append or pause the active player.
         # Case two: Something is already playing, so we queue the requested songs
         # Case three: Nothing is playing, so we just start playing the song
-        await server.playlist.add_to_playlist_lock.acquire()
+        await server.playlist.playlist_lock.acquire()
         if server.active_tts:
             server.active_tts.stop()
             server.tts_queue.clear()
@@ -212,7 +212,7 @@ async def on_message(message):
                                       '{}: Your link could not be played!'.format(message.author.name))
             traceback.print_exc()
         finally:
-            server.playlist.add_to_playlist_lock.release()
+            server.playlist.playlist_lock.release()
 
 
 async def on_reaction_add(reaction, user):

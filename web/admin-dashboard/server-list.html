@@ -83,6 +83,19 @@
                             <h3 class="l-text">Loading</h3>
                         </div>
                         <h3 class="card-title">Server List</h3>
+                        <table class="table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Server Name</th>
+                            <th>Members</th>
+                            <th>Server ID</th>
+                          </tr>
+                        </thead>
+                        <tbody id="server-list">
+                        </tbody>
+                      </table>
+
                     </div>
                 </div>
             </div>
@@ -94,5 +107,17 @@
 <script src="js/bootstrap.min.js"></script>
 <script src="js/plugins/pace.min.js"></script>
 <script src="js/main.js"></script>
+ <script>
+    var ws = new WebSocket("ws://127.0.0.1:5678/"),
+        messages = document.createElement('ul');
+    ws.onmessage = function (event) {
+        var messages = document.getElementsByTagName('ul')[0],
+            message = document.createElement('li'),
+            content = document.createTextNode(event.data);
+        message.appendChild(content);
+        messages.appendChild(message);
+    };
+    document.body.appendChild(messages);
+</script>
 </body>
 </html>

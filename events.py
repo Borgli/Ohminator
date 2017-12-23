@@ -16,7 +16,7 @@ from admin import notify_of_joining_person, notify_of_leaving_person, assign_def
 # Plugins
 from plugins import *
 
-# Web server
+# Websocket server
 import web.web_server as web
 
 commands = utils.commands

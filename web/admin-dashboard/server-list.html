@@ -9,6 +9,8 @@
     <link rel="stylesheet" type="text/css" href="css/main.css">
     <!-- Font-icon css-->
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- Billboard.js -->
+    <link rel="stylesheet" href="css/billboard.css">
     <title>Ohminator Admin Dashboard</title>
     <link rel="icon" href="images/OhmIconRoundedCorners-min.png">
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries-->
@@ -70,36 +72,7 @@
                 </ul>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body" id="server-list">
-                        <div class="overlay">
-                            <div class="m-loader mr-20">
-                                <svg class="m-circular" viewBox="25 25 50 50">
-                                    <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="4" stroke-miterlimit="10"/>
-                                </svg>
-                            </div>
-                            <h3 class="l-text">Loading</h3>
-                        </div>
-                        <h3 class="card-title">Server List</h3>
-                        <table class="table">
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Server Name</th>
-                            <th>Members</th>
-                            <th>Server ID</th>
-                          </tr>
-                        </thead>
-                        <tbody id="server-list">
-                        </tbody>
-                      </table>
-
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="container"></div>
     </div>
 </div>
 <!-- Javascripts-->
@@ -107,16 +80,13 @@
 <script src="js/bootstrap.min.js"></script>
 <script src="js/plugins/pace.min.js"></script>
 <script src="js/main.js"></script>
- <script>
-   var ws = new WebSocket("ws://127.0.0.1:5678/");
-   ws.onmessage = function (ev) {
-     $('.overlay').hide();
-     var content = document.createTextNode(ev.data);
-     $('#server-list').append(content);
-   };
-   ws.onopen = function (ev) {
-     ws.send('get_servers_info');
-   };
-</script>
+<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+<!-- Load D3.js -->
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<!-- Load billboard.js with style -->
+<script src="js/billboard.js"></script>
+<script src="../../dist/web/admin-dashboard/js/server-list.js"></script>
 </body>
 </html>

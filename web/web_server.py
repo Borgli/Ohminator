@@ -1,10 +1,13 @@
 import datetime
 import random
+import traceback
+from collections import OrderedDict
 
 import websockets
 from websockets.server import WebSocketServer
 import asyncio
 import utils
+import json
 
 
 class OhminatorWebServer():
@@ -24,12 +27,14 @@ class OhminatorWebServer():
             self.connected.remove(websocket)
 
     async def message_handler(self, websocket, path):
-        while True:
-            response = await websocket.revc()
+        try:
+            response = await websocket.recv()
             if response == "get_servers_info":
                 await self.get_servers_info(websocket, path)
             elif response == "get_servers":
                 await self.get_servers(websocket, path)
+        except:
+            traceback.print_exc()
 
     async def get_servers_info(self, websocket, path):
         servers = sum(1 for _ in self.client.servers)
@@ -39,8 +44,8 @@ class OhminatorWebServer():
         await websocket.send(response)
 
     async def get_servers(self, websocket, path):
-        server_list = utils.server_list
-        await websocket.send(map(lambda server: server.name, server_list))
+        servers = list(map(lambda server: OrderedDict([("name", server.name), ("id", server.id), ("population", len(server.discord_server.members))]), utils.server_list))
+        await websocket.send(json.dumps(servers))
 
     def setup_server(self, loop=None):
         start_server = websockets.serve(self.message_handler, '127.0.0.1', 5678)

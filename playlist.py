@@ -38,37 +38,6 @@ class Playlist:
         self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
         self.task_list.append(client.loop.create_task(self.play_next_yt()))
         self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
-        self.task_list.append(client.loop.create_task(self.update_database_playlist()))
-
-    async def update_database_playlist(self):
-        await self.client.wait_until_ready()
-        await asyncio.sleep(10, loop=self.client.loop)
-        while not self.client.is_closed:
-            try:
-                self.server.server_doc['playlist'] = dict()
-                cnt = 1
-                for item in self.yt_playlist:
-                    self.server.server_doc['playlist'][str(cnt)] = {
-                        'title': item.title,
-                        'link': item.link
-                    }
-                    cnt += 1
-                player = self.server.active_playlist_element
-                currently_playing = {
-                    'title': self.now_playing,
-                    'link': '' if not player or self.now_playing == "" else player.link,
-                    'duration': '' if not player or self.now_playing == "" else player.duration,
-                    'current_time': '' if not player or self.now_playing == "" else int((time.time() - player.start_time))
-                }
-                self.server.db.Servers.update_one({'_id': self.server.discord_server.id},
-                                           {'$set': {
-                                               'currently_playing': currently_playing,
-                                               'playlist': self.server.server_doc['playlist']
-                                           }})
-            except:
-                traceback.print_exc()
-            # 1 second intervals
-            await asyncio.sleep(1, loop=self.client.loop)
 
     async def manage_pinned_messages(self):
         await self.client.wait_until_ready()
@@ -183,7 +152,7 @@ class Playlist:
                     return
 
             # 0.5 second intervals
-            await asyncio.sleep(0.5, loop=self.client.loop)
+            await asyncio.sleep(5, loop=self.client.loop)
 
     @staticmethod
     def get_options(link):

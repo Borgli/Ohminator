@@ -236,3 +236,8 @@ async def clear_birthday(message, bot_channel, client):
     with open(birthday_pickle, 'w+b') as f:
         pickle.dump(member.birthday, f)
     await client.send_message(bot_channel, '{}: Your birthday has been cleared.'.format(message.author.name))
+
+@register_command("cv")
+async def cv(message, bot_channel, client):
+    await client.delete_message(message)
+    await client.send_file(message.channel, 'resources/cv.gif')

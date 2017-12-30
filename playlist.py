@@ -96,30 +96,37 @@ class Playlist:
                     else:
                         if player is None or not self.server.active_player or self.server.active_player.is_done():
                             await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
-                                                                                         '**Current queue:**\n{}\n'.format(
+                                                                           '**Current queue:**\n{}\n'.format(
                                 self.now_playing, queue.strip()))
                         else:
-                            # Create duration bar
-                            current_time = int((time.time() - player.start_time))
-                            end_time = player.duration
-                            progress_step = int(math.ceil((((current_time / end_time) * 100) / 10)))
-                            white_space = "<" + ('=' * (10 - progress_step))
-                            progress_bar = "" + ('=' * progress_step) + ">" + white_space + ""
-                            m, s = divmod(current_time, 60)
-                            h, m = divmod(m, 60)
-                            current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
+                            # Check if duration is available
+                            if player.duration:
+                                # Create duration bar
+                                current_time = int((time.time() - player.start_time))
+                                end_time = player.duration
+                                progress_step = int(math.ceil((((current_time / end_time) * 100) / 10)))
+                                white_space = "<" + ('=' * (10 - progress_step))
+                                progress_bar = "" + ('=' * progress_step) + ">" + white_space + ""
+                                m, s = divmod(current_time, 60)
+                                h, m = divmod(m, 60)
+                                current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
+                                                                                                        s if s > 9 else "0" + str(
+                                                                                                            s))
+                                m, s = divmod(end_time, 60)
+                                h, m = divmod(m, 60)
+                                end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
                                                                                                     s if s > 9 else "0" + str(
                                                                                                         s))
-                            m, s = divmod(end_time, 60)
-                            h, m = divmod(m, 60)
-                            end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
-                                                                                                s if s > 9 else "0" + str(
-                                                                                                    s))
-                            await self.client.edit_message(pinned_message,
-                                                           '`[{}][{}][{}]`\n**Now playing:** {}\n'
-                                                           '**Current queue:**\n{}\n'.format(
-                                                               current_time, progress_bar, end_time, self.now_playing,
-                                                               queue.strip()))
+                                await self.client.edit_message(pinned_message,
+                                                               '`[{}][{}][{}]`\n**Now playing:** {}\n'
+                                                               '**Current queue:**\n{}\n'.format(
+                                                                   current_time, progress_bar, end_time,
+                                                                   self.now_playing, queue.strip()))
+                            else:
+                                await self.client.edit_message(pinned_message,
+                                                               '**Now playing:** {}\n'
+                                                               '**Current queue:**\n{}\n'.format(
+                                                                   self.now_playing, queue.strip()))
 
                 except (ValueError, AttributeError, discord.errors.NotFound) as f:
                     remove(pickle_loc)
@@ -137,6 +144,9 @@ class Playlist:
                     elif f.response.status == 500:
                         # INTERNAL SERVER ERROR
                         print("Internal server error on server {}".format(self.server.name))
+                        await asyncio.sleep(30, loop=self.client.loop)
+                    elif f.response.status == 524:
+                        print("Discord overloaded on server {}".format(self.server.name))
                         await asyncio.sleep(30, loop=self.client.loop)
                     else:
                         traceback.print_exc()

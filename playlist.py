@@ -13,6 +13,7 @@ import traceback
 import time
 import math
 import utils
+from datetime import datetime
 
 
 class Playlist:
@@ -75,6 +76,12 @@ class Playlist:
                         # Write the new message to file
                         with open(pickle_loc, 'w+b') as f:
                             pickle.dump(pinned_message, f)
+
+                    # Check how old the message is. If it is over a specific time we create a new one
+                    difference = datetime.now() - pinned_message.timestamp
+                    if difference.days > 10:
+                        remove(pickle_loc)
+                        continue
 
                     # Remove previously pinned messages
                     pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
@@ -161,8 +168,8 @@ class Playlist:
                     #await asyncio.sleep(60, loop=self.client.loop)
                     return
 
-            # 0.5 second intervals
-            await asyncio.sleep(5, loop=self.client.loop)
+            # 10 second intervals as Discord seems to be limited to edits every 10 seconds.
+            await asyncio.sleep(10, loop=self.client.loop)
 
     @staticmethod
     def get_options(link):

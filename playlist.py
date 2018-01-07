@@ -220,7 +220,7 @@ class Playlist:
             if not re.fullmatch(r'https?://(www.youtube.com|youtu.be)/\S+', link):
                 link = 'ytsearch:{}'.format(link)
                 try:
-                    # Process = True to recieve titles
+                    # Process = True to receive titles
                     func = functools.partial(ydl.extract_info, link, download=False, process=True)
                     info = await self.client.loop.run_in_executor(None, func)
                 except:
@@ -275,6 +275,9 @@ class Playlist:
         return playlist_element
 
     def after_yt(self):
+        if self.server.active_player.error:
+            print(self.server.active_player.error)
+            traceback.print_exc()
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
 

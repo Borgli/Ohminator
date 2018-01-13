@@ -64,8 +64,10 @@ target/
 # Pickle
 *.pickle
 
-# Token file
+# Token/API key files
 token.txt
+mongodb-connection-parameter.txt
+plugins/tokens/
 
 # PyCharm
 .idea/

@@ -5,7 +5,11 @@ import events
 
 client = discord.Client()
 
-db_client = pymongo.MongoClient("mongodb://Ohminator:an4MgtGkIlgOLo0h@ohminator-cluster-shard-00-00-it3lf.mongodb.net:27017,ohminator-cluster-shard-00-01-it3lf.mongodb.net:27017,ohminator-cluster-shard-00-02-it3lf.mongodb.net:27017/Ohminator?ssl=true&replicaSet=Ohminator-cluster-shard-0&authSource=admin")
+# Reads MongoDB connection parameter as it has sensitive information
+with open('mongodb-connection-parameter.txt', 'r') as f:
+    mongodb_connection_parameter = f.read().strip()
+
+db_client = pymongo.MongoClient(mongodb_connection_parameter)
 db = db_client.Ohminator
 
 # Contains all events in the event loop and all event handling

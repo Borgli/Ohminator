@@ -24,7 +24,7 @@ class ServerInfoCard extends React.Component {
   render() {
     return (
       <Card width={"12"} title={"Member List"} overlay={this.state.overlay}>
-        <Table itemNames={["Name", "ID", "Bot", "Top Role", "Created at", "Joined at"]}>
+        <Table itemNames={["Name", "ID", "Bot", "Top Role", "Created at", "Joined at"]} hoverable={true}>
           {this.state.rows}
         </Table>
         <div id={"chart"} />

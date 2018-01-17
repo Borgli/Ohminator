@@ -48,7 +48,7 @@ class Table extends React.Component {
     let rows = this.props.itemNames;
     rows = rows.map((item, index) => <th key={index}>{item}</th>);
     return (
-      <table className={"table"}>
+      <table className={"table" + (this.props.hoverable ? " table-hover" : "")}>
         <thead>
           <tr>
             {rows}

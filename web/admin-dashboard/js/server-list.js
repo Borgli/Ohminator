@@ -13,14 +13,18 @@ class ServerListCard extends React.Component {
           window.location.href = "server-page.html?server_id=" + server.id
         }} key={server.id} items={server}/>)});
       let columns = [];
+      let names = {};
       for (let server of servers) {
-        columns.push([server['name'], server['population']])
+        columns.push([server['id'], server['population']]);
+        names[server['id']] = server['name'];
       }
       let chart = bb.generate({
         bindto: "#chart",
         data: {
-            type: "donut",
-            columns: columns
+          type: "donut",
+          names: names,
+          columns: columns,
+          onclick: (d, element) => {window.location.href = "server-page.html?server_id=" + d.id}
         },
         donut: {
           title: "Server Populations"
@@ -32,7 +36,7 @@ class ServerListCard extends React.Component {
   render() {
     return (
       <Card width={"12"} title={"Server List"} overlay={this.state.overlay}>
-        <Table itemNames={["Name", "ID", "Population"]}>
+        <Table itemNames={["Name", "ID", "Population"]} hoverable={true}>
           {this.state.rows}
         </Table>
         <div id={"chart"}/>

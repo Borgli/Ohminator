@@ -20,7 +20,9 @@ from dateutil.parser import parse
 @register_command("rlstats", "getrlrank", "rlrank")
 async def get_rl_rank(message, bot_channel, client):
     await client.delete_message(message)
-    rl_client = rocket_snake.RLS_Client("EQJLFCC1HG2RIV2PHW7WDLW077DCPSX5")
+    with open('plugins/tokens/rl_token.txt') as f:
+        rl_token = f.read().strip()
+    rl_client = rocket_snake.RLS_Client(rl_token)
     parameters = message.content.split()
     if len(parameters) > 1:
         try:
@@ -54,7 +56,9 @@ async def sharedgames(message, bot_channel, client):
     await client.delete_message(message)
     content = message.content.split()
     users = content[1:]
-    api_interface = steamapi.core.APIConnection(api_key="BDCD48F7FF3046773D26D94F742B0B54", validate_key=True)
+    with open('plugins/tokens/steam_api_key.txt') as f:
+        steam_api_key = f.read().strip()
+    api_interface = steamapi.core.APIConnection(api_key=steam_api_key, validate_key=True)
 
     class SharedGame:
         def __init__(self, game):

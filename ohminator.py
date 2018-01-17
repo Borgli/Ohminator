@@ -10,7 +10,11 @@ def run_bot():
     global client
     client = discord.Client()
 
-    db_client = pymongo.MongoClient("mongodb://Ohminator:an4MgtGkIlgOLo0h@ohminator-cluster-shard-00-00-it3lf.mongodb.net:27017,ohminator-cluster-shard-00-01-it3lf.mongodb.net:27017,ohminator-cluster-shard-00-02-it3lf.mongodb.net:27017/Ohminator?ssl=true&replicaSet=Ohminator-cluster-shard-0&authSource=admin")
+    # Reads MongoDB connection parameter as it has sensitive information
+    with open('mongodb-connection-parameter.txt', 'r') as f:
+        mongodb_connection_parameter = f.read().strip()
+
+    db_client = pymongo.MongoClient(mongodb_connection_parameter)
     db = db_client.Ohminator
 
     # Contains all events in the event loop and all event handling pluss setup of datastructure
@@ -22,6 +26,7 @@ def run_bot():
 
     # Starts the execution of the bot
     client.run(token)
+
 
 async def run_bot_coroutine(loop=None):
     global client
@@ -40,6 +45,7 @@ async def run_bot_coroutine(loop=None):
 
     # Starts the execution of the bot
     await client.start(token)
+
 
 if __name__ == '__main__':
     run_bot()

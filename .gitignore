@@ -72,3 +72,7 @@ token.txt
 
 # Servers folder
 servers/
+
+# Web part
+node_modules/
+package-lock.json

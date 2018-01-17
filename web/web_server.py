@@ -10,6 +10,7 @@ import utils
 import json
 import discord.utils
 
+
 class OhminatorWebServer():
     def __init__(self, client):
         self.client = client
@@ -41,6 +42,9 @@ class OhminatorWebServer():
     async def get_server_info(self, websocket, path):
         server_id = await websocket.recv()
         server = discord.utils.find(lambda server: server.id == server_id, self.client.servers)
+        if not server:
+            print("No Server")
+            return
         roles = list(map(lambda role: {"name": role.name, "colour": role.colour.value, "permissions": role.permissions.value},
                     server.roles))
         members = list(map(lambda member: {
@@ -92,4 +96,4 @@ class OhminatorWebServer():
         if not loop:
             loop = asyncio.get_event_loop()
         print("Starting web socket!")
-        loop.create_task(start_server)
+        loop.run_until_complete(start_server)

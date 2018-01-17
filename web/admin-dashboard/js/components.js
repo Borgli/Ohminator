@@ -66,6 +66,39 @@ class TableRow extends React.Component {
   render() {
     let items = this.props.items;
     let rows = Object.values(items).map((item, index) => <td key={index}>{item}</td>);
-    return <tr>{rows}</tr>;
+    return <tr onClick={this.props.onClickHandler ? this.props.onClickHandler : null}>{rows}</tr>;
+  }
+}
+
+class PageTitle extends React.Component {
+  render() {
+    return (
+      <div className={"page-title"}>
+        <div>
+          <h1><i className={"fa fa-dashboard"}/> {this.props.title}</h1>
+          <p>{this.props.subtitle}</p>
+        </div>
+        {this.props.children}
+      </div>
+    );
+  }
+}
+
+class Breadcrumb extends React.Component {
+  render() {
+    return (
+      <div>
+        <ul className="breadcrumb">
+          <li><i className="fa fa-home fa-lg"/></li>
+          {this.props.children}
+        </ul>
+      </div>
+    );
+  }
+}
+
+class BreadcrumbEntry extends React.Component {
+  render() {
+    return <li>{this.props.link ? <a href={this.props.link}>{this.props.children}</a> : this.props.children}</li>;
   }
 }

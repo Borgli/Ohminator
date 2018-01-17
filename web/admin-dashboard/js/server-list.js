@@ -9,7 +9,9 @@ class ServerListCard extends React.Component {
     this.ws.onmessage = (ev) => {
       console.log(ev.data);
       let servers = JSON.parse(ev.data);
-      this.setState({overlay: false, rows: servers.map((server) => <TableRow key={server.id} items={server}/>)});
+      this.setState({overlay: false, rows: servers.map((server) => <TableRow onClickHandler={() => {
+          window.location.href = "server-page.html?server_id=" + server.id
+        }} key={server.id} items={server}/>)});
       let columns = [];
       for (let server of servers) {
         columns.push([server['name'], server['population']])
@@ -33,7 +35,7 @@ class ServerListCard extends React.Component {
         <Table itemNames={["Name", "ID", "Population"]}>
           {this.state.rows}
         </Table>
-        <div id={"chart"} />
+        <div id={"chart"}/>
       </Card>
     );
   }

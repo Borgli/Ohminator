@@ -3,6 +3,7 @@ import os.path
 import random
 import re
 import shutil
+import traceback
 import urllib.request
 import asyncio
 
@@ -33,6 +34,9 @@ class IntroManager:
                 self.intro_finished.clear()
 
     def after_intro(self):
+        if self.ohm_server.intro_player.error:
+            print(self.ohm_server.intro_player.error)
+            traceback.print_exc()
         self.client.loop.call_soon_threadsafe(self.intro_finished.set)
         #print("Intro finished playing.")
 

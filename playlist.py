@@ -13,6 +13,7 @@ import traceback
 import time
 import math
 import utils
+from datetime import datetime
 
 
 class Playlist:
@@ -38,37 +39,6 @@ class Playlist:
         self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
         self.task_list.append(client.loop.create_task(self.play_next_yt()))
         self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
-        self.task_list.append(client.loop.create_task(self.update_database_playlist()))
-
-    async def update_database_playlist(self):
-        await self.client.wait_until_ready()
-        await asyncio.sleep(10, loop=self.client.loop)
-        while not self.client.is_closed:
-            try:
-                self.server.server_doc['playlist'] = dict()
-                cnt = 1
-                for item in self.yt_playlist:
-                    self.server.server_doc['playlist'][str(cnt)] = {
-                        'title': item.title,
-                        'link': item.link
-                    }
-                    cnt += 1
-                player = self.server.active_playlist_element
-                currently_playing = {
-                    'title': self.now_playing,
-                    'link': '' if not player or self.now_playing == "" else player.link,
-                    'duration': '' if not player or self.now_playing == "" else player.duration,
-                    'current_time': '' if not player or self.now_playing == "" else int((time.time() - player.start_time))
-                }
-                self.server.db.Servers.update_one({'_id': self.server.discord_server.id},
-                                           {'$set': {
-                                               'currently_playing': currently_playing,
-                                               'playlist': self.server.server_doc['playlist']
-                                           }})
-            except:
-                traceback.print_exc()
-            # 1 second intervals
-            await asyncio.sleep(1, loop=self.client.loop)
 
     async def manage_pinned_messages(self):
         await self.client.wait_until_ready()
@@ -107,6 +77,12 @@ class Playlist:
                         with open(pickle_loc, 'w+b') as f:
                             pickle.dump(pinned_message, f)
 
+                    # Check how old the message is. If it is over a specific time we create a new one
+                    difference = datetime.now() - pinned_message.timestamp
+                    if difference.days > 10:
+                        remove(pickle_loc)
+                        continue
+
                     # Remove previously pinned messages
                     pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
                     for message in pinned_messages:
@@ -127,30 +103,37 @@ class Playlist:
                     else:
                         if player is None or not self.server.active_player or self.server.active_player.is_done():
                             await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
-                                                                                         '**Current queue:**\n{}\n'.format(
+                                                                           '**Current queue:**\n{}\n'.format(
                                 self.now_playing, queue.strip()))
                         else:
-                            # Create duration bar
-                            current_time = int((time.time() - player.start_time))
-                            end_time = player.duration
-                            progress_step = int(math.ceil((((current_time / end_time) * 100) / 10)))
-                            white_space = "<" + ('=' * (10 - progress_step))
-                            progress_bar = "" + ('=' * progress_step) + ">" + white_space + ""
-                            m, s = divmod(current_time, 60)
-                            h, m = divmod(m, 60)
-                            current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
+                            # Check if duration is available
+                            if player.duration:
+                                # Create duration bar
+                                current_time = int((time.time() - player.start_time))
+                                end_time = player.duration
+                                progress_step = int(math.ceil((((current_time / end_time) * 100) / 10)))
+                                white_space = "<" + ('=' * (10 - progress_step))
+                                progress_bar = "" + ('=' * progress_step) + ">" + white_space + ""
+                                m, s = divmod(current_time, 60)
+                                h, m = divmod(m, 60)
+                                current_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
+                                                                                                        s if s > 9 else "0" + str(
+                                                                                                            s))
+                                m, s = divmod(end_time, 60)
+                                h, m = divmod(m, 60)
+                                end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
                                                                                                     s if s > 9 else "0" + str(
                                                                                                         s))
-                            m, s = divmod(end_time, 60)
-                            h, m = divmod(m, 60)
-                            end_time = "{}:{}:{}".format(h, m, s) if h != 0 else "{}:{}".format(m,
-                                                                                                s if s > 9 else "0" + str(
-                                                                                                    s))
-                            await self.client.edit_message(pinned_message,
-                                                           '`[{}][{}][{}]`\n**Now playing:** {}\n'
-                                                           '**Current queue:**\n{}\n'.format(
-                                                               current_time, progress_bar, end_time, self.now_playing,
-                                                               queue.strip()))
+                                await self.client.edit_message(pinned_message,
+                                                               '`[{}][{}][{}]`\n**Now playing:** {}\n'
+                                                               '**Current queue:**\n{}\n'.format(
+                                                                   current_time, progress_bar, end_time,
+                                                                   self.now_playing, queue.strip()))
+                            else:
+                                await self.client.edit_message(pinned_message,
+                                                               '**Now playing:** {}\n'
+                                                               '**Current queue:**\n{}\n'.format(
+                                                                   self.now_playing, queue.strip()))
 
                 except (ValueError, AttributeError, discord.errors.NotFound) as f:
                     remove(pickle_loc)
@@ -169,6 +152,9 @@ class Playlist:
                         # INTERNAL SERVER ERROR
                         print("Internal server error on server {}".format(self.server.name))
                         await asyncio.sleep(30, loop=self.client.loop)
+                    elif f.response.status == 524:
+                        print("Discord overloaded on server {}".format(self.server.name))
+                        await asyncio.sleep(30, loop=self.client.loop)
                     else:
                         traceback.print_exc()
                         return
@@ -182,8 +168,8 @@ class Playlist:
                     #await asyncio.sleep(60, loop=self.client.loop)
                     return
 
-            # 0.5 second intervals
-            await asyncio.sleep(0.5, loop=self.client.loop)
+            # 10 second intervals as Discord seems to be limited to edits every 10 seconds.
+            await asyncio.sleep(10, loop=self.client.loop)
 
     @staticmethod
     def get_options(link):
@@ -234,7 +220,7 @@ class Playlist:
             if not re.fullmatch(r'https?://(www.youtube.com|youtu.be)/\S+', link):
                 link = 'ytsearch:{}'.format(link)
                 try:
-                    # Process = True to recieve titles
+                    # Process = True to receive titles
                     func = functools.partial(ydl.extract_info, link, download=False, process=True)
                     info = await self.client.loop.run_in_executor(None, func)
                 except:
@@ -289,6 +275,9 @@ class Playlist:
         return playlist_element
 
     def after_yt(self):
+        if self.server.active_player.error:
+            print(self.server.active_player.error)
+            traceback.print_exc()
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
 

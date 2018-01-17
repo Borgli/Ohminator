@@ -77,6 +77,9 @@ async def text_to_speech(message, bot_channel, client):
         fd, filename = mkstemp()
 
         def after_tts():
+            if server.active_tts.error:
+                print(server.active_tts.error)
+                traceback.print_exc()
             client.loop.call_soon_threadsafe(server.next_tts.set)
             os.remove(filename)
 
@@ -85,6 +88,7 @@ async def text_to_speech(message, bot_channel, client):
         server.active_tts.start()
     finally:
         server.playlist.playlist_lock.release()
+
 
 async def play_next_tts(server, client):
     while not client.is_closed:
@@ -125,6 +129,7 @@ async def play_next_tts(server, client):
         finally:
             server.next_tts.clear()
             server.playlist.playlist_lock.release()
+
 
 async def connect_to_voice_channel(message, bot_channel, client, voice_channel=None):
     if voice_channel:

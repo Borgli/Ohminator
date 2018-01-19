@@ -99,6 +99,10 @@ class Breadcrumb extends React.Component {
 
 class BreadcrumbEntry extends React.Component {
   render() {
-    return <li>{this.props.link ? <a href={this.props.link}>{this.props.children}</a> : this.props.children}</li>;
+    if (this.props.link) {
+      return(<li className={"breadcrumb-item active"}>this.props.children</li>);
+    } else {
+      return(<li className={"breadcrumb-item"}><a href={this.props.link}>{this.props.children}</a>);
+    }
   }
 }

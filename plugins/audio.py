@@ -59,7 +59,9 @@ async def text_to_speech(message, bot_channel, client):
         else:
             voice_channel = message.author.voice_channel
 
-        voice_client = client.voice_client_in(message.author.server)
+        voice_client = await utils.connect_to_voice(client, message.author.server, voice_channel)
+        # voice_client = client.voice_client_in(message.author.server)
+        '''
         try:
             if voice_client is None:
                 voice_client = await client.join_voice_channel(voice_channel)
@@ -73,6 +75,7 @@ async def text_to_speech(message, bot_channel, client):
             await client.send_message(bot_channel,
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
             return
+        '''
 
         fd, filename = mkstemp()
 
@@ -137,6 +140,10 @@ async def connect_to_voice_channel(message, bot_channel, client, voice_channel=N
     else:
         channel = message.author.voice_channel
     voice_client = client.voice_client_in(message.author.server)
+    if voice_client:
+        await voice_client.disconnect()
+    voice_client = await client.join_voice_channel(voice_channel)
+    '''
     try:
         if voice_client is None:
             voice_client = await client.join_voice_channel(channel)
@@ -150,6 +157,7 @@ async def connect_to_voice_channel(message, bot_channel, client, voice_channel=N
                                   '{}: Could not connect to voice channel!'.format(message.author.name))
         traceback.print_exc()
         return
+    '''
 
 
 @register_command("summon", "lock", "acquire")
@@ -457,6 +465,7 @@ async def queue_page(message, bot_channel, client):
         server.queue_pages = QueuePage(server)
         await server.queue_pages.print_next_page(client)
 
+
 async def print_from_index(index, server, message, client):
     play = server.playlist.yt_playlist
     queue = str()
@@ -558,3 +567,13 @@ class PlayButtons:
                     server.active_player.volume -= 0.2
         except:
             traceback.print_exc()
+
+
+@register_command("fixaudio")
+async def fix_audio(message, bot_channel, client):
+    voice_client = client.voice_client_in(message.author.server)
+    if voice_client:
+        await voice_client.disconnect()
+    await client.send_message(bot_channel, "{}: Audio should now be functional again. If problem persists,"
+                                           "please contact the developer or post an issue at "
+                                           "https://github.com/Borgli/Ohminator/issues".format(message.author.name))

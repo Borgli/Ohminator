@@ -128,9 +128,12 @@ async def on_message(message):
                 return
         else:
             voice_channel = message.author.voice_channel
+
+        voice_client = await utils.connect_to_voice(client, message.author.server, voice_channel)
         # Check if the voice client is okay to use. If not, it is changed.
         # The voice client is retrieved later when the playlist starts a new song.
-        voice_client = client.voice_client_in(message.author.server)
+        # voice_client = client.voice_client_in(message.author.server)
+        '''
         try:
             if voice_client is None:
                 voice_client = await client.join_voice_channel(voice_channel)
@@ -142,6 +145,7 @@ async def on_message(message):
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
             traceback.print_exc()
             return
+        '''
 
         # Three cases: Case one: An intro is currently playing, so we either append or pause the active player.
         # Case two: Something is already playing, so we queue the requested songs
@@ -243,51 +247,63 @@ async def on_voice_state_update(before, after):
     else:
         return
 
-    # Handles playing intros when the bot is summoned
-    if server.playlist.summoned_channel:
-        if after.voice_channel == server.playlist.summoned_channel:
-            voice_channel = server.playlist.summoned_channel
+    await server.intro_manager.intro_lock.acquire()
+    try:
+        # Handles playing intros when the bot is summoned
+        if server.playlist.summoned_channel:
+            if after.voice_channel == server.playlist.summoned_channel:
+                voice_channel = server.playlist.summoned_channel
+            else:
+                return
         else:
+            voice_channel = after.voice_channel
+
+        # New approach to connecting to voice client. Before it would be problematic
+        # as it would not refresh the server region when it changed and would therefore
+        # stop playing. This solution introduces a race condition which needs a lock.
+        voice_client = await utils.connect_to_voice(client, after.server, voice_channel)
+
+        # voice_client = client.voice_client_in(after.server)
+        '''
+        try:
+            if voice_client is None:
+                voice_client = await client.join_voice_channel(voice_channel)
+            elif voice_client.channel is None:
+                await voice_client.disconnect()
+                voice_client = await client.join_voice_channel(voice_channel)
+            elif voice_client.channel != voice_channel:
+                await voice_client.move_to(voice_channel)
+        except Exception as e:
+            print(e)
             return
-    else:
-        voice_channel = after.voice_channel
+        '''
 
-    voice_client = client.voice_client_in(after.server)
-    try:
-        if voice_client is None:
-            voice_client = await client.join_voice_channel(voice_channel)
-        elif voice_client.channel is None:
-            await voice_client.disconnect()
-            voice_client = await client.join_voice_channel(voice_channel)
-        elif voice_client.channel != voice_channel:
-            await voice_client.move_to(voice_channel)
-    except Exception as e:
-        print(e)
-        return
+        if server.active_tts:
+            server.active_tts.stop()
+            server.tts_queue.clear()
 
-    if server.active_tts:
-        server.active_tts.stop()
-        server.tts_queue.clear()
+        if server.active_player is not None and server.active_player.is_playing():
+            server.active_player.pause()
 
-    if server.active_player is not None and server.active_player.is_playing():
-        server.active_player.pause()
+        if server.intro_player is not None and server.intro_player.is_playing():
+            server.intro_player.stop()
 
-    if server.intro_player is not None and server.intro_player.is_playing():
-        server.intro_player.stop()
-
-    try:
-        intro_list = listdir(intro_source)
-        server.intro_player = voice_client.create_ffmpeg_player(
-            '{}/{}'.format(intro_source, random.choice(intro_list)),
-            after=server.intro_manager.after_intro)
-        server.intro_player.volume = 0.25
-        server.intro_player.start()
-        await server.intro_manager.intro_counter_lock.acquire()
-        server.intro_manager.intro_counter += 1
-    except Exception as e:
-        print(e)
+        try:
+            intro_list = listdir(intro_source)
+            server.intro_player = voice_client.create_ffmpeg_player(
+                '{}/{}'.format(intro_source, random.choice(intro_list)),
+                after=server.intro_manager.after_intro)
+            server.intro_player.volume = 0.25
+            server.intro_player.start()
+            await server.intro_manager.intro_counter_lock.acquire()
+            try:
+                server.intro_manager.intro_counter += 1
+            finally:
+                server.intro_manager.intro_counter_lock.release()
+        except Exception as e:
+            print(e)
     finally:
-        server.intro_manager.intro_counter_lock.release()
+        server.intro_manager.intro_lock.release()
 
 
 async def on_server_join(server):

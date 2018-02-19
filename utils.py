@@ -1,3 +1,4 @@
+import asyncio
 from functools import wraps
 
 import discord
@@ -17,8 +18,24 @@ def register_command(*args):
         @wraps(func)
         async def wrapped(message, bot_channel, client):
             return await func(message, bot_channel, client)
+
         return wrapped
+
     return wrapper
+
+
+async def connect_to_voice(client, server, voice_channel):
+    voice_client = client.voice_client_in(server)
+    if voice_client:
+        if not server.region.value in voice_client.endpoint or not voice_client.channel:
+            await voice_client.disconnect()
+            voice_client = await client.join_voice_channel(voice_channel)
+        elif voice_client.channel != voice_channel:
+            await voice_client.disconnect()
+            voice_client = await client.join_voice_channel(voice_channel)
+    else:
+        voice_client = await client.join_voice_channel(voice_channel)
+    return voice_client
 
 
 def get_server(discord_server):

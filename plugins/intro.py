@@ -18,6 +18,7 @@ class IntroManager:
         self.intro_counter = 0
         self.intro_finished = asyncio.Event()
         self.intro_counter_lock = asyncio.Lock()
+        self.intro_lock = asyncio.Lock()
         client.loop.create_task(self.resume_playing_sound())
 
     async def resume_playing_sound(self):
@@ -74,7 +75,9 @@ async def intro(message, bot_channel, client):
         else:
             voice_channel = message.author.voice_channel
 
-        voice_client = client.voice_client_in(message.author.server)
+        voice_client = await utils.connect_to_voice(client, message.author.server, voice_channel)
+        # voice_client = client.voice_client_in(message.author.server)
+        '''
         try:
             if voice_client is None:
                 voice_client = await client.join_voice_channel(voice_channel)
@@ -88,6 +91,7 @@ async def intro(message, bot_channel, client):
             await client.send_message(bot_channel,
                                       '{}: Could not connect to voice channel!'.format(message.author.name))
             return
+        '''
 
         if server.active_tts:
             server.active_tts.stop()

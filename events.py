@@ -2,8 +2,10 @@ import asyncio
 import random
 import time
 import traceback
+import string
 from os import mkdir, listdir
 from os.path import isdir
+from collections import Counter
 
 import discord
 import youtube_dl
@@ -217,6 +219,30 @@ async def on_message(message):
             traceback.print_exc()
         finally:
             server.playlist.playlist_lock.release()
+    else:
+        await suggest_correct_command(message)
+
+
+async def suggest_correct_command(message):
+    cmd = message.content.lower().split()[0][1:]
+    for command in commands.keys():
+        # Check for anagrams
+        if Counter(cmd) == Counter(command):
+            await client.send_message(message.channel,
+                                      "{}: Did you mean '{}'?".format(message.author.name, command))
+            return
+        # Check for anagrams with missing letters
+        for letter in string.ascii_lowercase:
+            if Counter(cmd+letter) == Counter(command):
+                await client.send_message(message.channel,
+                                          "{}: Did you mean '{}'?".format(message.author.name, command))
+                return
+        # Check for anagrams with added letters
+        for index in range(len(cmd)):
+            if Counter(cmd[:index] + cmd[(index+1):]) == Counter(command):
+                await client.send_message(message.channel,
+                                          "{}: Did you mean '{}'?".format(message.author.name, command))
+                return
 
 
 async def on_reaction_add(reaction, user):

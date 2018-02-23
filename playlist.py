@@ -367,7 +367,9 @@ class PlaylistElement:
     async def get_new_player(self):
         voice_client = self.client.voice_client_in(self.server)
         player = await voice_client.create_ytdl_player(self.webpage_url, options=self.option,
-                                                       after=self.after_yt, ytdl_options={'quiet':True})
+                                                       after=self.after_yt, ytdl_options={'quiet':True},
+                                                       before_options="-reconnect 1 -reconnect_streamed 1 "
+                                                                      "-reconnect_delay_max 5")
         self.player = player
         self.title = player.title
         self.duration = player.duration

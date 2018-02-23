@@ -5,4 +5,6 @@
 !raidplayer [player name]   - Retrieves WoW vanilla link to last raid of given player from http://realmplayers.com.
 !raidguild [guild name]     - Retrieves WoW vanilla link to last raid of given guild from http://realmplayers.com.
 !item [item name]           - Retrieves WoW vanilla item information from http://db.vanillagaming.org.
+!yttop or !playtop or !pt   - The same as yt command, but also puts the audio at the top of the queue.
+!fixaudio                   - Forces the bot to disconnect from voice. This should fix audio issues caused by the bot.
 ```

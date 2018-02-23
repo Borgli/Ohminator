@@ -56,9 +56,11 @@ class Playlist:
                 queue += "**{}**: {}{}\n".format(cnt, play.title, votes)
                 cnt += 1
 
-            # Filter on channels with pinned playlists enabled. Bot-spam channel will always have pinned playlists enabled.
+            # Filter on channels with pinned playlists enabled.
+            # Bot-spam channel will always have pinned playlists enabled.
             for channel in filter(lambda channel: channel.type == discord.ChannelType.text and
-                            channel.list_settings()['pin_yt_playlists'] == "True" or channel.name == 'bot-spam', self.server.channel_list):
+                                  channel.list_settings()['pin_yt_playlists'] == "True" or
+                                  channel.name == 'bot-spam', self.server.channel_list):
 
                 pickle_loc = 'servers/{}/channels/{}/pinned_message.pickle'.format(self.server.server_loc,
                                                                                    channel.channel_loc)
@@ -97,14 +99,14 @@ class Playlist:
                     if self.server.active_player is not None and not self.server.active_player.is_playing() \
                             and not self.server.active_player.is_done():
                         await self.client.edit_message(pinned_message, ':pause_button: '
-                                                                                     '**Paused:** {}\n'
-                                                                                     '**Current queue:**\n{}\n'.format(
-                            self.now_playing, queue.strip()))
+                                                       '**Paused:** {}\n'
+                                                       '**Current queue:**\n{}\n'.format(
+                                                        self.now_playing, queue.strip()))
                     else:
                         if player is None or not self.server.active_player or self.server.active_player.is_done():
                             await self.client.edit_message(pinned_message, '**Now playing:** {}\n'
                                                                            '**Current queue:**\n{}\n'.format(
-                                self.now_playing, queue.strip()))
+                                                                            self.now_playing, queue.strip()))
                         else:
                             # Check if duration is available
                             if player.duration:
@@ -142,7 +144,7 @@ class Playlist:
                 except discord.errors.Forbidden as f:
                     print(
                         "Missing privilege to post to channel {} on server {}".format(channel.name,
-                                                                                   self.server.name))
+                                                                                      self.server.name))
                     return
                 except discord.errors.HTTPException as f:
                     if f.response.status == 400:
@@ -165,7 +167,6 @@ class Playlist:
                     logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
                                   exc_info=True)
                     traceback.print_exc()
-                    #await asyncio.sleep(60, loop=self.client.loop)
                     return
 
             # 10 second intervals as Discord seems to be limited to edits every 10 seconds.

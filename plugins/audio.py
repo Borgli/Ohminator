@@ -5,6 +5,7 @@ import time
 import traceback
 from tempfile import mkstemp
 
+import youtube_dl
 from gtts import gTTS
 from utils import register_command, get_server
 
@@ -466,6 +467,139 @@ async def queue_page(message, bot_channel, client):
         await server.queue_pages.print_next_page(client)
 
 
+@register_command("yttop", "playtop", "pt")
+async def play_on_top(message, bot_channel, client):
+    server = utils.get_server(message.server)
+    await play_from_internet(message, bot_channel, client)
+    # If the queue is not empty, the last entry must be what was added last.
+    # It should not be a race condition as we're not awaiting anything.
+    if server.playlist.yt_playlist:
+        server.playlist.yt_playlist.insert(0, server.playlist.yt_playlist.pop())
+
+
+@register_command("yt", "play", "p")
+async def play_from_internet(message, bot_channel, client):
+    await client.delete_message(message)
+    server = utils.get_server(message.server)
+
+    if len(message.content.split()) < 2:
+        await client.send_message(bot_channel,
+                                  '{}: Usage: !yt or !play or !p [link or search term]'.format(
+                                      message.author.name))
+        return
+
+    link = " ".join(message.content.split()[1:])
+
+    # The user must be in a channel to play their link.
+    if message.author.voice_channel is None or message.author.voice.is_afk:
+        await client.send_message(bot_channel,
+                                  '{}: Please join a voice channel to play your link!'.format(
+                                      message.author.name))
+        return
+
+    if server.playlist.summoned_channel:
+        # Restricts users to only be able to add songs to playlist if they are in the channel the bot is locked to.
+        if message.author.voice.voice_channel == server.playlist.summoned_channel:
+            voice_channel = server.playlist.summoned_channel
+        else:
+            await client.send_message(bot_channel,
+                                      '{}: The bot is locked to channel {}. '
+                                      'Please join that channel to make Ohminator play audio.'.format(
+                                          message.author.name, server.playlist.summoned_channel.name))
+            return
+    else:
+        voice_channel = message.author.voice_channel
+
+    voice_client = await utils.connect_to_voice(client, message.author.server, voice_channel)
+    # Check if the voice client is okay to use. If not, it is changed.
+    # The voice client is retrieved later when the playlist starts a new song.
+    # voice_client = client.voice_client_in(message.author.server)
+    '''
+    try:
+        if voice_client is None:
+            voice_client = await client.join_voice_channel(voice_channel)
+        elif voice_client.channel is None:
+            await voice_client.disconnect()
+            voice_client = await client.join_voice_channel(voice_channel)
+    except:
+        await client.send_message(bot_channel,
+                                  '{}: Could not connect to voice channel!'.format(message.author.name))
+        traceback.print_exc()
+        return
+    '''
+
+    # Three cases: Case one: An intro is currently playing, so we either append or pause the active player.
+    # Case two: Something is already playing, so we queue the requested songs
+    # Case three: Nothing is playing, so we just start playing the song
+    await server.playlist.playlist_lock.acquire()
+    if server.active_tts:
+        server.active_tts.stop()
+        server.tts_queue.clear()
+    try:
+        # Must check if intro is already playing
+        if server.intro_player is not None and server.intro_player.is_playing():
+            # Check if there's something in the playlist
+            if len(server.playlist.yt_playlist) > 0:
+                player = await server.playlist.add_to_playlist(link, True, message.author.name)
+            else:
+                player = await server.playlist.add_to_playlist(link, False, message.author.name)
+                server.active_player = await player.get_new_player()
+                server.active_playlist_element = player
+                server.playlist.now_playing = server.active_player.title
+                await client.send_message(bot_channel, '{}:'.format(message.author.name),
+                                          embed=utils.create_now_playing_embed(server.active_playlist_element))
+                server.active_player.start()
+                server.active_player.pause()
+
+        elif server.active_player is not None and (
+                not server.active_player.is_done() or server.active_player.is_playing()) \
+                or len(server.playlist.yt_playlist) > 0:
+            player = await server.playlist.add_to_playlist(link, True, message.author.name)
+        else:
+            # Move to the user's voice channel
+            try:
+                if voice_client.channel != voice_channel:
+                    await voice_client.move_to(voice_channel)
+            except:
+                await client.send_message(bot_channel,
+                                          '{}: Could not connect to voice channel!'.format(message.author.name))
+                print("Couldn't move from channel {} to channel {}!".format(voice_client.channel.name,
+                                                                            message.author.voice_channel.name))
+                traceback.print_exc()
+                return
+
+            player = await server.playlist.add_to_playlist(link, False, message.author.name)
+            server.active_player = await player.get_new_player()
+            server.active_playlist_element = player
+            server.playlist.now_playing = server.active_player.title
+            await client.send_message(bot_channel, '{}:'.format(message.author.name),
+                                      embed=utils.create_now_playing_embed(server.active_playlist_element))
+            server.active_player.start()
+    except youtube_dl.utils.UnsupportedError:
+        await client.send_message(bot_channel,
+                                  '{}: Unsupported URL: That URL is not supported! :slight_frown:'.format(
+                                      message.author.name))
+    except youtube_dl.utils.DownloadError:
+        await client.send_message(bot_channel,
+                                  '{}: Download Error: Your link could not be downloaded! :slight_frown:'.format(
+                                      message.author.name))
+    except youtube_dl.utils.MaxDownloadsReached:
+        await client.send_message(bot_channel,
+                                  '{}: Max downloads reached: Can not download more videos from YT at the moment. '
+                                  'Please wait a moment before trying again. :slight_frown:'.format(
+                                      message.author.name))
+    except youtube_dl.utils.UnavailableVideoError:
+        await client.send_message(bot_channel,
+                                  '{}: Unavailable Video: This video is unavailable! :slight_frown:'.format(
+                                      message.author.name))
+    except:
+        await client.send_message(bot_channel,
+                                  '{}: Your link could not be played!'.format(message.author.name))
+        traceback.print_exc()
+    finally:
+        server.playlist.playlist_lock.release()
+
+
 async def print_from_index(index, server, message, client):
     play = server.playlist.yt_playlist
     queue = str()
@@ -479,7 +613,8 @@ async def print_from_index(index, server, message, client):
     except IndexError:
         queue += "End of queue!"
     await client.send_message(server.bot_channel,
-                                             '{}: Here is the current queue from index {}:\n{}'.format(message.author.name, index+1, queue.strip()))
+                              '{}: Here is the current queue from index {}:\n{}'.format(message.author.name,
+                                                                                        index+1, queue.strip()))
 
 
 class QueuePage:

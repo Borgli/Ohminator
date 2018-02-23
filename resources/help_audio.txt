@@ -3,6 +3,7 @@ List of audio commands:
 !help audio                 - Prints out this menu.
 !yt or !play or !p          - Plays audio from YouTube or other sources in voice channel of caller.
 [link or search term]         Can be a direct link to video or playlist or search term.
+!yttop or !playtop or !pt   - The same as yt command, but also puts the audio at the top of the queue.
 !stop or !s                 - Stops playing sound from the audio player.
 !pause or !pa               - Pauses playing sound from the audio player.
 !resume or !r               - Resumes playing sound from the audio player.
@@ -18,4 +19,5 @@ List of audio commands:
 !summon or !lock            - Locks the bot to your voice channel or a given voice channel.
 [(channel id or name)]
 !unsummon or !release       - Releases the bot from a voice channel.
+!fixaudio                   - Forces the bot to disconnect from voice. This should fix audio issues caused by the bot.
 ```

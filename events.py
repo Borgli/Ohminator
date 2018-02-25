@@ -87,10 +87,11 @@ async def on_message(message):
     if bot_channel is None:
         bot_channel = message.channel
 
-    if len(cmd.split()) < 1:
+    server = utils.get_server(message.server)
+
+    if len(cmd.split()) < 1 or cmd.lower().split()[0][0] != server.prefix:
         return
 
-    server = utils.get_server(message.server)
     # Normal commands can be awaited and is therefore in their own functions
     for key in commands:
         if cmd.lower().split()[0] == server.prefix + key:

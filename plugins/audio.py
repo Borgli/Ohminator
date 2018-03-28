@@ -136,14 +136,11 @@ async def play_next_tts(server, client):
 
 
 async def connect_to_voice_channel(message, bot_channel, client, voice_channel=None):
-    if voice_channel:
-        channel = voice_channel
-    else:
-        channel = message.author.voice_channel
+    channel = voice_channel if voice_channel else message.author.voice_channel
     voice_client = client.voice_client_in(message.author.server)
     if voice_client:
         await voice_client.disconnect()
-    voice_client = await client.join_voice_channel(voice_channel)
+    voice_client = await client.join_voice_channel(channel)
     '''
     try:
         if voice_client is None:

@@ -4,6 +4,7 @@ from member import Member
 from os.path import isdir
 from os import mkdir, listdir
 from os.path import exists
+from os.path import join
 import asyncio
 from playlist import Playlist
 import discord
@@ -63,28 +64,25 @@ class Server:
         else:
             self.change_settings(dict())
 
+        server_dir = join('servers', self.server_loc)
         # Create members folder if it doesn't exist
-        if not exists('servers/{}/members'.format(self.server_loc)):
-            mkdir('servers/{}/members'.format(self.server_loc))
+        create_if_not_exists(join(server_dir, 'members'))
 
         # Initialize members
         for member in discord_server.members:
             self.member_list.append(Member(client, self, member))
 
         # Create channels folder if it doesn't exist
-        if not exists('servers/{}/channels'.format(self.server_loc)):
-            mkdir('servers/{}/channels'.format(self.server_loc))
+        create_if_not_exists(join(server_dir, 'channels'))
 
         # Initialize channels
         for channel in discord_server.channels:
             channel_loc = '{}-{}'.format(channel.name, channel.id)
-            if not isdir('servers/{}/channels/{}'.format(self.server_loc, channel_loc)):
-                mkdir('servers/{}/channels/{}'.format(self.server_loc, channel_loc))
+            create_if_not_exists(join(join(server_dir, 'channels'), channel_loc))
             self.channel_list.append(Channel(client, self, channel))
 
         # Create default intros folder if it doesn't exist
-        if not exists('servers/{}/default_intros'.format(self.server_loc)):
-            mkdir('servers/{}/default_intros'.format(self.server_loc))
+        create_if_not_exists(join(server_dir, 'default_intros'))
 
         self.playlist = Playlist(client, self)
         self.intro_manager = IntroManager(client, self)
@@ -94,7 +92,7 @@ class Server:
         for setting, value in in_settings.items():
             setattr(self.settings, setting, value)
         self.server_doc['settings'] = self.list_settings()
-        self.db.Servers.update_one({'_id': self.discord_server.id}, {'$set' : {'settings': self.server_doc['settings']}})
+        self.db.Servers.update_one({'_id': self.discord_server.id}, {'$set': {'settings': self.server_doc['settings']}})
 
     def list_settings(self):
         return self.settings.get_settings()

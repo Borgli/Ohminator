@@ -1,8 +1,9 @@
 import pickle
 
 from stats import Stats
-from os.path import exists, isdir
+from os.path import exists, isdir, join
 from os import mkdir, listdir
+from utils import create_if_not_exists
 
 
 class Member:
@@ -19,21 +20,21 @@ class Member:
         self.question = None
         self.options = list()
 
-        if not isdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc)):
-            mkdir('servers/{}/members/{}'.format(server.server_loc, self.member_loc))
+        server_dir = join('servers', server.server_loc)
+        member_dir = join(join(server_dir, 'members'), self.member_loc)
+        create_if_not_exists(member_dir)
 
-        self.intro_folder = 'servers/{}/members/{}/intros'.format(server.server_loc, self.member_loc)
+        self.intro_folder = join(member_dir, 'intros')
         # Create intros folder if it doesn't exist
-        if not exists(self.intro_folder):
-            mkdir(self.intro_folder)
+        create_if_not_exists(self.intro_folder)
 
-        birthday_pickle = 'servers/{}/members/{}/birthday.pickle'.format(server.server_loc, self.member_loc)
+        birthday_pickle = join(member_dir, 'birthday.pickle')
         if exists(birthday_pickle):
             # Get birthday from pickle
             with open(birthday_pickle, 'r+b') as f:
                 self.birthday = pickle.load(f)
 
-        member_pickle = 'servers/{}/members/{}/member.pickle'.format(server.server_loc, self.member_loc)
+        member_pickle = join(member_dir, 'member.pickle')
         if exists(member_pickle):
             # Initialize everything persistent
             with open(member_pickle, 'r+b') as f:

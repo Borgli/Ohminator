@@ -1,5 +1,7 @@
 import asyncio
 from functools import wraps
+from os.path import exists
+from os import mkdir
 
 import discord
 
@@ -22,6 +24,11 @@ def register_command(*args):
         return wrapped
 
     return wrapper
+
+
+def create_if_not_exists(path):
+    if not exists(path):
+        mkdir(path)
 
 
 async def connect_to_voice(client, server, voice_channel):

@@ -1,5 +1,5 @@
 import pickle
-from os.path import exists
+from os.path import exists, join
 
 from settings import ClientSettings
 
@@ -12,7 +12,8 @@ class Channel:
         self.type = channel.type
         self.discord_channel = channel
 
-        self.settings_pickle = 'servers/{}/channels/{}/settings.pickle'.format(server.server_loc, self.channel_loc)
+        self.settings_pickle = join(join(join(join(join('servers', server.server_loc), 'channels',
+                                                   self.channel_loc, 'settings.pickle'))))
         if exists(self.settings_pickle):
             # Load settings
             with open(self.settings_pickle, 'r+b') as f:

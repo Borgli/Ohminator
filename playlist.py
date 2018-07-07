@@ -79,12 +79,6 @@ class Playlist:
                         with open(pickle_loc, 'w+b') as f:
                             pickle.dump(pinned_message, f)
 
-                    # Check how old the message is. If it is over a specific time we create a new one
-                    difference = datetime.now() - pinned_message.timestamp
-                    if difference.days > 10:
-                        remove(pickle_loc)
-                        continue
-
                     # Remove previously pinned messages
                     pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
                     for message in pinned_messages:
@@ -170,7 +164,7 @@ class Playlist:
                     return
 
             # 10 second intervals as Discord seems to be limited to edits every 10 seconds.
-            await asyncio.sleep(10, loop=self.client.loop)
+            await asyncio.sleep(5, loop=self.client.loop)
 
     @staticmethod
     def get_options(link):

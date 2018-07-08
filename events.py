@@ -58,15 +58,10 @@ async def on_ready():
     global running
     if not running:
         print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
-        if not isdir('servers'):
-            mkdir('servers')
+        utils.create_if_not_exists('servers')
         for server in client.servers:
-            server_loc = '{}_{}'.format(server.name, server.id)
-            if not isdir('servers/{}'.format(server_loc)):
-                mkdir('servers/{}'.format(server_loc))
             new_server = Server(server, client, db)
             utils.server_list.append(new_server)
-
             new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
             # If channel does not exist - create it
             if new_server.bot_channel is None:

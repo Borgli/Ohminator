@@ -20,7 +20,7 @@ class Server:
         # Initialize everything that is not persistent
         self.name = discord_server.name
         self.id = discord_server.id
-        self.server_loc = '{}_{}'.format(discord_server.name, discord_server.id)
+        self.server_loc = '{}'.format(discord_server.id)
         self.default_channel = discord_server.default_channel
         self.discord_server = discord_server
         self.db = db
@@ -48,6 +48,8 @@ class Server:
 
         # added for polling
         self.poll_time = 30
+
+        create_if_not_exists(join('servers', self.server_loc))
 
         # Handle server document
         self.server_doc = db.Servers.find_one({"_id": discord_server.id})
@@ -77,8 +79,6 @@ class Server:
 
         # Initialize channels
         for channel in discord_server.channels:
-            channel_loc = '{}-{}'.format(channel.name, channel.id)
-            create_if_not_exists(join(join(server_dir, 'channels'), channel_loc))
             self.channel_list.append(Channel(client, self, channel))
 
         # Create default intros folder if it doesn't exist

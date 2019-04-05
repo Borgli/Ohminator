@@ -74,3 +74,9 @@ plugins/tokens/
 
 # Servers folder
 servers/
+
+# Venv
+venv/
+
+Visual Studio
+.vs/

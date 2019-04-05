@@ -21,15 +21,12 @@ from plugins import *
 commands = utils.commands
 running = False
 client = None
-db = None
 
 
 class Events:
-    def __init__(self, bot: discord.Client, database):
+    def __init__(self, bot: discord.Client):
         global client
         client = bot
-        global db
-        db = database
         bot.async_event(on_ready)
         bot.async_event(on_message)
         bot.async_event(on_voice_state_update)
@@ -48,39 +45,11 @@ async def set_global_text():
         await asyncio.sleep(300, loop=client.loop)
 
 
-async def on_ready():
-    print('Logged in as')
-    print(client.user.name)
-    print(client.user.id)
-    print(discord.version_info)
-    print(discord.__version__)
-    print('------')
-    global running
-    if not running:
-        print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
-        utils.create_if_not_exists('servers')
-        for server in client.servers:
-            new_server = Server(server, client, db)
-            utils.server_list.append(new_server)
-            new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
-            # If channel does not exist - create it
-            if new_server.bot_channel is None:
-                new_server.bot_channel = await client.create_channel(server, 'bot-spam')
-            # Change the topic of the channel if not already set
-            with open('resources/bot_channel_topic.txt') as f:
-                topic = f.read()
-            if new_server.bot_channel.topic != topic:
-                await client.edit_channel(new_server.bot_channel, topic=topic)
-        print('Done!')
-        running = True
+
 
 
 async def on_message(message):
     cmd = message.content
-
-    bot_channel = utils.get_bot_channel(message.server)
-    if bot_channel is None:
-        bot_channel = message.channel
 
     server = utils.get_server(message.server)
 

@@ -1,23 +1,8 @@
-import traceback
-import asyncio
 import discord
-import pymongo
-
-from events import Events
 
 
 def main():
-    client = discord.Client()
-
-    # Reads MongoDB connection parameter as it has sensitive information
-    with open('mongodb-connection-parameter.txt', 'r') as f:
-        mongodb_connection_parameter = f.read().strip()
-
-    db_client = pymongo.MongoClient(mongodb_connection_parameter)
-    db = db_client.Ohminator
-
-    # Contains all events in the event loop and all event handling
-    events = Events(client, db)
+    client = Ohminator()
 
     # Reads token
     with open("token.txt", 'r') as f:
@@ -28,13 +13,30 @@ def main():
 
 
 if __name__ == '__main__':
-    while True:
-        # Will automatically restart the bot
-        # The wrapper will catch KeyboardInterrupts, so any exception that occurs means restart
-        try:
-            main()
-        except:
-            traceback.print_exc()
-            asyncio.set_event_loop(asyncio.new_event_loop())
-            continue
-        break
+    main()
+
+
+class Ohminator(discord.Client):
+    async def on_ready(self):
+        print('Logged in as')
+        print(self.user.name)
+        print(self.user.id)
+        print(discord.version_info)
+        print(discord.__version__)
+        print('------')
+        global running
+        if not running:
+            # Load database
+			load_database()
+            print('Done!')
+            running = True
+
+    async def on_message(self, message):
+        if message.content.strip():
+            commands = get_enabled_commands()
+            prefix = get_prefix()
+            # Normal commands can be awaited and is therefore in their own functions
+            for key in commands:
+                if message.content.lower().split()[0] == prefix + key:
+                    await commands[key](message, get_command_details(), client)
+                    return

@@ -9,6 +9,7 @@ class Settings:
             for setting, value in doc['settings'].items():
                 setattr(self, setting, value)
 
+
 class ServerSettings(Settings):
 
     def __init__(self):

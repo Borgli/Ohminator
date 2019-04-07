@@ -16,11 +16,14 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path, include
-from web.ohminator_web.views import authentication_successful, login
+from django.views.generic import TemplateView
+
+from web.ohminator_web.views import authentication_successful, index, dashboard, guild_joined_successful
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login', login),
-    path('oauth_success', authentication_successful),
-    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider'))
+    path('api/oauth_success', authentication_successful),
+    path('dashboard', dashboard),
+    path('api/bot_joined', guild_joined_successful),
+    path('', index),
 ]

@@ -78,5 +78,12 @@ servers/
 # Venv
 venv/
 
-Visual Studio
+# Visual Studio
 .vs/
+
+# Database
+db.sqlite3
+
+webpack-stats.json
+migrations/
+node_modules/

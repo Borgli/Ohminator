@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ohminator Dashboard</title>
+    <title>Ohminator</title>
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">-->
     <!-- Webpack rendered CSS -->
     {% render_bundle 'main' 'css' %}
@@ -20,11 +20,8 @@
   <!--<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.js"></script>-->
 
   <script type="text/javascript">
-      window.user = JSON.parse("{{user}}".replace(/(&quot;)/g,'"'));
-      window.guilds = JSON.parse("{{guilds}}".replace(/(&quot;)/g,'"'));
-      /*window.user_name = "{{user_name}}";
-      window.user_avatar = "{{user_avatar}}";
-      window.user_discriminator = "{{user_discriminator}}";*/
+      window.discord = JSON.parse("{{discord}}".replace(/(&quot;)/g,'"'));
+      console.log(window.discord);
   </script>
 
   <!-- Webpack rendered JS -->

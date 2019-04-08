@@ -18,12 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
-from web.ohminator_web.views import authentication_successful, index, dashboard, guild_joined_successful
+from web.ohminator_web.views import authentication_successful, index, dashboard, guild_joined_successful, \
+    guild_dashboard, server_selected
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/oauth_success', authentication_successful),
-    path('dashboard', dashboard),
+    path('dashboard/<int:guild_id>', guild_dashboard),
+    path('dashboard/', dashboard),
     path('api/bot_joined', guild_joined_successful),
+    path('api/guild/<int:guild_id>', server_selected),
     path('', index),
 ]

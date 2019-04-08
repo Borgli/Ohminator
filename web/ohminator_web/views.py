@@ -1,6 +1,7 @@
 import json
 import os
 
+import requests
 from django.shortcuts import render, redirect
 from ohminator_web.models import Server
 
@@ -9,6 +10,7 @@ from requests_oauthlib import OAuth2Session
 OAUTH2_CLIENT_ID = '315654415946219532'
 OAUTH2_CLIENT_SECRET = 'I_UWW6KvtaRnQhIa7Wo4b5ubmgPyUoNA'
 OAUTH2_REDIRECT_URI = 'http://127.0.0.1:8000/api/oauth_success'
+GUILD_REDIRECT_URI = 'http://127.0.0.1:8000/api/bot_joined'
 
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
 AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
@@ -58,19 +60,41 @@ def authentication_successful(request):
 def dashboard(request):
     # Get user info
     discord = make_session(token=request.session.get('oauth2_token'))
-    user = discord.get(API_BASE_URL + '/users/@me').json()
-    guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-    print(user)
-    return render(request, "ohminator_web/dashboard.html", {"user": json.dumps(user), "guilds": json.dumps(guilds)})
+    discord_json = {
+        'user': discord.get(API_BASE_URL + '/users/@me').json(),
+        'guilds': discord.get(API_BASE_URL + '/users/@me/guilds').json(),
+        'selected_guild': None
+    }
+    return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
 
 
 def index(request):
-    return render(request, "ohminator_web/index.html")
+    return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(None)})
 
 
 def guild_joined_successful(request):
+    return redirect('/dashboard/' + request.GET.get('guild_id'))
+
+
+def guild_dashboard(request, guild_id):
     discord = make_session(token=request.session.get('oauth2_token'))
     guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-    guild = list(filter(lambda g: g["id"] == request.GET.get('guild_id'), guilds)).pop()
-    print(guild)
-    return redirect("/dashboard/" + guild['id'])
+    discord_json = {
+        'user': discord.get(API_BASE_URL + '/users/@me').json(),
+        'guilds': None,
+        'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop()
+    }
+    return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+
+
+def server_selected(request, guild_id):
+    # Check if guild exists in database
+    def guild_exists(g_id):
+        return False
+
+    if guild_exists(guild_id):
+        return redirect('/dashboard/' + request.GET.get('guild_id'))
+    else:
+        return redirect("https://discordapp.com/oauth2/authorize?scope=bot&response_type=code&redirect_uri="
+                        + GUILD_REDIRECT_URI + "&permissions=66321471&client_id=" + OAUTH2_CLIENT_ID + "&guild_id="
+                        + str(guild_id))

@@ -17,7 +17,7 @@ class ServerSelection extends React.Component {
                     <div className="column">
                         {window.guilds.map((guild) => {
                             if (guild.permissions === 2146958847) {
-                                return <a href={"https://discordapp.com/oauth2/authorize?scope=bot&response_type=code&redirect_uri=" + REDIRECT_URL + "&permissions=66321471&client_id=" + CLIENT_ID + "&guild_id=" + guild.id}>{guild.name}</a>
+                                return <a href={"https://discordapp.com/oauth2/authorize?scope=bot&response_type=code&redirect_uri=" + REDIRECT_URL + "&permissions=66321471&client_id=" + CLIENT_ID + "&guild_id=" + guild.id}>{}<figure class="image is-128x128"><img class="is-rounded" src={"https://cdn.discordapp.com/icons/" + guild.id + "/" + guild.icon + ".png"}/></figure></a>
                             }
                         })}
                     </div>

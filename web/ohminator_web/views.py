@@ -3,7 +3,7 @@ import os
 
 import requests
 from django.shortcuts import render, redirect
-from ohminator_web.models import Server
+from ohminator_web.models import Guild, User, Plugin
 
 from requests_oauthlib import OAuth2Session
 
@@ -79,11 +79,15 @@ def guild_joined_successful(request):
 def guild_dashboard(request, guild_id):
     discord = make_session(token=request.session.get('oauth2_token'))
     guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
+    selected_guild = list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop()
     discord_json = {
         'user': discord.get(API_BASE_URL + '/users/@me').json(),
         'guilds': None,
-        'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop()
+        'selected_guild': selected_guild
     }
+
+    dbguild, created = Guild.objects.get_or_create(id=guild_id)
+
     return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
 
 

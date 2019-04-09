@@ -21,6 +21,8 @@ from django.views.generic import TemplateView
 from web.ohminator_web.views import authentication_successful, index, dashboard, guild_joined_successful, \
     guild_dashboard, server_selected
 
+import web.ohminator_web.signals
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/oauth_success', authentication_successful),

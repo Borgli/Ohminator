@@ -35,11 +35,16 @@ class NavBar extends React.Component {
               <div className="buttons">
                 <div className="navbar-brand">
                   <div className="navbar-item has-dropdown is-hoverable">
-                    <a className="navbar-link">
-                      <img src={"https://cdn.discordapp.com/avatars/" +
-                      window.discord.user.id + "/" + window.discord.user.avatar + ".png"}/>
-                      {window.discord.user.username}
-                    </a>
+                    {discord ?
+                      <a className="navbar-link">
+                        <img src={"https://cdn.discordapp.com/avatars/" +
+                        window.discord.user.id + "/" + window.discord.user.avatar + ".png"}/>
+                        {window.discord.user.username}
+                      </a>
+                      :
+                      <a className="navbar-link">Log in</a>
+                    }
+
 
                     <div className="navbar-dropdown is-boxed">
                       <a className="navbar-item">

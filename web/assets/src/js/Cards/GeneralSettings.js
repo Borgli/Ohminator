@@ -9,17 +9,19 @@ class GeneralSettings extends React.Component {
 
     render() {
         return (
-            <div>
-                {this.props.title = "General Settings"}
-                <div className="tile is-vertical">
-                    <form>
-                        <label>
-                            Prefix:
-                            <input type="text" value="!"/>
-                        </label>
-                    </form>
-                </div>
-            </div>
+          <div>
+              <div className="title">
+                  {this.props.title = "General Settings"}
+              </div>
+              <div className="tile is-vertical">
+                  <form>
+                      <label>
+                          Prefix:
+                          <input type="text" value="!"/>
+                      </label>
+                  </form>
+              </div>
+          </div>
         );
     }
 }

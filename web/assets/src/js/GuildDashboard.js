@@ -11,27 +11,50 @@ class GuildDashboard extends React.Component {
 
     render() {
         return (
-            <div>
-                <div className="container is-fluid">
-                    <div className="tile is-ancestor">
-                        <div className="tile is-parent">
+          <div>
 
-                            <div className="tile">
-                                <GeneralSettings/>
-                            </div>
 
-                            <div className="tile">
-                                <Youtube/>
-                            </div>
+              <div className="container is-fluid">
+                  <div className="tile is-ancestor is-vertical has-background-grey-light">
 
-                            <div className="tile">
-                                <Intro/>
-                            </div>
+                      <div className="tile is-parent is-12">
+                          <div className="container has-text-centered">
+                              <h1 className="title">Current server:</h1>
+                              <h1 className="title has-text-primary">{window.discord.selected_guild.name}</h1>
+                          </div>
+                      </div>
 
-                        </div>
-                    </div>
-                </div>
-            </div>
+                      <div className="tile is-parent is-12">
+                          <div className="tile is-child box has-text-centered has-background-warning">
+                              <GeneralSettings/>
+                          </div>
+                      </div>
+
+                      <div className="tile is-parent is-vertical is-12 has-background-success">
+                          <div className="tile is-child">
+                              <div className="title has-text-centered">
+                                  Plugins
+                              </div>
+                          </div>
+                          <div className="tile is-parent is-12">
+                              <div className="tile is-child box has-text-centered has-background-danger">
+                                  <Youtube/>
+                              </div>
+
+                              <div className="tile is-child box has-text-centered has-background-info">
+                                  <Intro/>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="tile is-parent is-12">
+                          <div className="tile is-child has-text-centered">
+                              <a className="button is-primary is-large is-centered">Save changes</a>
+                          </div>
+                      </div>
+                  </div>
+              </div>>
+          </div>
         );
     }
 }

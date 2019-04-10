@@ -15,26 +15,26 @@ class Default extends React.Component {
   render() {
     return (
       <div>
-        <div className="tile is-parent">
-          <div className="tile is-4 is-vertical">
+        <div className="tile is-vertical">
+          <div className="title">
             {this.props.title}
-            <form>
-              <label className="checkbox">
-                Enabled
-                <input type="checkbox" onClick={() => {this.setState({enabled: !this.state.enabled}); console.log(this.state.enabled)}}/>
-              </label>
-
-              <label>
-                Communication:
-                <select>
-                  <option selected value="DM">Direct Message</option>
-                  <option value="CH">Specific Channel</option>
-                  <option value="U">User Channel</option>
-                  <option value="M">Muted</option>
-                </select>
-              </label>
-            </form>
           </div>
+          <form>
+            <label className="checkbox">
+              Enabled
+              <input type="checkbox" onClick={() => {this.setState({enabled: !this.state.enabled}); console.log(this.state.enabled)}}/>
+            </label>
+
+            <div className="label">
+              Communication:
+            </div>
+            <select>
+              <option selected value="DM">Direct Message</option>
+              <option value="CH">Specific Channel</option>
+              <option value="U">User Channel</option>
+              <option value="M">Muted</option>
+            </select>
+          </form>
         </div>
       </div>
     );

@@ -31,6 +31,11 @@ class IntroPlugin(Plugin):
     pass
 
 
+class YoutubePlugin(Plugin):
+    name = models.CharField(max_length=50, editable=False, default="Youtube Plugin")
+    pass
+
+
 class User(models.Model):
     id = models.CharField(max_length=18, primary_key=True)
     guilds = models.ManyToManyField(Guild)

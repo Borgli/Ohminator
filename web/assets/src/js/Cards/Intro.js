@@ -12,7 +12,7 @@ class Intro extends React.Component {
         return (
             <div>
                 <Default title="Intros"/>
-                <div className="tile is-4 is-vertical">
+                <div className="tile">
 
                 </div>
             </div>

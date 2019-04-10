@@ -15,17 +15,17 @@ class Default extends React.Component {
   render() {
     return (
       <div>
-        <div className="tile is-vertical">
-          <div className="title">
+        <div className="tile is-vertical has-background-grey-dark">
+          <div className="title has-text-light">
             {this.props.title}
           </div>
           <form>
-            <label className="checkbox">
+            <label className="checkbox has-text-light">
               Enabled
               <input type="checkbox" onClick={() => {this.setState({enabled: !this.state.enabled}); console.log(this.state.enabled)}}/>
             </label>
 
-            <div className="label">
+            <div className="label has-text-light">
               Communication:
             </div>
             <select>

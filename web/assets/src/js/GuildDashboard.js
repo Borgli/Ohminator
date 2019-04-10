@@ -12,10 +12,9 @@ class GuildDashboard extends React.Component {
     render() {
         return (
           <div>
-
-
               <div className="container is-fluid">
-                  <div className="tile is-ancestor is-vertical has-background-grey-light">
+                  <div className="tile is-ancestor is-vertical">
+
 
                       <div className="tile is-parent is-12">
                           <div className="container has-text-centered">
@@ -24,34 +23,36 @@ class GuildDashboard extends React.Component {
                           </div>
                       </div>
 
-                      <div className="tile is-parent is-12">
-                          <div className="tile is-child box has-text-centered has-background-warning">
-                              <GeneralSettings/>
-                          </div>
+
+                      <div className="tile is-child box is-shadowless has-text-centered has-background-grey-darker">
+                          <GeneralSettings/>
                       </div>
 
-                      <div className="tile is-parent is-vertical is-12 has-background-success">
+
+                      <div className="tile is-parent box is-vertical is-12 has-background-grey-darker">
                           <div className="tile is-child">
-                              <div className="title has-text-centered">
+                              <div className="title has-text-centered has-text-light">
                                   Plugins
                               </div>
                           </div>
                           <div className="tile is-parent is-12">
-                              <div className="tile is-child box has-text-centered has-background-danger">
+                              <div className="tile is-child box has-text-centered has-background-grey-dark">
                                   <Youtube/>
                               </div>
-
-                              <div className="tile is-child box has-text-centered has-background-info">
+                              <div className="tile is-child box has-text-centered has-background-grey-dark">
                                   <Intro/>
                               </div>
                           </div>
                       </div>
+
 
                       <div className="tile is-parent is-12">
                           <div className="tile is-child has-text-centered">
                               <a className="button is-primary is-large is-centered">Save changes</a>
                           </div>
                       </div>
+
+
                   </div>
               </div>>
           </div>

@@ -47,7 +47,7 @@ class NavBar extends React.Component {
 
 
                     <div className="navbar-dropdown is-boxed">
-                      <a className="navbar-item">
+                      <a className="navbar-item" href="http://127.0.0.1:8000/dashboard/">
                         Servers
                       </a>
                       <a className="navbar-item">

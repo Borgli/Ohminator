@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ohminator_web.apps.OhminatorWebConfig',
+    'ohminator.apps.OhminatorConfig',
     'rest_framework',
     'webpack_loader'
 ]

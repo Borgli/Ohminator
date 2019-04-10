@@ -1,5 +1,6 @@
 import React from "react";
 
+let LOGOUT_URL = "http://127.0.0.1:8000/api/logout";
 
 class NavBar extends React.Component {
   constructor(props) {
@@ -25,7 +26,7 @@ class NavBar extends React.Component {
 
         <div id="navbarBasicExample" className="navbar-menu">
           <div className="navbar-start">
-            <a className="navbar-item" href={"http://www.ohminator.com"}target="_blank">
+            <a className="navbar-item" href={"http://www.ohminator.com"} target="_blank">
               Documentation
             </a>
           </div>
@@ -35,11 +36,11 @@ class NavBar extends React.Component {
               <div className="buttons">
                 <div className="navbar-brand">
                   <div className="navbar-item has-dropdown is-hoverable">
-                    {discord ?
+                    {this.props.login ?
                       <a className="navbar-link">
                         <img src={"https://cdn.discordapp.com/avatars/" +
-                        window.discord.user.id + "/" + window.discord.user.avatar + ".png"}/>
-                        {window.discord.user.username}
+                        this.props.login.id + "/" + this.props.login.avatar + ".png"}/>
+                        {this.props.login.username}
                       </a>
                       :
                       <a className="navbar-link">Log in</a>
@@ -47,10 +48,10 @@ class NavBar extends React.Component {
 
 
                     <div className="navbar-dropdown is-boxed">
-                      <a className="navbar-item" href="http://127.0.0.1:8000/dashboard/">
+                      <a className="navbar-item" href={this.props.login ? this.props.urls.dashboardUrl : this.props.urls.authUrl}>
                         Servers
                       </a>
-                      <a className="navbar-item">
+                      <a className="navbar-item" href={LOGOUT_URL}>
                         Logout
                       </a>
                       <hr className="navbar-divider"/>

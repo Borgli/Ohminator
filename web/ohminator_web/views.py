@@ -9,7 +9,7 @@ from requests_oauthlib import OAuth2Session
 
 OAUTH2_CLIENT_ID = '315654415946219532'
 OAUTH2_CLIENT_SECRET = 'I_UWW6KvtaRnQhIa7Wo4b5ubmgPyUoNA'
-OAUTH2_REDIRECT_URI = 'http://127.0.0.1:8000/api/oauth_success'
+OAUTH2_REDIRECT_URI = 'http://127.0.0.1:8000/api/login'
 GUILD_REDIRECT_URI = 'http://127.0.0.1:8000/api/bot_joined'
 
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
@@ -43,10 +43,10 @@ def make_session(token=None, state=None, scope=None, request=None):
         token_updater=token_updater(request))
 
 
-def authentication_successful(request):
+def login(request):
     # Get Auth Token
     if request.GET.get('error'):
-        return request.GET['error']
+        return redirect("/api/logout")
     discord = make_session(state='', request=request)
     token = discord.fetch_token(
         TOKEN_URL,
@@ -54,25 +54,45 @@ def authentication_successful(request):
         authorization_response=request.get_raw_uri())
     request.session['oauth2_token'] = token
     print(token)
-    return redirect('/dashboard', permanent=True)
+    return redirect('/dashboard')
+
+
+def logout(request):
+    if 'oauth2_token' in request.session:
+        del(request.session['oauth2_token'])
+    return redirect('/')
 
 
 def dashboard(request):
     # Get user info
-    discord = make_session(token=request.session.get('oauth2_token'))
-    discord_json = {
-        'user': discord.get(API_BASE_URL + '/users/@me').json(),
-        'guilds': discord.get(API_BASE_URL + '/users/@me/guilds').json(),
-        'selected_guild': None
-    }
-    return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+    discord = make_session(token=request.session.get('oauth2_token', ''))
+    if discord.authorized:
+        discord_json = {
+            'user': discord.get(API_BASE_URL + '/users/@me').json(),
+            'guilds': discord.get(API_BASE_URL + '/users/@me/guilds').json(),
+            'selected_guild': None
+        }
+        return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+    else:
+        return redirect("/api/logout")
 
 
 def index(request):
-    return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(None)})
+    discord = make_session(token=request.session.get('oauth2_token', ''))
+    if discord.authorized:
+        discord_json = {
+            'user': discord.get(API_BASE_URL + '/users/@me').json(),
+            'guilds': None,
+            'selected_guild': None
+        }
+        return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+    else:
+        return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(None)})
 
 
 def guild_joined_successful(request):
+    if request.GET.get('error'):
+        return redirect("/dashboard")
     return redirect('/dashboard/' + request.GET.get('guild_id'))
 
 
@@ -93,12 +113,10 @@ def guild_dashboard(request, guild_id):
 
 def server_selected(request, guild_id):
     # Check if guild exists in database
-    def guild_exists(g_id):
-        return False
-
-    if guild_exists(guild_id):
-        return redirect('/dashboard/' + request.GET.get('guild_id'))
-    else:
+    try:
+        Guild.objects.get(pk=guild_id)
+        return redirect('/dashboard/' + str(guild_id))
+    except Guild.DoesNotExist:
         return redirect("https://discordapp.com/oauth2/authorize?scope=bot&response_type=code&redirect_uri="
                         + GUILD_REDIRECT_URI + "&permissions=66321471&client_id=" + OAUTH2_CLIENT_ID + "&guild_id="
                         + str(guild_id))

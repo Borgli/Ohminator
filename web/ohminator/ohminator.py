@@ -1,10 +1,34 @@
-from functools import wraps
-
+import os
 import discord
+
+from functools import wraps
 from ohminator_web.models import Guild, User, Plugin
 
 
-def main():
+class Ohminator(discord.Client):
+
+    def __init__(self, **options):
+        super().__init__(**options)
+
+    async def on_ready(self):
+        print('Logged in as')
+        print(self.user.name)
+        print(self.user.id)
+        print(discord.version_info)
+        print(discord.__version__)
+        print('------')
+
+    async def on_message(self, message):
+        if message.content.strip() and message.guild:
+            guild = Guild.objects.get(pk=message.guild.id)
+            # Normal commands can be awaited and is therefore in their own functions
+            for key in commands:
+                if message.content.lower().split()[0] == guild.prefix + key:
+                    await commands[key](message, self, None)
+                    return
+
+
+def run_ohminator():
     client = Ohminator()
 
     # Reads token
@@ -13,10 +37,6 @@ def main():
 
     # Starts the execution of the bot
     client.run(token)
-
-
-if __name__ == '__main__':
-    main()
 
 
 class CommandAlreadyExistsError(BaseException):
@@ -50,27 +70,3 @@ class RegisterCommand:
 @RegisterCommand('info', 'help', 'commands', plugin=None)
 async def info(message, client, plugin):
     await message.channel.send('Halla balla!')
-
-
-class Ohminator(discord.Client):
-
-    def __init__(self, **options):
-        super().__init__(**options)
-
-    async def on_ready(self):
-        print('Logged in as')
-        print(self.user.name)
-        print(self.user.id)
-        print(discord.version_info)
-        print(discord.__version__)
-        print('------')
-
-    async def on_message(self, message):
-        if message.content.strip() and message.guild:
-            guild = Guild.objects.get(pk=message.guild.id)
-            # Normal commands can be awaited and is therefore in their own functions
-            for key in commands:
-                if message.content.lower().split()[0] == guild.prefix + key:
-                    await commands[key](message, self, None)
-                    return
-

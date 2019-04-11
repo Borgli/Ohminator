@@ -37,9 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ohminator.apps.OhminatorConfig',
     'ohminator_web.apps.OhminatorWebConfig',
-    'rest_framework',
-    'webpack_loader'
 ]
 
 MIDDLEWARE = [
@@ -127,7 +126,6 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'assets'),
 )
 
-
 # Webpack loader
 
 WEBPACK_LOADER = {
@@ -136,3 +134,5 @@ WEBPACK_LOADER = {
         'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'),
     }
 }
+
+

@@ -38,9 +38,19 @@ class NavBar extends React.Component {
                   <div className="navbar-item has-dropdown is-hoverable">
                     {this.props.login ?
                       <a className="navbar-link">
-                        <img src={"https://cdn.discordapp.com/avatars/" +
-                        this.props.login.id + "/" + this.props.login.avatar + ".png"}/>
-                        {this.props.login.username}
+                        {this.props.login.avatar ?
+                            <div>
+                              <img src={"https://cdn.discordapp.com/avatars/" +
+                              this.props.login.id + "/" + this.props.login.avatar + ".png"}/>
+                              {this.props.login.username}
+                            </div>
+                            :
+                            <div>
+                              <img src={"https://cdn.discordapp.com/embed/avatars/" +
+                              (this.props.login.discriminator % 5) + ".png"}/>
+                              {this.props.login.username}
+                            </div>
+                        }
                       </a>
                       :
                       <a className="navbar-link">Log in</a>

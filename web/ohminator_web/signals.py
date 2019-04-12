@@ -5,5 +5,5 @@ from ohminator_web.models import Guild, IntroPlugin, YoutubePlugin
 
 @receiver(post_save, sender=Guild)
 def plugin_creater(sender, instance, **kwargs):
-    IntroPlugin.objects.create(guild=instance)
-    YoutubePlugin.objects.create(guild=instance)
+    IntroPlugin.objects.create(name="Intros", url_ending="intros", guild=instance)
+    YoutubePlugin.objects.create(name="YouTube", url_ending="youtube", guild=instance)

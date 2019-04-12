@@ -1,9 +1,9 @@
 import json
 import os
-
+from django.core.serializers.json import DjangoJSONEncoder
 import requests
 from django.shortcuts import render, redirect
-from ohminator_web.models import Guild, User, Plugin
+from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin
 
 from requests_oauthlib import OAuth2Session
 
@@ -98,17 +98,22 @@ def guild_joined_successful(request):
 
 def guild_dashboard(request, guild_id):
     discord = make_session(token=request.session.get('oauth2_token'))
-    guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-    selected_guild = list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop()
-    discord_json = {
-        'user': discord.get(API_BASE_URL + '/users/@me').json(),
-        'guilds': None,
-        'selected_guild': selected_guild
-    }
+    if discord.authorized:
+        guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
+        selected_guild = list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop()
+        discord_json = {
+            'user': discord.get(API_BASE_URL + '/users/@me').json(),
+            'guilds': None,
+            'selected_guild': selected_guild
+        }
 
-    dbguild, created = Guild.objects.get_or_create(id=guild_id)
+        dbguild, created = Guild.objects.get_or_create(id=guild_id)
 
-    return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+        #userintros = Intro.objects.filter(User)
+
+        return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+    else:
+        return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(None)})
 
 
 def server_selected(request, guild_id):
@@ -120,3 +125,30 @@ def server_selected(request, guild_id):
         return redirect("https://discordapp.com/oauth2/authorize?scope=bot&response_type=code&redirect_uri="
                         + GUILD_REDIRECT_URI + "&permissions=66321471&client_id=" + OAUTH2_CLIENT_ID + "&guild_id="
                         + str(guild_id))
+
+
+def plugin(request, guild_id, plugin_name):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        try:
+            guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
+            real_plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
+            base_plugin = Plugin.objects.non_polymorphic().filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
+            from django.core import serializers
+            data = json.loads(serializers.serialize('json', [*[real_plugin], *[base_plugin]]))
+            discord_json = {
+                'user': discord.get(API_BASE_URL + '/users/@me').json(),
+                'guilds': None,
+                'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
+                'plugin': {
+                    'model': data[0]['model'],
+                    'fields': data[1]['fields'].update(data[0]['fields'])
+                }
+            }
+            return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            return redirect('/dashboard/' + str(guild_id))
+    else:
+        return redirect("/api/logout")

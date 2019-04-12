@@ -16,10 +16,10 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
+from django.views.generic import RedirectView
 
 from web.ohminator_web.views import login, logout, index, dashboard, guild_joined_successful, \
-    guild_dashboard, server_selected
+    guild_dashboard, server_selected, plugin
 
 import web.ohminator_web.signals
 
@@ -27,9 +27,12 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/login', login),
     path('api/logout', logout),
-    path('dashboard/<int:guild_id>', guild_dashboard),
-    path('dashboard/', dashboard),
+    path('dashboard/<int:guild_id>', guild_dashboard, name="guild_dashboard"),
+    path('dashboard/<int:guild_id>/', RedirectView.as_view(pattern_name='guild_dashboard', permanent=True)),
+    path('dashboard', dashboard, name="dashboard"),
+    path('dashboard/', RedirectView.as_view(pattern_name="dashboard", permanent=True)),
     path('api/bot_joined', guild_joined_successful),
     path('api/guild/<int:guild_id>', server_selected),
     path('', index),
+    path('dashboard/<int:guild_id>/<str:plugin_name>', plugin)
 ]

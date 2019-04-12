@@ -1,5 +1,4 @@
 import React from "react";
-import Default from "./Default";
 
 
 class Youtube extends React.Component {
@@ -11,10 +10,7 @@ class Youtube extends React.Component {
   render() {
     return (
       <div>
-        <Default title="Youtube"/>
-        <div className="tile">
-
-        </div>
+        Yo yo
       </div>
     );
   }

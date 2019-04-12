@@ -1,7 +1,6 @@
 import React from "react";
-import Youtube from "./Cards/Youtube";
 import GeneralSettings from "./Cards/GeneralSettings";
-import Intro from "./Cards/Intro";
+import Default from "./Cards/Default";
 
 
 class GuildDashboard extends React.Component {
@@ -37,10 +36,10 @@ class GuildDashboard extends React.Component {
                           </div>
                           <div className="tile is-parent is-12">
                               <div className="tile is-child box has-text-centered has-background-grey-dark">
-                                  <Youtube/>
+                                  <Default plugin={{title: "intros", url_ending: "intros"}}/>
                               </div>
                               <div className="tile is-child box has-text-centered has-background-grey-dark">
-                                  <Intro/>
+                                  <Default plugin={{title: "youtube", url_ending: "youtube"}}/>
                               </div>
                           </div>
                       </div>

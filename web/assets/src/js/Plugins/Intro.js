@@ -1,5 +1,4 @@
 import React from "react";
-import Default from "./Default";
 
 
 class Intro extends React.Component {
@@ -11,10 +10,7 @@ class Intro extends React.Component {
     render() {
         return (
             <div>
-                <Default title="Intros"/>
-                <div className="tile">
-
-                </div>
+                Halla bakka
             </div>
         );
     }

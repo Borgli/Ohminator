@@ -17,7 +17,7 @@ class GeneralSettings extends React.Component {
           <form>
             <div className="label has-text-light">
               Prefix:
-              <input type="text" value="!"/>
+              <input type="text" placeholder="!"/>
             </div>
           </form>
         </div>

@@ -17,7 +17,9 @@ class Default extends React.Component {
       <div>
         <div className="tile is-vertical has-background-grey-dark">
           <div className="title has-text-light">
-            {this.props.title}
+            <a href={"http://127.0.0.1:8000/dashboard/" + window.discord.selected_guild.id + "/" + this.props.plugin.url_ending}>
+            {this.props.plugin.title}
+            </a>
           </div>
           <form>
             <label className="checkbox has-text-light">

@@ -163,3 +163,31 @@ def plugin(request, guild_id, plugin_name):
             return redirect('/dashboard/' + str(guild_id))
     else:
         return redirect("/api/logout")
+
+
+def enable_plugin(request, guild_id, plugin_name):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        try:
+            plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).update(
+                enabled=True)
+        except (Plugin.DoesNotExist, Plugin.MultipleObjectsReturned):
+            return redirect("/dashboard/" + str(guild_id))
+    else:
+        return redirect("/api/logout")
+
+    return redirect("/dashboard/" + str(guild_id))
+
+
+def disable_plugin(request, guild_id, plugin_name):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        try:
+            plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).update(
+                enabled=False)
+        except (Plugin.DoesNotExist, Plugin.MultipleObjectsReturned):
+            return redirect("/dashboard/" + str(guild_id))
+    else:
+        return redirect("/api/logout")
+
+    return redirect("/dashboard/" + str(guild_id))

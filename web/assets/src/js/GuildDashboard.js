@@ -39,7 +39,7 @@ class GuildDashboard extends React.Component {
                                   {
                                       return (
                                         <div className="tile is-child box has-text-centered has-background-grey-dark">
-                                            <PluginCard plugin={{title: plugin['fields'].name, url_ending: plugin['fields'].url_ending}}/>
+                                            <PluginCard plugin={{title: plugin['fields'].name, url_ending: plugin['fields'].url_ending, isEnabled: plugin['fields'].enabled}}/>
                                         </div>);
                                   }
                               })}

@@ -109,7 +109,7 @@ def guild_dashboard(request, guild_id):
 
         dbguild, created = Guild.objects.get_or_create(id=guild_id)
 
-        #userintros = Intro.objects.filter(User)
+        # userintros = Intro.objects.filter(User)
 
         return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
     else:
@@ -142,7 +142,7 @@ def plugin(request, guild_id, plugin_name):
                 'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
                 'plugin': {
                     'model': data[0]['model'],
-                    'fields': data[1]['fields'].update(data[0]['fields'])
+                    'fields': {**data[1]['fields'], **data[0]['fields']}
                 }
             }
             return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})

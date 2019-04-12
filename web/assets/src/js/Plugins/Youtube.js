@@ -1,4 +1,5 @@
 import React from "react";
+import SaveChanges from "../SaveChanges";
 
 
 class Youtube extends React.Component {
@@ -11,6 +12,7 @@ class Youtube extends React.Component {
     return (
       <div>
         Yo yo
+        <SaveChanges/>
       </div>
     );
   }

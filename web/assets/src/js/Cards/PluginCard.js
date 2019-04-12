@@ -1,6 +1,6 @@
 import React from "react";
 
-class Default extends React.Component {
+class PluginCard extends React.Component {
   constructor(props) {
     super(props);
 
@@ -43,4 +43,4 @@ class Default extends React.Component {
   }
 }
 
-export default Default;
+export default PluginCard;

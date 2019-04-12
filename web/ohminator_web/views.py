@@ -99,17 +99,28 @@ def guild_joined_successful(request):
 def guild_dashboard(request, guild_id):
     discord = make_session(token=request.session.get('oauth2_token'))
     if discord.authorized:
+        dbguild, created = Guild.objects.get_or_create(id=guild_id)
         guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-        selected_guild = list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop()
+        real_plugins = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id))
+
+        # Fetching plugins
+        plugin_list = []
+        from django.core import serializers
+        for plugin_obj in real_plugins:
+            plugin_list.append(json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]])))
+
+        # Concatenate the two indexes (base+derived) to one (easier indexing on frontend)
+        plugin_list_final = []
+        for data in plugin_list:
+            plugin_list_final.append({'model': data[0]['model'], 'fields': {**data[0]['fields'],
+                                                                            **data[1]['fields']}})
+
         discord_json = {
             'user': discord.get(API_BASE_URL + '/users/@me').json(),
             'guilds': None,
-            'selected_guild': selected_guild
+            'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
+            'plugins': plugin_list_final
         }
-
-        dbguild, created = Guild.objects.get_or_create(id=guild_id)
-
-        # userintros = Intro.objects.filter(User)
 
         return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
     else:
@@ -131,11 +142,11 @@ def plugin(request, guild_id, plugin_name):
     discord = make_session(token=request.session.get('oauth2_token'))
     if discord.authorized:
         try:
+            # TODO Don't fetch plugin data again, already fetched on guild dashboard
             guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-            real_plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
-            base_plugin = Plugin.objects.non_polymorphic().filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
+            plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
             from django.core import serializers
-            data = json.loads(serializers.serialize('json', [*[real_plugin], *[base_plugin]]))
+            data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
             discord_json = {
                 'user': discord.get(API_BASE_URL + '/users/@me').json(),
                 'guilds': None,

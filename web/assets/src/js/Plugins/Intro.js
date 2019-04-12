@@ -1,4 +1,5 @@
 import React from "react";
+import SaveChanges from "../SaveChanges";
 
 
 class Intro extends React.Component {
@@ -11,6 +12,7 @@ class Intro extends React.Component {
         return (
             <div>
                 Halla bakka
+                <SaveChanges/>
             </div>
         );
     }

@@ -14,11 +14,14 @@ let guildDashboard = (state = {displayPage: undefined, discord: window.discord},
         case 'UPDATE_PLUGIN_PAGE':
             console.log('UPDATE_PLUGIN_PAGE: ', action.plugin);
             return Object.assign({}, state, {
-                discord: action.discord,
-                displayPage: PLUGINS[action.plugin](action.pluginState)
+                discord: {...state.discord, ...action.discord},
+                displayPage: action.plugin ? PLUGINS[action.plugin](action.pluginState) : undefined
             });
         case 'UPDATE_DISCORD':
-            return Object.assign({}, state, {discord: action.discord});
+            console.log('UPDATE_DISCORD: ', {...state.discord, ...action.discord});
+            return Object.assign({}, state, {discord: {...state.discord, ...action.discord}});
+        case 'PLUGIN_DISABLED':
+            return Object.assign({}, state, {displayPage: undefined, discord: {...state.discord, plugins: undefined}});
     }
     return state;
 };

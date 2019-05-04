@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 from web.ohminator_web.views import login, logout, index, dashboard, guild_joined_successful, \
-    guild_dashboard, server_selected, plugin, plugin_status
+    guild_dashboard, server_selected, plugin, plugin_status, get_discord_plugins
 
 import web.ohminator_web.signals
 
@@ -36,4 +36,5 @@ urlpatterns = [
     path('', index),
     path('dashboard/<int:guild_id>/<str:plugin_name>', plugin),
     path('dashboard/<int:guild_id>/plugin_status/<str:plugin_name>', plugin_status),
+    path('api/guild/<int:guild_id>/plugins', get_discord_plugins)
 ]

@@ -123,7 +123,6 @@ def guild_dashboard(request, guild_id):
 
         discord_json = {
             'user': discord.get(API_BASE_URL + '/users/@me').json(),
-            'guilds': None,
             'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
             'plugins': plugin_list_final
         }
@@ -131,6 +130,25 @@ def guild_dashboard(request, guild_id):
         return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
     else:
         return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(None)})
+
+
+@api_view(['GET'])
+def get_discord_plugins(request, guild_id):
+    real_plugins = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id))
+
+    # Fetching plugins
+    plugin_list = []
+    from django.core import serializers
+    for plugin_obj in real_plugins:
+        plugin_list.append(json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]])))
+
+    # Concatenate the two indexes (base+derived) to one (easier indexing on frontend)
+    plugin_list_final = []
+    for data in plugin_list:
+        plugin_list_final.append({'model': data[0]['model'], 'fields': {**data[0]['fields'],
+                                                                        **data[1]['fields']}})
+
+    return Response({'plugins': plugin_list_final})
 
 
 def server_selected(request, guild_id):
@@ -183,7 +201,6 @@ def plugin(request, guild_id, plugin_name):
             data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
             discord_json = {
                 'user': discord.get(API_BASE_URL + '/users/@me').json(),
-                'guilds': None,
                 'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
                 'plugin': {
                     'model': data[0]['model'],

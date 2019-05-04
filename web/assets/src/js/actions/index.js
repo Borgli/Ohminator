@@ -4,6 +4,10 @@ export const updatePluginPage = (plugin, discord) => ({
     discord
 });
 
+export const pluginDisabled = () => ({
+    type: 'PLUGIN_DISABLED'
+});
+
 export const updateDiscord = (discord) => ({
     type: 'UPDATE_DISCORD',
     discord

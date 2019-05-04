@@ -1,6 +1,7 @@
 import React from "react";
 import SaveChanges from "../SaveChanges";
 import {connect} from "react-redux";
+import DisableButton from "./Components/DisableButton";
 
 
 class Intro extends React.Component {
@@ -27,12 +28,7 @@ class Intro extends React.Component {
             <option value="M">Muted</option>
           </select>
         </form>
-        <div className="tile is-parent is-12">
-          <div className="tile is-child has-text-centered">
-            <a className="button is-primary is-large is-centered"
-               href={"http://127.0.0.1:8000/dashboard/" + this.props.discord.selected_guild.id + "/disable/" + this.props.discord.plugin['fields'].url_ending}>Disable</a>
-          </div>
-        </div>
+        <DisableButton discord={this.props.discord}/>
         <SaveChanges/>
       </div>
     );

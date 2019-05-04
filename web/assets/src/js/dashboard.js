@@ -14,12 +14,6 @@ let URLS = {
 };
 
 
-let PLUGINS = {
-  'ohminator_web.introplugin': <Intro/>,
-  'ohminator_web.youtubeplugin': <Youtube/>
-};
-
-
 class Dashboard extends React.Component {
   constructor(props) {
     super(props);
@@ -29,41 +23,37 @@ class Dashboard extends React.Component {
     // Not logged in
     if (!discord) {
       return (
-          <div>
-            <NavBar urls={URLS}/>
-            <LandingPage urls={URLS}/>
-          </div>
+        <div>
+          <NavBar urls={URLS}/>
+          <LandingPage urls={URLS}/>
+        </div>
       )
-    }
-    // Plugin Dashboard
-    else if (discord.plugin) {
-      return PLUGINS[discord.plugin.model]
     }
     // Server Select
     else if (discord.guilds && !discord.selected_guild) {
       return (
-          <div>
-            <NavBar login={discord.user} urls={URLS}/>
-            <ServerSelection/>
-          </div>
+        <div>
+          <NavBar login={discord.user} urls={URLS}/>
+          <ServerSelection/>
+        </div>
       )
     }
     // Guild Dashboard
     else if (!discord.guilds && discord.selected_guild) {
       return (
-          <div>
-            <NavBar login={discord.user} urls={URLS}/>
-            <GuildDashboard/>
-          </div>
+        <div>
+          <NavBar login={discord.user} urls={URLS}/>
+          <GuildDashboard/>
+        </div>
       )
     }
     // Landing Page with login
     else {
       return (
-          <div>
-            <NavBar login={discord.user} urls={URLS}/>
-            <LandingPage urls={URLS}/>
-          </div>
+        <div>
+          <NavBar login={discord.user} urls={URLS}/>
+          <LandingPage urls={URLS}/>
+        </div>
       )
     }
   }

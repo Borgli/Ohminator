@@ -1,5 +1,6 @@
 import React from "react";
 import SaveChanges from "../SaveChanges";
+import {connect} from "react-redux";
 
 
 class Youtube extends React.Component {
@@ -29,7 +30,7 @@ class Youtube extends React.Component {
         <div className="tile is-parent is-12">
           <div className="tile is-child has-text-centered">
             <a className="button is-primary is-large is-centered"
-               href={"http://127.0.0.1:8000/dashboard/" + window.discord.selected_guild.id + "/disable/" + window.discord.plugin['fields'].url_ending}>Disable</a>
+               href={"http://127.0.0.1:8000/dashboard/" + this.props.discord.selected_guild.id + "/disable/" + this.props.discord.plugin['fields'].url_ending}>Disable</a>
           </div>
         </div>
         <SaveChanges/>
@@ -38,4 +39,8 @@ class Youtube extends React.Component {
   }
 }
 
-export default Youtube;
+let mapStateToProps = (state) => {
+  return {discord: state.guildDashboard.discord}
+};
+
+export default connect(mapStateToProps)(Youtube);

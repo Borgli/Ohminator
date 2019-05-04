@@ -11,7 +11,7 @@ class GeneralSettings extends React.Component {
     return (
       <div>
         <div className="title has-text-light">
-          {this.props.title = "General Settings"}
+          {"General Settings"}
         </div>
         <div className="tile is-vertical">
           <form>

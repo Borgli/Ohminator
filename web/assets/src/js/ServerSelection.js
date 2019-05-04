@@ -21,7 +21,7 @@ class ServerSelection extends React.Component {
           </div>
           <div className="tile is-parent">
             {window.discord.guilds.map((guild) => {
-              if (guild.permissions === 2146958847) {
+              if (guild.permissions === 2146959359) {
                 return (
                   <div className="tile box is-shadowless is-child">
                     <a href={SERVER_SELECTED_URL + guild.id}>

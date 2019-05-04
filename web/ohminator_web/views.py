@@ -2,10 +2,15 @@ import json
 import os
 from django.core.serializers.json import DjangoJSONEncoder
 import requests
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.views.decorators.csrf import ensure_csrf_cookie
 from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin
 
 from requests_oauthlib import OAuth2Session
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 OAUTH2_CLIENT_ID = '315654415946219532'
 OAUTH2_CLIENT_SECRET = 'I_UWW6KvtaRnQhIa7Wo4b5ubmgPyUoNA'
@@ -96,6 +101,7 @@ def guild_joined_successful(request):
     return redirect('/dashboard/' + request.GET.get('guild_id'))
 
 
+@ensure_csrf_cookie
 def guild_dashboard(request, guild_id):
     discord = make_session(token=request.session.get('oauth2_token'))
     if discord.authorized:
@@ -138,6 +144,34 @@ def server_selected(request, guild_id):
                         + str(guild_id))
 
 
+# def plugin(request, guild_id, plugin_name):
+#     discord = make_session(token=request.session.get('oauth2_token'))
+#     if discord.authorized:
+#         try:
+#             # TODO Don't fetch plugin data again, already fetched on guild dashboard
+#             guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
+#             plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
+#             from django.core import serializers
+#             data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
+#             discord_json = {
+#                 'user': discord.get(API_BASE_URL + '/users/@me').json(),
+#                 'guilds': None,
+#                 'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
+#                 'plugin': {
+#                     'model': data[0]['model'],
+#                     'fields': {**data[1]['fields'], **data[0]['fields']}
+#                 }
+#             }
+#             return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+#         except Exception:
+#             import traceback
+#             traceback.print_exc()
+#             return redirect('/dashboard/' + str(guild_id))
+#     else:
+#         return redirect("/api/logout")
+
+
+@api_view(['GET'])
 def plugin(request, guild_id, plugin_name):
     discord = make_session(token=request.session.get('oauth2_token'))
     if discord.authorized:
@@ -156,7 +190,7 @@ def plugin(request, guild_id, plugin_name):
                     'fields': {**data[1]['fields'], **data[0]['fields']}
                 }
             }
-            return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
+            return Response({'data': {"discord": json.dumps(discord_json)}})
         except Exception:
             import traceback
             traceback.print_exc()
@@ -165,29 +199,24 @@ def plugin(request, guild_id, plugin_name):
         return redirect("/api/logout")
 
 
-def enable_plugin(request, guild_id, plugin_name):
+# Dynamic content
+@api_view(['GET', 'POST'])
+def plugin_status(request, guild_id, plugin_name):
     discord = make_session(token=request.session.get('oauth2_token'))
     if discord.authorized:
         try:
-            plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).update(
-                enabled=True)
-        except (Plugin.DoesNotExist, Plugin.MultipleObjectsReturned):
-            return redirect("/dashboard/" + str(guild_id))
+            plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name)
+        except Plugin.DoesNotExist:
+            return Response({'error': "Plugin does not exists."})
+        except Plugin.MultipleObjectsReturned:
+            return Response({'error': "Multiple objects returned."})
+
+        plugin_enabled = plugin[0].enabled
+        if request.method == 'POST':
+            plugin_enabled = not plugin_enabled
+            plugin.update(enabled=request.data.get('enable_plugin', plugin_enabled))
+
+        return Response({'plugin_enabled': plugin_enabled})
+
     else:
         return redirect("/api/logout")
-
-    return redirect("/dashboard/" + str(guild_id))
-
-
-def disable_plugin(request, guild_id, plugin_name):
-    discord = make_session(token=request.session.get('oauth2_token'))
-    if discord.authorized:
-        try:
-            plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).update(
-                enabled=False)
-        except (Plugin.DoesNotExist, Plugin.MultipleObjectsReturned):
-            return redirect("/dashboard/" + str(guild_id))
-    else:
-        return redirect("/api/logout")
-
-    return redirect("/dashboard/" + str(guild_id))

@@ -4,7 +4,7 @@ List of intro commands:
 !intro or !i [(index)]      - Plays one of your intros at random. Can play intro at given index.
 !introstop or !is           - Stops playing the currently playing intro.
 !myintros or !intros or !mi - Lists all of your intros.
-!deleteintro or !di [index] - Deletes intro at given index.
+!deleteintro [index]        - Deletes intro at given index.
 !upload or !up or !u        - Uploads an intro. File must use the .wav or .mp3 file format.
                               Upload the file through Discord and put the command as the comment.
 

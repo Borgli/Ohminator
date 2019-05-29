@@ -38,8 +38,11 @@ async def connect_to_voice(client, server, voice_channel):
             await voice_client.disconnect()
             voice_client = await client.join_voice_channel(voice_channel)
         elif voice_client.channel != voice_channel:
-            await voice_client.disconnect()
-            voice_client = await client.join_voice_channel(voice_channel)
+            # Some times the following code works. Other times it does not...
+            # await voice_client.disconnect()
+            # voice_client = await client.join_voice_channel(voice_channel)
+            # ... and we have to change to this.
+            await voice_client.move_to(voice_channel)
     else:
         voice_client = await client.join_voice_channel(voice_channel)
     return voice_client

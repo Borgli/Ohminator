@@ -36,9 +36,9 @@ class Playlist:
         logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
 
         self.task_list = list()
-        self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
-        self.task_list.append(client.loop.create_task(self.play_next_yt()))
-        self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
+        # self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
+        self.task_list.append(asyncio.get_event_loop().create_task(self.play_next_yt()))
+        # self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
 
     async def manage_pinned_messages(self):
         await self.client.wait_until_ready()
@@ -147,16 +147,16 @@ class Playlist:
                     elif f.response.status == 500:
                         # INTERNAL SERVER ERROR
                         print("Internal server error on server {}".format(self.server.name))
-                        await asyncio.sleep(30, loop=self.client.loop)
+                        await asyncio.sleep(30, loop=asyncio.get_event_loop())
                     elif f.response.status == 524:
                         print("Discord overloaded on server {}".format(self.server.name))
-                        await asyncio.sleep(30, loop=self.client.loop)
+                        await asyncio.sleep(30, loop=asyncio.get_event_loop())
                     else:
                         traceback.print_exc()
                         return
                 except asyncio.TimeoutError as f:
                     print("Pinned messages had a timeout error on server {}".format(self.server.name))
-                    await asyncio.sleep(60, loop=self.client.loop)
+                    await asyncio.sleep(60, loop=asyncio.get_event_loop())
                 except:
                     logging.error('Manage pinned messages on server {} had an exception:\n'.format(self.server.name),
                                   exc_info=True)
@@ -164,7 +164,7 @@ class Playlist:
                     return
 
             # 10 second intervals as Discord seems to be limited to edits every 10 seconds.
-            await asyncio.sleep(5, loop=self.client.loop)
+            await asyncio.sleep(5, loop=asyncio.get_event_loop())
 
     @staticmethod
     def get_options(link):
@@ -209,7 +209,7 @@ class Playlist:
         try:
             # Case number 1: The link is any URL
             func = functools.partial(ydl.extract_info, link, download=False, process=False)
-            info = await self.client.loop.run_in_executor(None, func)
+            info = await asyncio.get_event_loop().run_in_executor(None, func)
         except youtube_dl.DownloadError as e:
             # Case number 2: The link is a search link
             if not re.fullmatch(r'https?://(www.youtube.com|youtu.be)/\S+', link):
@@ -217,7 +217,7 @@ class Playlist:
                 try:
                     # Process = True to receive titles
                     func = functools.partial(ydl.extract_info, link, download=False, process=True)
-                    info = await self.client.loop.run_in_executor(None, func)
+                    info = await asyncio.get_event_loop().run_in_executor(None, func)
                 except:
                     raise
             else:

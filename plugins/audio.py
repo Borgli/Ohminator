@@ -572,6 +572,7 @@ async def play_from_internet(message, bot_channel, client):
             await client.send_message(bot_channel, '{}:'.format(message.author.name),
                                       embed=utils.create_now_playing_embed(server.active_playlist_element))
             server.active_player.start()
+            server.active_player.resume()
     except youtube_dl.utils.UnsupportedError:
         await client.send_message(bot_channel,
                                   '{}: Unsupported URL: That URL is not supported! :slight_frown:'.format(

@@ -19,7 +19,7 @@ class IntroManager:
         self.intro_finished = asyncio.Event()
         self.intro_counter_lock = asyncio.Lock()
         self.intro_lock = asyncio.Lock()
-        client.loop.create_task(self.resume_playing_sound())
+        asyncio.get_event_loop().create_task(self.resume_playing_sound())
 
     async def resume_playing_sound(self):
         while not self.client.is_closed:

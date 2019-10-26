@@ -1,8 +1,17 @@
 import os
+import time
+
 import discord
+import ohminator.utils as utils
+from ohminator.member import Member
+from ohminator.server import Server
 
 from functools import wraps
 from ohminator_web.models import Guild, User, Plugin
+
+from ohminator.plugins import *
+
+running = False
 
 
 class Ohminator(discord.Client):
@@ -17,6 +26,24 @@ class Ohminator(discord.Client):
         print(discord.version_info)
         print(discord.__version__)
         print('------')
+        global running
+        if not running:
+            print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
+            utils.create_if_not_exists('servers')
+            for guild in self.guilds:
+                new_server = Server(guild, self, None)
+                utils.server_list.append(new_server)
+                new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', guild.channels)
+                # If channel does not exist - create it
+                if new_server.bot_channel is None:
+                    new_server.bot_channel = await guild.create_channel(guild, 'bot-spam')
+                # Change the topic of the channel if not already set
+                with open('resources/bot_channel_topic.txt') as f:
+                    topic = f.read()
+                if new_server.bot_channel.topic != topic:
+                    await guild.edit_channel(new_server.bot_channel, topic=topic)
+            print('Done!')
+            running = True
 
     async def on_message(self, message):
         if message.content.strip() and message.guild:
@@ -44,7 +71,7 @@ class CommandAlreadyExistsError(BaseException):
         super(CommandAlreadyExistsError, self).__init__("Command '{}' already exists!".format(command))
 
 
-commands = {}
+commands = utils.commands
 
 
 # Registers new commands

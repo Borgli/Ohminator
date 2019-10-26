@@ -81,6 +81,112 @@ def dashboard(request):
         return redirect("/api/logout")
 
 
+@api_view(['GET'])
+def get_me(request):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        return Response({'user': discord.get(API_BASE_URL + '/users/@me').json()})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def get_me_guilds(request):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        return Response({'guilds': discord.get(API_BASE_URL + '/users/@me/guilds').json()})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def get_user(request, user_id):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        return Response({'user': discord.get(API_BASE_URL + '/users/' + user_id).json()})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def get_guild(request, guild_id):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        guild, created = Guild.objects.get_or_create(id=guild_id)
+        return Response({'guild': json.dumps(guild), 'plugins': get_guild_plugins(guild_id)})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def get_plugins(request, guild_id):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        plugins = get_guild_plugins(guild_id)
+        return Response({'plugins': plugins})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def get_plugin(request, guild_id, plugin_name):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        try:
+            # Fetch plugin data again, already fetched on guild dashboard (?)
+            plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(
+                url_ending=plugin_name).get()
+            from django.core import serializers
+            data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
+
+            return Response({'plugin': {'model': data[0]['model'],
+                                        'fields': {**data[1]['fields'],
+                                                   **data[0]['fields']}}})
+        except Exception:
+            return Response({'error': 'exception occurred'})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def plugins_status(request, guild_id):
+    discord = make_session(token=request.session.get('oauth2_token'))
+    if discord.authorized:
+        status_plugins = []
+        plugins = Plugin.objects.all()
+        for plugin in plugins:
+            status_plugins.append({plugin.name, plugin.enabled})
+
+        return Response({'plugins': json.dumps(status_plugins)})
+    else:
+        return Response({'error': 'not authorized'})
+
+
+@api_view(['GET'])
+def get_client(request):
+    return Response({'client_id': OAUTH2_CLIENT_ID})
+
+
+def get_guild_plugins(guild_id):
+    real_plugins = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id))
+
+    # Fetching plugins
+    plugin_list = []
+    from django.core import serializers
+    for plugin_obj in real_plugins:
+        plugin_list.append(json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]])))
+
+    # Concatenate the two indexes (base+derived) to one (easier indexing on frontend)
+    plugin_list_final = []
+    for data in plugin_list:
+        plugin_list_final.append({'model': data[0]['model'], 'fields': {**data[0]['fields'],
+                                                                        **data[1]['fields']}})
+
+    return plugin_list_final
+
+################################################################################
+
+
 def index(request):
     discord = make_session(token=request.session.get('oauth2_token', ''))
     if discord.authorized:
@@ -131,25 +237,6 @@ def guild_dashboard(request, guild_id):
         return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(None)})
 
 
-@api_view(['GET'])
-def get_discord_plugins(request, guild_id):
-    real_plugins = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id))
-
-    # Fetching plugins
-    plugin_list = []
-    from django.core import serializers
-    for plugin_obj in real_plugins:
-        plugin_list.append(json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]])))
-
-    # Concatenate the two indexes (base+derived) to one (easier indexing on frontend)
-    plugin_list_final = []
-    for data in plugin_list:
-        plugin_list_final.append({'model': data[0]['model'], 'fields': {**data[0]['fields'],
-                                                                        **data[1]['fields']}})
-
-    return Response({'plugins': plugin_list_final})
-
-
 def server_selected(request, guild_id):
     # Check if guild exists in database
     try:
@@ -160,79 +247,3 @@ def server_selected(request, guild_id):
                         + GUILD_REDIRECT_URI + "&permissions=66321471&client_id=" + OAUTH2_CLIENT_ID + "&guild_id="
                         + str(guild_id))
 
-
-# def plugin(request, guild_id, plugin_name):
-#     discord = make_session(token=request.session.get('oauth2_token'))
-#     if discord.authorized:
-#         try:
-#             # TODO Don't fetch plugin data again, already fetched on guild dashboard
-#             guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-#             plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
-#             from django.core import serializers
-#             data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
-#             discord_json = {
-#                 'user': discord.get(API_BASE_URL + '/users/@me').json(),
-#                 'guilds': None,
-#                 'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
-#                 'plugin': {
-#                     'model': data[0]['model'],
-#                     'fields': {**data[1]['fields'], **data[0]['fields']}
-#                 }
-#             }
-#             return render(request, "ohminator_web/dashboard.html", {"discord": json.dumps(discord_json)})
-#         except Exception:
-#             import traceback
-#             traceback.print_exc()
-#             return redirect('/dashboard/' + str(guild_id))
-#     else:
-#         return redirect("/api/logout")
-
-
-@api_view(['GET'])
-def plugin(request, guild_id, plugin_name):
-    discord = make_session(token=request.session.get('oauth2_token'))
-    if discord.authorized:
-        try:
-            # TODO Don't fetch plugin data again, already fetched on guild dashboard
-            guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-            plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name).get()
-            from django.core import serializers
-            data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
-            discord_json = {
-                'user': discord.get(API_BASE_URL + '/users/@me').json(),
-                'selected_guild': list(filter(lambda g: g["id"] == str(guild_id), guilds)).pop(),
-                'plugin': {
-                    'model': data[0]['model'],
-                    'fields': {**data[1]['fields'], **data[0]['fields']}
-                }
-            }
-            return Response({'data': {"discord": json.dumps(discord_json)}})
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            return redirect('/dashboard/' + str(guild_id))
-    else:
-        return redirect("/api/logout")
-
-
-# Dynamic content
-@api_view(['GET', 'POST'])
-def plugin_status(request, guild_id, plugin_name):
-    discord = make_session(token=request.session.get('oauth2_token'))
-    if discord.authorized:
-        try:
-            plugin = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(url_ending=plugin_name)
-        except Plugin.DoesNotExist:
-            return Response({'error': "Plugin does not exists."})
-        except Plugin.MultipleObjectsReturned:
-            return Response({'error': "Multiple objects returned."})
-
-        plugin_enabled = plugin[0].enabled
-        if request.method == 'POST':
-            plugin_enabled = not plugin_enabled
-            plugin.update(enabled=request.data.get('enable_plugin', plugin_enabled))
-
-        return Response({'plugin_enabled': plugin_enabled})
-
-    else:
-        return redirect("/api/logout")

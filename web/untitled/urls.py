@@ -15,18 +15,12 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.contrib import admin
-from django.urls import path, include
-from django.views.generic import RedirectView
+from django.urls import path
 
-from web.ohminator_web.views import login, logout, index, dashboard, guild_joined_successful, \
-    guild_dashboard, server_selected, get_plugin, plugins_status, get_plugins, get_me, get_me_guilds, get_user, get_guild, get_client
-
-import web.ohminator_web.signals
+from web.ohminator_web.views import get_plugin, plugins_status, get_plugins, get_me, get_me_guilds, get_user, get_guild, get_client, get_oauth_uri
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/login', login),
-    path('api/logout', logout),
     path('api/user', get_me),
     path('api/guilds', get_me_guilds),
     path('api/guilds/<int:guild_id>', get_guild),
@@ -35,11 +29,5 @@ urlpatterns = [
     path('api/plugins/<int:guild_id>/plugins_status', plugins_status),
     path('api/user/<int:user_id>', get_user),
     path('api/client', get_client),
-    path('dashboard/<int:guild_id>', guild_dashboard, name="guild_dashboard"),
-    path('dashboard/<int:guild_id>/', RedirectView.as_view(pattern_name='guild_dashboard', permanent=True)),
-    path('dashboard', dashboard, name="dashboard"),
-    path('dashboard/', RedirectView.as_view(pattern_name="dashboard", permanent=True)),
-    path('api/bot_joined', guild_joined_successful),
-    path('api/guild/<int:guild_id>', server_selected),
-    path('', index)
+    path('api/oauth_uri', get_oauth_uri)
 ]

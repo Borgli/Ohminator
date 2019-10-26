@@ -1,5 +1,5 @@
-
 class Settings:
+
     def get_settings(self):
         return dict(self.__dict__.items())
 

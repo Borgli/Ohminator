@@ -1,4 +1,3 @@
-import asyncio
 from functools import wraps
 from os.path import exists
 from os import mkdir

@@ -35,7 +35,7 @@ class Ohminator(discord.Client):
         if message.content.strip():
             commands = get_enabled_commands()
             prefix = get_prefix()
-            # Normal commands can be awaited and is therefore in their own functions
+            # Normal commands can be awaited and are therefore in their own functions
             for key in commands:
                 if message.content.lower().split()[0] == prefix + key:
                     await commands[key](message, get_command_details(), client)

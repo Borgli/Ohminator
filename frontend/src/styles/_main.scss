@@ -1,0 +1,13 @@
+@charset "utf-8";
+@import "variables";
+@import "app";
+@import "screens/landingScreen";
+@import "screens/guildSelectionScreen";
+@import "screens/guildScreen";
+@import "components/navbar";
+
+$background: $primary;
+
+// Make changes to bulma variables before importing bulma
+@import "../../node_modules/bulma";
+

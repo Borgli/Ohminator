@@ -1,9 +1,6 @@
 import pickle
 
 from member import Member
-from os.path import isdir
-from os import mkdir, listdir
-from os.path import exists
 from os.path import join
 import asyncio
 from playlist import Playlist

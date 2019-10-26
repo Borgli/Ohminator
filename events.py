@@ -46,8 +46,6 @@ async def set_global_text():
 
 
 
-
-
 async def on_message(message):
     cmd = message.content
 

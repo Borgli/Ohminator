@@ -1,0 +1,33 @@
+@import "../variables";
+
+#landing-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+#content {
+  flex: 1;
+}
+
+#ohm-icon{
+  display: flex;
+  alignment-baseline: baseline;
+}
+
+#discord-button {
+  height: 60px;
+  background-color: $blurple;
+  border-radius: 15px;
+  padding-right: 0;
+
+  font-weight: bolder;
+  font-size: 1.25rem;
+}
+
+#discord-logo {
+  height: 50px;
+  width: 150px;
+}
+
+$footer-padding: 2.5rem 1.5rem 2.5rem;

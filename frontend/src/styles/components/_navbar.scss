@@ -1,0 +1,20 @@
+@import '../variables';
+
+//Transparent
+$navbar-background-color:  rgba(255, 255, 255, 0);
+$navbar-dropdown-background-color: $primary;
+$navbar-tab-active-background-color: $primary;
+$navbar-tab-active-color: $primary;
+$navbar-divider-background-color: $primary;
+$navbar-item-img-max-height: 4rem;
+
+#avatar-container {
+    padding: 0;
+}
+
+#avatar {
+    justify-content: center;
+    align-content: center;
+    margin-right: 5px;
+}
+

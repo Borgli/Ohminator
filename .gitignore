@@ -11,7 +11,7 @@ __pycache__/
 env/
 build/
 develop-eggs/
-dist/
+frontend/dist/
 downloads/
 eggs/
 .eggs/
@@ -65,7 +65,7 @@ target/
 *.pickle
 
 # Token/API key files
-token.txt
+web/token.txt
 mongodb-connection-parameter.txt
 plugins/tokens/
 
@@ -84,6 +84,6 @@ venv/
 # Database
 db.sqlite3
 
-webpack-stats.json
+frontend/webpack-stats.json
 migrations/
 node_modules/

@@ -10,7 +10,6 @@ from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin
 from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 OAUTH2_CLIENT_ID = '315654415946219532'
 OAUTH2_CLIENT_SECRET = 'I_UWW6KvtaRnQhIa7Wo4b5ubmgPyUoNA'

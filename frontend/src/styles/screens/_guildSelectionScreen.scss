@@ -1,0 +1,12 @@
+@import '../variables';
+
+#guild-selection-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.guild{
+  flex-direction: column;
+  align-items: center;
+}

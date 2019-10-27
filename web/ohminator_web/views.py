@@ -130,14 +130,21 @@ def plugins_status(request, guild_id):
 
 @api_view(['GET'])
 def get_client(request):
-    return Response({'client_id': OAUTH2_CLIENT_ID})
+    return Response({'clientID': OAUTH2_CLIENT_ID})
 
 
 @api_view(['GET'])
-def get_oauth_uri(request):
-    return Response({'oauth_uri': "https://discordapp.com/oauth2/authorize?client_id=" +
-                                  OAUTH2_CLIENT_ID +
-                                  "&scope=bot&permissions=2146958591"})
+def get_oauth_bot_uri(request):
+    return Response({'oauthUri': "https://discordapp.com/oauth2/authorize?client_id=" +
+                                 OAUTH2_CLIENT_ID +
+                                 "&scope=bot&permissions=2146958591"})
+
+
+@api_view(['GET'])
+def get_oauth_user_uri(request):
+    return Response({'oauthUri': "https://discordapp.com/oauth2/authorize?client_id=" +
+                                 OAUTH2_CLIENT_ID +
+                                 "&scope=identify%20email%20guilds"})
 
 
 def get_guild_plugins(guild_id):

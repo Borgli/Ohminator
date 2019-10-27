@@ -17,7 +17,7 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path
 
-from web.ohminator_web.views import get_plugin, plugins_status, get_plugins, get_me, get_me_guilds, get_user, get_guild, get_client, get_oauth_uri
+from web.ohminator_web.views import get_plugin, plugins_status, get_plugins, get_me, get_me_guilds, get_user, get_guild, get_client, get_oauth_bot_uri, get_oauth_user_uri
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,5 +29,6 @@ urlpatterns = [
     path('api/plugins/<int:guild_id>/plugins_status', plugins_status),
     path('api/user/<int:user_id>', get_user),
     path('api/client', get_client),
-    path('api/oauth_uri', get_oauth_uri)
+    path('api/oauth_bot_uri', get_oauth_bot_uri),
+    path('api/oauth_user_uri', get_oauth_user_uri)
 ]

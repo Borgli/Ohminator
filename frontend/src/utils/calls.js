@@ -1,5 +1,6 @@
 import Cookies from "js-cookie";
-import {updateDiscord, updatePluginPage} from "../actions";
+import {updateDiscord, updatePluginPagem,
+    updateOauthUserUri, updateOauthBotUri} from "../actions";
 
 const endpoint = 'http://127.0.0.1:8000';
 
@@ -13,13 +14,25 @@ export const getGuildPlugins = (guild) => {
         .then(result => dispatch(updateDiscord(result)));
 };
 
-export const getGuildPluginInfo = (url='') =>{
+export const getGuildPluginInfo = (url='') => {
     fetch(endpoint + url, {})
         .then(response => response.json())
         .then((result) => {
             const discord = JSON.parse(result.data.discord);
             this.props.dispatch(updatePluginPage(this.props.plugin.model, discord));
         })
+};
+
+export const getOauthUserUri = () => {
+    fetch('/api/oauth_user_uri')
+      .then(response => response.json())
+      .then(result => dispatch(updateOauthUserUri(result.oauthUri)))
+};
+
+export const getOauthBotUri = () => {
+    fetch('/api/oauth_bot_uri')
+      .then(response => response.json())
+      .then(result => dispatch(updateOauthBotUri(result.oauthUri)))
 };
 
 function postData(url = '', data = {}) {

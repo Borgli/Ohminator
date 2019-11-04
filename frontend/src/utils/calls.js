@@ -1,39 +1,15 @@
 import Cookies from "js-cookie";
-import {updateDiscord, updatePluginPagem,
-    updateOauthUserUri, updateOauthBotUri} from "../actions";
 
-const endpoint = 'http://127.0.0.1:8000';
+const config = require('config');
 
-const guildEndpoint = endpoint + '/api/guild/';
-const dashboardEndpoint = endpoint + '/dashboard/';
+export const getUser = (oauthCode) => {
+    let headers = { 'Content-Type': 'application/json'};
+    headers['X-Oauth-Code'] = oauthCode;
 
-
-export const getGuildPlugins = (guild) => {
-    fetch(`${guildEndpoint}${guild.id}/plugins`)
+    return fetch(config.endpoint + '/api/user', { headers })
         .then(response => response.json())
-        .then(result => dispatch(updateDiscord(result)));
-};
-
-export const getGuildPluginInfo = (url='') => {
-    fetch(endpoint + url, {})
-        .then(response => response.json())
-        .then((result) => {
-            const discord = JSON.parse(result.data.discord);
-            this.props.dispatch(updatePluginPage(this.props.plugin.model, discord));
-        })
-};
-
-export const getOauthUserUri = () => {
-    fetch('/api/oauth_user_uri')
-      .then(response => response.json())
-      .then(result => dispatch(updateOauthUserUri(result.oauthUri)))
-};
-
-export const getOauthBotUri = () => {
-    fetch('/api/oauth_bot_uri')
-      .then(response => response.json())
-      .then(result => dispatch(updateOauthBotUri(result.oauthUri)))
-};
+        .then(result => result);
+}
 
 function postData(url = '', data = {}) {
     // Default options are marked with *

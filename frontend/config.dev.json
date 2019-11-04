@@ -1,0 +1,6 @@
+{
+  "endpoint": "http://127.0.0.1:8000",
+  "redirect_uri": "http://127.0.0.1:8080",
+  "client_id": "639373877381693463",
+  "oauth_user_uri": "https://discordapp.com/api/oauth2/authorize?client_id=639373877381693463&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%2Fdiscord&response_type=code&scope=identify%20email%20guilds"
+}

@@ -1,9 +1,12 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 
 import "../styles/screens/_landingScreen.scss";
+import {getOauthUserUri} from '../utils/utils';
 import DiscordLogo from "../components/icons/DiscordLogo";
 
-const LandingScreen = ({urls}) => {
+const LandingScreen = ({}) => {
+    const oauthUri = getOauthUserUri()
+
     return (
         <div id="landing-screen">
             <div id="content">
@@ -72,7 +75,7 @@ const LandingScreen = ({urls}) => {
                 <section className="section">
                     <div className="container is-fluid has-text-centered">
                         <a id="discord-button" className="button is-primary"
-                           href={null ? urls.dashboardUrl : urls.authUrl}>
+                           href={oauthUri}>
                             Add to
                             <DiscordLogo/>
                         </a>

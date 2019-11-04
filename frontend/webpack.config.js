@@ -7,7 +7,14 @@ module.exports = {
     entry: __dirname + '/src/index.js',
     output: {
         path: __dirname + '/dist/js',
-        filename: 'main.js'
+        filename: 'main.js',
+        publicPath: '/'
+    },
+    externals: {
+      'config': JSON.stringify(require('./config.dev.json'))
+    },
+    devServer: {
+        historyApiFallback: true
     },
     plugins: [
         new BundleTracker({

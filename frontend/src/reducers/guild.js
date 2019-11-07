@@ -5,7 +5,10 @@ const initialState = {
     id: '',
     permissions: '',
     name: '',
-    icon: ''
+    owner: '',
+    icon: '',
+    features: [],
+
 };
 
 const guild = (state = initialState, action) => {

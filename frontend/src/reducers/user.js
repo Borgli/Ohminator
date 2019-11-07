@@ -1,5 +1,5 @@
 const initialState = {
-    username: 'asfasf',
+    username: '',
     email: '',
     id: '',
     avatar: '',

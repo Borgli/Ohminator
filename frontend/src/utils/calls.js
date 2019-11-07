@@ -5,26 +5,26 @@ import {put} from "redux-saga/effects";
 const config = require('config');
 
 export function* fetchUser(oauthCode) {
+    yield fetchApi(oauthCode, (response) => ({type: 'SET_USER_SUCCESS', user: response.user}),
+      (error) => ({type: 'SET_USER_FAILURE', error}), '/api/user');
+}
+
+export function* fetchGuilds(oauthCode) {
+    yield fetchApi(oauthCode, (response) => ({type: 'SET_GUILDS_SUCCESS', guilds: response.guilds}),
+      (error) => ({type: 'SET_GUILDS_FAILURE', error}), '/api/guilds');
+}
+
+export function* fetchApi(oauthCode, successAction, errorAction, uri) {
     let headers = {'Content-Type': 'application/json'};
     headers['X-Oauth-Code'] = oauthCode;
 
     try {
-        const response = yield fetch(config.endpoint + '/api/user', {headers})
+        const response = yield fetch(config.endpoint + uri, {headers})
             .then(response => response.json());
-
-        yield put({type: 'SET_USER_SUCCESS', user: response.user})
+        yield put(successAction(response));
     } catch (error) {
-        yield put({type: 'SET_USER_FAILURE', error})
+        yield put(errorAction(error));
     }
-}
-
-export const fetchGuilds = (oauthCode) => {
-    let headers = {'Content-Type': 'application/json'};
-    headers['X-Oauth-Code'] = oauthCode;
-
-    return fetch(config.endpoint + '/api/guilds', {headers})
-        .then(response => response.json())
-        .then(result => result);
 }
 
 function postData(url = '', data = {}) {

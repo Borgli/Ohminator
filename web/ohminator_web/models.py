@@ -40,11 +40,11 @@ class YoutubePlugin(Plugin):
 
 
 class Oauth(models.Model):
-    oauth_code = models.CharField(max_length=20, primary_key=True)
-    token_type = models.CharField(max_length=10)
-    access_token = models.CharField(max_length=50)
+    oauth_code = models.CharField(max_length=30, primary_key=True)
+    token_type = models.CharField(max_length=6)
+    access_token = models.CharField(max_length=30)
     expires_in = models.PositiveIntegerField()
-    refresh_token = models.CharField(max_length=50)
+    refresh_token = models.CharField(max_length=30)
     scope = models.CharField(max_length=50)
 
 

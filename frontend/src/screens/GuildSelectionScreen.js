@@ -7,13 +7,10 @@ import {getGuilds} from "../reducers/guilds";
 
 const GUILD_PERMISSIONS_NEEDED = 2147483647;
 
-const GuildSelectionScreen = ({oauthCode, username, guilds}) => {
+const GuildSelectionScreen = ({oauthCode, username, guilds, fetchGuilds}) => {
     useEffect(() => {
-        // Fetch data here
-        console.log(fetchGuilds(oauthCode))
-    });
-
-    console.log(guilds)
+        fetchGuilds()
+    }, []);
 
     return (
         <div id="guild-selection-screen">
@@ -60,4 +57,8 @@ const mapStateToProps = state => {
     }
 };
 
-export default connect(mapStateToProps)(GuildSelectionScreen);
+const mapDispatchToProps = dispatch => ({
+    fetchGuilds: () => dispatch({ type: 'FETCH_GUILDS'})
+  });
+
+export default connect(mapStateToProps, mapDispatchToProps)(GuildSelectionScreen);

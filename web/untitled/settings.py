@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,10 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ohminator_web.apps.OhminatorWebConfig',
     'rest_framework',
-    'webpack_loader'
+    'webpack_loader',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -128,7 +131,6 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'assets'),
 )
 
-
 # Webpack loader
 
 WEBPACK_LOADER = {
@@ -146,3 +148,14 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication'
     ]
 }
+
+CORS_ORIGIN_ALLOW_ALL = False
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'X-Oauth-Code'
+]
+
+CORS_ORIGIN_WHITELIST = (
+    'http://localhost:8080',
+)
+

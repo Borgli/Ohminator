@@ -3,8 +3,12 @@ import React, {useEffect, useState} from "react";
 import "../styles/screens/_landingScreen.scss";
 import {getOauthUserUri} from '../utils/utils';
 import DiscordLogo from "../components/icons/DiscordLogo";
+import {getOauthCode} from "../reducers/client";
 
-const LandingScreen = ({}) => {
+import {connect} from "react-redux";
+import {Link} from "react-router-dom";
+
+const LandingScreen = ({oauthCode, setUser}) => {
     const oauthUri = getOauthUserUri()
 
     return (
@@ -74,15 +78,29 @@ const LandingScreen = ({}) => {
                 </section>
                 <section className="section">
                     <div className="container is-fluid has-text-centered">
-                        <a id="discord-button" className="button is-primary"
-                           href={oauthUri}>
-                            Add to
-                            <DiscordLogo/>
-                        </a>
+                        {
+                            oauthCode ?
+                                <Link id="dashboard-button" className="button is-primary" to="/guilds">
+                                    To dashboard
+                                </Link>
+                                :
+                                <a id="discord-button" className="button is-primary"
+                                   href={oauthUri}>
+                                    Add to
+                                    <DiscordLogo/>
+                                </a>
+                        }
                     </div>
                 </section>
             </div>
         </div>
     );
 };
-export default LandingScreen;
+
+const mapStateToProps = state => {
+    return {
+        oauthCode: getOauthCode(state),
+    }
+};
+
+export default connect(mapStateToProps)(LandingScreen);

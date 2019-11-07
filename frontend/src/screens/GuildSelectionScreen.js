@@ -2,6 +2,7 @@ import React, {useEffect} from "react";
 import {getOauthCode} from "../reducers/client";
 import {connect} from "react-redux";
 import {getUsername} from "../reducers/user";
+import {fetchGuilds} from "../utils/calls";
 import {getGuilds} from "../reducers/guilds";
 
 const GUILD_PERMISSIONS_NEEDED = 2147483647;
@@ -9,8 +10,10 @@ const GUILD_PERMISSIONS_NEEDED = 2147483647;
 const GuildSelectionScreen = ({oauthCode, username, guilds}) => {
     useEffect(() => {
         // Fetch data here
-
+        console.log(fetchGuilds(oauthCode))
     });
+
+    console.log(guilds)
 
     return (
         <div id="guild-selection-screen">
@@ -50,9 +53,11 @@ const GuildSelectionScreen = ({oauthCode, username, guilds}) => {
 };
 
 const mapStateToProps = state => {
-    oauthCode: getOauthCode(state)
-    username: getUsername(state)
-    guilds: getGuilds(state)
-}
+    return {
+        oauthCode: getOauthCode(state),
+        username: getUsername(state),
+        guilds: getGuilds(state)
+    }
+};
 
-export default connect(mapStateToProps) (GuildSelectionScreen);
+export default connect(mapStateToProps)(GuildSelectionScreen);

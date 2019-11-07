@@ -1,18 +1,19 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import {connect} from "react-redux";
 import {
     useLocation,
     Redirect, Route
 } from "react-router-dom";
-import {getUser} from "../../utils/calls";
+import {fetchUser} from "../../utils/calls";
 
-const Callback = ({path, setOauthCode}) => {
+
+const Callback = ({path, setOauthCode, setUser}) => {
 
     // Browser specific. No IE11 support
     const query = new URLSearchParams(useLocation().search);
     setOauthCode(query.get('code'));
-    console.log(query.get('code'));
-    console.log(getUser(query.get('code')));
+    setUser(fetchUser(query.get('code')));
+
 
     return (
         <Route
@@ -23,7 +24,8 @@ const Callback = ({path, setOauthCode}) => {
 
 const mapDispatchToProps = (dispatch) => {
     return {
-        setOauthCode: oauthCode => dispatch({type: 'SET_OAUTH_CODE', oauthCode})
+        setOauthCode: oauthCode => dispatch({type: 'SET_OAUTH_CODE', oauthCode}),
+        setUser: user => dispatch({type: 'SET_USER', user})
     }
 }
 

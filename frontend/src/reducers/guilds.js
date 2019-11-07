@@ -15,6 +15,6 @@ const guilds = (state = initialState, action) => {
     }
 };
 
-export const getGuilds = state => state.guilds;
+export const getGuilds = state => state.guilds.guilds;
 
 export default guilds;

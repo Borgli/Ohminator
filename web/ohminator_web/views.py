@@ -1,73 +1,98 @@
 import json
 import os
-from django.core.serializers.json import DjangoJSONEncoder
 import requests
-from django.http import JsonResponse
-from django.shortcuts import render, redirect
-from django.views.decorators.csrf import ensure_csrf_cookie
-from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin
 
-from requests_oauthlib import OAuth2Session
+from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin, Oauth
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-OAUTH2_CLIENT_ID = '315654415946219532'
-OAUTH2_CLIENT_SECRET = 'I_UWW6KvtaRnQhIa7Wo4b5ubmgPyUoNA'
-OAUTH2_REDIRECT_URI = 'http://127.0.0.1:8000/api/login'
-GUILD_REDIRECT_URI = 'http://127.0.0.1:8000/api/bot_joined'
+OAUTH2_CLIENT_ID = '639373877381693463'
+OAUTH2_CLIENT_SECRET = 'ZMjOzpysTgwlukG1EjbccN5n9A6MW75o'
+OAUTH2_REDIRECT_URI = 'https://localhost:8000/api/login'
+GUILD_REDIRECT_URI = 'http://localhost:8000/api/bot_joined'
 
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
 AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
 TOKEN_URL = API_BASE_URL + '/oauth2/token'
 
-
 if 'http://' in OAUTH2_REDIRECT_URI:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
 
 
-def token_updater(request):
-    if request is not None:
-        def token_update(token):
-            request.session['oauth2_token'] = token
-        return token_update
+def exchange_code(code):
+    data = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'client_id': OAUTH2_CLIENT_ID,
+        'client_secret': OAUTH2_CLIENT_SECRET,
+        'redirect_uri': OAUTH2_REDIRECT_URI,
+    }
+
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    url = '%s/oauth2/token' % API_BASE_URL
+
+    r = requests.post(url, data=data, headers=headers)
+    r.raise_for_status()
+    return r.json()
 
 
-def make_session(token=None, state=None, scope=None, request=None):
-    return OAuth2Session(
-        client_id=OAUTH2_CLIENT_ID,
-        token=token,
-        state=state,
-        scope=scope,
-        redirect_uri=OAUTH2_REDIRECT_URI,
-        auto_refresh_kwargs={
-            'client_id': OAUTH2_CLIENT_ID,
-            'client_secret': OAUTH2_CLIENT_SECRET,
-        },
-        auto_refresh_url=TOKEN_URL,
-        token_updater=token_updater(request))
+def get_token(code):
+    if Oauth.objects.filter(oauth_code=code).exists():
+        return True, Oauth.objects.get(oauth_code=code).access_token
+
+    try:
+        oauth_object = exchange_code(code)
+        Oauth(oauth_code=code,
+              access_token=oauth_object['access_token'],
+              token_type=oauth_object['token_type'],
+              expires_in=oauth_object['expires_in'],
+              refresh_token=oauth_object['refresh_token'],
+              scope=oauth_object['scope']).save()
+        return True, oauth_object['access_token']
+    except requests.exceptions.HTTPError as error:
+        return False, error.response.status_code
+
+
+def api_call(uri, code, tag):
+    status, token = get_token(code)
+    headers = {
+        'Authorization': 'Bearer %s' % token
+    }
+
+    try:
+        if status:
+            r = requests.get('%s%s' % (API_BASE_URL, uri), headers=headers)
+            r.raise_for_status()
+            return Response({tag: r.json()})
+        else:
+            return Response({'error': token})
+    except requests.exceptions.HTTPError as error:
+        return Response({'error': error.response.status_code})
+
+
+def make_session():
+    return None
 
 
 @api_view(['GET'])
 def get_me(request):
-    discord = make_session(token=request.GET.get('oauth2_token'))
-    if discord.authorized:
-        return Response({'user': discord.get(API_BASE_URL + '/users/@me').json()})
-    else:
-        return Response({'error': 'not authorized'})
+    code = request.headers["X-Oauth-Code"]
+    return api_call('/users/@me', code, 'user')
 
 
 @api_view(['GET'])
 def get_me_guilds(request):
-    discord = make_session(token=request.GET.get('oauth2_token'))
-    if discord.authorized:
-        return Response({'guilds': discord.get(API_BASE_URL + '/users/@me/guilds').json()})
-    else:
-        return Response({'error': 'not authorized'})
+    code = request.headers["X-Oauth-Code"]
+    return api_call('/users/@me/guilds', code, 'guilds')
 
 
 @api_view(['GET'])
 def get_user(request, user_id):
-    discord = make_session(token=request.GET.get('oauth2_token'))
+    discord = make_session()
     if discord.authorized:
         return Response({'user': discord.get(API_BASE_URL + '/users/' + user_id).json()})
     else:
@@ -76,7 +101,7 @@ def get_user(request, user_id):
 
 @api_view(['GET'])
 def get_guild(request, guild_id):
-    discord = make_session(token=request.GET.get('oauth2_token'))
+    discord = make_session()
     if discord.authorized:
         guild, created = Guild.objects.get_or_create(id=guild_id)
         return Response({'guild': json.dumps(guild), 'plugins': get_guild_plugins(guild_id)})
@@ -86,7 +111,7 @@ def get_guild(request, guild_id):
 
 @api_view(['GET'])
 def get_plugins(request, guild_id):
-    discord = make_session(token=request.GET.get('oauth2_token'))
+    discord = make_session()
     if discord.authorized:
         plugins = get_guild_plugins(guild_id)
         return Response({'plugins': plugins})
@@ -96,7 +121,7 @@ def get_plugins(request, guild_id):
 
 @api_view(['GET'])
 def get_plugin(request, guild_id, plugin_name):
-    discord = make_session(token=request.GET.get('oauth2_token'))
+    discord = make_session()
     if discord.authorized:
         try:
             # Fetch plugin data again, already fetched on guild dashboard (?)
@@ -116,7 +141,7 @@ def get_plugin(request, guild_id, plugin_name):
 
 @api_view(['GET'])
 def plugins_status(request, guild_id):
-    discord = make_session(token=request.GET.get('oauth2_token'))
+    discord = make_session()
     if discord.authorized:
         status_plugins = []
         plugins = Plugin.objects.all()

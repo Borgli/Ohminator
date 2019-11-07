@@ -1,12 +1,28 @@
 import Cookies from "js-cookie";
+import "regenerator-runtime/runtime";
+import {put} from "redux-saga/effects";
 
 const config = require('config');
 
-export const getUser = (oauthCode) => {
-    let headers = { 'Content-Type': 'application/json'};
+export function* fetchUser(oauthCode) {
+    let headers = {'Content-Type': 'application/json'};
     headers['X-Oauth-Code'] = oauthCode;
 
-    return fetch(config.endpoint + '/api/user', { headers })
+    try {
+        const response = yield fetch(config.endpoint + '/api/user', {headers})
+            .then(response => response.json());
+
+        yield put({type: 'SET_USER_SUCCESS', user: response.user})
+    } catch (error) {
+        yield put({type: 'SET_USER_FAILURE', error})
+    }
+}
+
+export const fetchGuilds = (oauthCode) => {
+    let headers = {'Content-Type': 'application/json'};
+    headers['X-Oauth-Code'] = oauthCode;
+
+    return fetch(config.endpoint + '/api/guilds', {headers})
         .then(response => response.json())
         .then(result => result);
 }

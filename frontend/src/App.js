@@ -26,7 +26,6 @@ const AuthenticatedRoute = ({component: Component, oauthCode, ...rest}) => (
     />
 )
 
-
 const App = ({oauthCode}) => {
     return (
         <div id="app" >

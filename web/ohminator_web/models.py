@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 
 from polymorphic.models import PolymorphicModel
 
+
 # Create your models here.
 
 
@@ -36,6 +37,15 @@ class IntroPlugin(Plugin):
 
 class YoutubePlugin(Plugin):
     pass
+
+
+class Oauth(models.Model):
+    oauth_code = models.CharField(max_length=20, primary_key=True)
+    token_type = models.CharField(max_length=10)
+    access_token = models.CharField(max_length=50)
+    expires_in = models.PositiveIntegerField()
+    refresh_token = models.CharField(max_length=50)
+    scope = models.CharField(max_length=50)
 
 
 class User(models.Model):

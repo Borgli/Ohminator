@@ -1,16 +1,18 @@
 import React from "react";
 
 import '../../styles/components/_navbar.scss'
+import {connect} from "react-redux";
+import {getAvatar, getDiscriminator, getId, getUsername} from "../../reducers/user";
 
 const LOGOUT_URL = "http://127.0.0.1:8000/api/logout";
 
 
-const Navbar = ({login, urls, transparent = true}) => {
+const Navbar = ({username, avatar, discriminator, id, urls, transparent = true}) => {
     //TODO Refactor?
-    const avatarSource = login ? login.avatar ?
-        `https://cdn.discordapp.com/avatars/${login.id}/${login.avatar}.png`
+    const avatarSource = username ? avatar ?
+        `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`
         :
-        `https://cdn.discordapp.com/embed/avatars/${login.discriminator % 5}.png`
+        `https://cdn.discordapp.com/embed/avatars/${discriminator % 5}.png`
         :
         null;
 
@@ -30,19 +32,19 @@ const Navbar = ({login, urls, transparent = true}) => {
                 </div>
                 <div className="navbar-end">
                     <div className="navbar-item">
-                        {login &&
+                        {id &&
                             <figure id="avatar" className="image is-48x48 is-flex">
                                 <img className="is-rounded" src={avatarSource}/>
                             </figure>
                         }
-                        {login ?
+                        {id ?
                             <div id="avatar-container" className="navbar-item is-hoverable has-dropdown">
                                 <p className="is-size-5 has-text-weight-bold navbar-link">
-                                    {login.username}
+                                    {username}
                                 </p>
                                 <div className="navbar-dropdown is-boxed">
                                     <a className="navbar-item"
-                                       href={login ? urls.dashboardUrl : urls.authUrl}>
+                                       href={id ? '' : ''}>
                                         Servers
                                     </a>
                                     <hr className="navbar-divider"/>
@@ -61,4 +63,11 @@ const Navbar = ({login, urls, transparent = true}) => {
     );
 };
 
-export default Navbar;
+const mapStateToProps = state => ({
+        username: getUsername(state),
+        avatar: getAvatar(state),
+        id: getId(state),
+        discriminator: getDiscriminator(state)
+})
+
+export default connect(mapStateToProps)(Navbar);

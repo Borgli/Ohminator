@@ -1,15 +1,18 @@
 const initialState = {
-    username: '',
+    username: 'asfasf',
     email: '',
     id: '',
     avatar: '',
     discriminator: '',
     locale: '',
+    mfa_enabled: undefined,
+    verified: undefined,
+    flags: undefined
 }
 
 const user = (state = initialState, action) => {
     switch (action.type) {
-        case "SET_USER": {
+        case "SET_USER_SUCCESS": {
             return {
                 ...state,
                 ...action.user
@@ -20,11 +23,12 @@ const user = (state = initialState, action) => {
     }
 };
 
-export const getUsername = state => state.username;
-export const getEmail = state => state.email;
-export const getId = state => state.id;
-export const getDiscriminator = state => state.discriminator;
-export const getLocale = state => state.locale;
+export const getUsername = state => state.user.username;
+export const getEmail = state => state.user.email;
+export const getId = state => state.user.id;
+export const getDiscriminator = state => state.user.discriminator;
+export const getLocale = state => state.user.locale;
+export const getAvatar = state => state.user.avatar;
 
 export default user;
 

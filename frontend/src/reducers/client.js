@@ -15,7 +15,7 @@ const client = (state = initialState, action ) => {
 }
 
 export const getOauthCode = (state) => {
-    return state.oauthCode;
+    return state.client.oauthCode;
 }
 
 export default client;

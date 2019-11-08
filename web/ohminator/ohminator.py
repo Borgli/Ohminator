@@ -94,6 +94,6 @@ class RegisterCommand:
         return wrapped
 
 
-@RegisterCommand('info', 'help', 'commands', plugin=None)
-async def info(message, client, plugin):
-    await message.channel.send('Halla balla!')
+#@RegisterCommand('info', 'help', 'commands', plugin=None)
+#async def info(message, client, plugin):
+#    await message.channel.send('Halla balla!')

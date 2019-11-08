@@ -5,14 +5,14 @@ import pickle
 import re
 from os.path import exists
 from os import remove, mkdir
-import server
+import ohminator.server
 import youtube_dl
 import functools
 import logging
 import traceback
 import time
 import math
-import utils
+import ohminator.utils
 from datetime import datetime
 
 
@@ -36,7 +36,7 @@ class Playlist:
         logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
 
         self.task_list = list()
-        self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
+        # self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
         self.task_list.append(client.loop.create_task(self.play_next_yt()))
         self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
 

@@ -1,6 +1,6 @@
 import traceback
 
-from utils import *
+from ohminator.utils import RegisterCommand
 
 
 async def assign_default_role(client, member, role_name):
@@ -20,7 +20,7 @@ async def notify_of_joining_person(client, member):
 
 
 # Used for broadcasting Ohminator announcements
-@register_command("broadcast")
+@RegisterCommand("broadcast")
 async def broadcast(message, bot_channel, client):
     await client.delete_message(message)
     if message.author.id != "159315181288030208":
@@ -54,7 +54,7 @@ async def broadcast(message, bot_channel, client):
                                   .format(message.author.name))
 
 
-@register_command("move")
+@RegisterCommand("move")
 async def move(message, bot_channel, client):
     await client.delete_message(message)
     parameters = message.content.split()
@@ -73,7 +73,7 @@ async def move(message, bot_channel, client):
                 traceback.print_exc()
 
 
-@register_command("settings")
+@RegisterCommand("settings")
 async def settings(message, bot_channel, client):
     await client.delete_message(message)
     tokens = message.content.split()
@@ -108,7 +108,7 @@ async def settings(message, bot_channel, client):
                                       '{}: The setting {} does not exist.'.format(message.author.name, tokens[2]))
 
 
-@register_command("getbotinvite", "gbi")
+@RegisterCommand("getbotinvite", "gbi")
 async def get_bot_invite(message, bot_channel, client):
     await client.delete_message(message)
     permissions = discord.Permissions.all()
@@ -117,7 +117,7 @@ async def get_bot_invite(message, bot_channel, client):
                                               discord.utils.oauth_url('176432800331857920', permissions=permissions)))
 
 
-@register_command("suggest")
+@RegisterCommand("suggest")
 async def suggest(message, bot_channel, client):
     suggestion = message.content[9:]
     if len(suggestion) < 3:
@@ -143,7 +143,7 @@ async def print_page(resource, message, bot_channel, client, prefix_user=True):
     await client.send_message(bot_channel, help_page)
 
 
-@register_command("help", "commands", "command", "info")
+@RegisterCommand("help", "commands", "command", "info")
 async def help(message, bot_channel, client):
     await client.delete_message(message)
     async def print_help_page(help_resource, prefix_user=True):
@@ -168,13 +168,13 @@ async def help(message, bot_channel, client):
         await print_help_page('summary.txt', False)
 
 
-@register_command("summary")
+@RegisterCommand("summary")
 async def summary(message, bot_channel, client):
     await client.delete_message(message)
     return await print_page('summary.txt', message, bot_channel, client)
 
 
-@register_command("showtotalusers")
+@RegisterCommand("showtotalusers")
 async def show_total_number_users(message, bot_channel, client):
     await client.delete_message(message)
     servers = sum(1 for _ in client.servers)

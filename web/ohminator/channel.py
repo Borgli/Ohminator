@@ -1,9 +1,9 @@
 import pickle
 import traceback
 from os.path import exists, join
-from utils import create_if_not_exists
+from ohminator.utils import create_if_not_exists
 
-from settings import ClientSettings
+from ohminator.settings import ClientSettings
 
 
 class Channel:

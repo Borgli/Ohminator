@@ -1,18 +1,41 @@
 import Cookies from "js-cookie";
 import "regenerator-runtime/runtime";
-import {put} from "redux-saga/effects";
+import {put, select} from "redux-saga/effects";
+import {getDiscordGuilds} from "../reducers/discordGuilds";
 
 const config = require('config');
 
 export function* fetchUser(oauthCode) {
-    yield fetchApi(oauthCode, (response) => ({type: 'SET_USER_SUCCESS', user: response.user}),
-      (error) => ({type: 'SET_USER_FAILURE', error}), '/api/user');
+    yield fetchApi(oauthCode,
+        (response) => ({type: 'SET_USER_SUCCESS', user: response.user}),
+        (error) => ({type: 'SET_USER_FAILURE', error}),
+        '/api/user');
 }
 
 export function* fetchGuilds(oauthCode) {
-    yield fetchApi(oauthCode, (response) => ({type: 'SET_GUILDS_SUCCESS', guilds: response.guilds}),
-      (error) => ({type: 'SET_GUILDS_FAILURE', error}), '/api/guilds');
+    yield fetchApi(oauthCode,
+        (response) => ({type: 'SET_DISCORD_GUILDS_SUCCESS', guilds: response.guilds}),
+        (error) => ({type: 'SET_DISCORD_GUILDS_FAILURE', error}),
+        '/api/guilds');
+
+    const discordGuilds = yield select(getDiscordGuilds)
+    for (const guild of discordGuilds) {
+        yield fetchApi(oauthCode,
+            (response) => ({type: 'SET_BOT_GUILD_SUCCESS', guild: response.guild}),
+            (error) => ({type: 'SET_BOT_GUILD_FAILURE', error: error}),
+            `/api/guilds/${guild.id}`
+        );
+    }
 }
+
+export function* fetchGuildPlugins(id, oauthCode) {
+    yield fetchApi(oauthCode,
+        (response) => ({type: 'SET_GUILD_PLUGIN_SUCCESS', plugins: response.plugins}),
+        (error) => ({type: 'SET_GUILD_PLUGIN_ERROR', error}),
+        `/api/plugins/${id}`
+    );
+}
+
 
 export function* fetchApi(oauthCode, successAction, errorAction, uri) {
     let headers = {'Content-Type': 'application/json'};
@@ -22,6 +45,31 @@ export function* fetchApi(oauthCode, successAction, errorAction, uri) {
         const response = yield fetch(config.endpoint + uri, {headers})
             .then(response => response.json());
         yield put(successAction(response));
+    } catch (error) {
+        yield put(errorAction(error));
+    }
+}
+
+export function* postGuild(id, oauthCode) {
+    yield postApi(oauthCode,
+        (response) => ({type: 'SET_GUILD_POST_SUCCESS'}),
+        (error) => ({type: 'SET_GUILD_POST_FAILURE'}),
+        '/api/guilds',
+       {guild: {id}}
+    );
+}
+
+export function* postApi(oauthCode, successAction, errorAction, uri, data) {
+    let headers = {'Content-Type': 'application/json'};
+    headers['X-Oauth-Code'] = oauthCode;
+    console.log(data)
+
+    try {
+        const response = yield fetch(
+            config.endpoint + uri,
+            {method: 'POST', headers, body: JSON.stringify(data)})
+            .then(response => response.json());
+        yield put(successAction(response))
     } catch (error) {
         yield put(errorAction(error));
     }

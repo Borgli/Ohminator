@@ -18,6 +18,8 @@ const user = (state = initialState, action) => {
                 ...action.user
             }
         }
+        case 'LOGOUT':
+            return initialState;
         default:
             return state;
     }

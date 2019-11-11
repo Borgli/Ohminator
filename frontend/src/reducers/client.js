@@ -9,6 +9,8 @@ const client = (state = initialState, action ) => {
                 ...state,
                 oauthCode: action.oauthCode
             }
+        case 'LOGOUT':
+            return initialState;
         default:
             return state;
     }

@@ -1,17 +1,19 @@
-import React, {PropTypes} from "react";
+import React from "react";
 import {
     BrowserRouter as Router,
     Switch,
     Route,
     Redirect
 } from "react-router-dom";
+import {connect} from "react-redux";
 
 import Navbar from "./components/navbar/Navbar";
 import GuildSelectionScreen from "./screens/GuildSelectionScreen";
 import LandingScreen from "./screens/LandingScreen";
 import Footer from "./components/Footer";
-import Callback from "./components/auth/Callback";
-import {connect} from "react-redux";
+import GuildOauthHandler from "./components/auth/GuildOauthHandler";
+import UserOauthHandler from "./components/auth/UserOauthHandler";
+import GuildScreen from "./screens/GuildScreen";
 
 const AuthenticatedRoute = ({component: Component, oauthCode, ...rest}) => (
     <Route
@@ -20,7 +22,7 @@ const AuthenticatedRoute = ({component: Component, oauthCode, ...rest}) => (
             oauthCode ?
                 <Component {...rest} {...props} />
                 :
-                <Redirect to={{ pathname: "/login", state: { from: props.location }}} />
+                <Redirect to={{pathname: "/login", state: {from: props.location}}}/>
 
         }
     />
@@ -28,27 +30,42 @@ const AuthenticatedRoute = ({component: Component, oauthCode, ...rest}) => (
 
 const App = ({oauthCode}) => {
     return (
-        <div id="app" >
+        <Router className='app'>
             <Navbar/>
-            <Router>
-                <Switch>
-                    <Route path='/guilds'>
-                        <AuthenticatedRoute oauthCode={oauthCode} path={'/guilds'} component={GuildSelectionScreen}/>
-                    </Route>
-                    <Route path='/auth/discord'>
-                        <Callback path='/guilds'/>
-                    </Route>
-                    <Route path='/'>
-                        <LandingScreen/>
-                    </Route>
-                </Switch>
-            </Router>
+            <Switch>
+                <Route path='/guilds/:id'>
+                    <AuthenticatedRoute
+                        oauthCode={oauthCode}
+                        path={'/guilds/:id'}
+                        component={GuildScreen}
+                    />
+                </Route>
+                <Route path='/guilds'>
+                    <AuthenticatedRoute
+                        oauthCode={oauthCode}
+                        path={'/guilds'}
+                        component={GuildSelectionScreen}
+                    />
+                </Route>
+                <Route path='/auth/user/discord'>
+                    <UserOauthHandler
+                        path='/guilds'
+                    />
+                </Route>
+                <Route path='/auth/guild/discord'>
+                    <GuildOauthHandler
+                        path='/guilds/:id'
+                    />
+                </Route>
+                <Route path='/'>
+                    <LandingScreen/>
+                </Route>
+            </Switch>
             <Footer/>
-        </div>
-
+        </Router>
     );
 };
 
 const mapStateToProps = state => ({oauthCode: state.client.oauthCode})
 
-export default connect(mapStateToProps) (App);
+export default connect(mapStateToProps)(App);

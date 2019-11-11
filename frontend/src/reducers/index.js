@@ -1,11 +1,13 @@
 import React from "react";
 import {combineReducers} from "redux";
 import client from "./client";
-import guilds from "./guilds";
 import user from "./user";
+import discordGuilds from "./discordGuilds";
+import botGuilds from "./botGuilds";
 
 export default combineReducers({
-    guilds,
+    discordGuilds,
+    botGuilds,
     client,
     user
 });

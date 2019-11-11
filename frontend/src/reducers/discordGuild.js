@@ -1,7 +1,4 @@
-
 const initialState = {
-    prefix: '!',
-    plugins: [],
     id: '',
     permissions: '',
     name: '',
@@ -11,21 +8,16 @@ const initialState = {
 
 };
 
-const guild = (state = initialState, action) => {
+const discordGuild = (state = initialState, action) => {
     switch(action.type){
-        case 'ADD_GUILD':
+        case 'SET_GUILD':
             return {
                 ...state,
                 ...action.guild
-            };
-        case 'SET_GUILD_PREFIX':
-            return {
-                ...state,
-                prefix: action.prefix
             };
         default:
             return state;
     }
 };
 
-export default guild;
+export default discordGuild;

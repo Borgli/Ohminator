@@ -63,7 +63,7 @@ const GuildScreen = ({prefix}) => {
 
 const mapStateToProps = (state) => {
     return {
-        prefix: state.guild.prefix,
+        prefix: state.botGuilds.prefix,
     }
 };
 

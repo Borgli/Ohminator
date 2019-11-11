@@ -16,12 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from web.ohminator_web.views import get_plugin, plugins_status, get_plugins, get_me, get_me_guilds, get_user, get_guild, get_client, get_oauth_bot_uri, get_oauth_user_uri
+from web.ohminator_web.views import get_plugin, plugins_status, get_plugins, user, guilds, get_user, get_guild, get_client, get_oauth_bot_uri, get_oauth_user_uri
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/user', get_me),
-    path('api/guilds', get_me_guilds),
+    path('api/user', user),
+    path('api/guilds', guilds),
     path('api/guilds/<int:guild_id>', get_guild),
     path('api/plugins/<int:guild_id>/', get_plugins),
     path('api/plugins/<int:guild_id>/<str:plugin_name>', get_plugin),

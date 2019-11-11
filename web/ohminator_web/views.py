@@ -1,6 +1,9 @@
 import json
 import os
 import requests
+from django.http import HttpResponseNotFound, Http404
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from requests.exceptions import HTTPError
 
 from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin, Oauth
 
@@ -42,34 +45,30 @@ def exchange_code(code):
 
 def get_token(code):
     if Oauth.objects.filter(oauth_code=code).exists():
-        return True, Oauth.objects.get(oauth_code=code).access_token
+        return Oauth.objects.get(oauth_code=code).access_token
 
-    try:
-        oauth_object = exchange_code(code)
-        Oauth(oauth_code=code,
-              access_token=oauth_object['access_token'],
-              token_type=oauth_object['token_type'],
-              expires_in=oauth_object['expires_in'],
-              refresh_token=oauth_object['refresh_token'],
-              scope=oauth_object['scope']).save()
-        return True, oauth_object['access_token']
-    except requests.exceptions.HTTPError as error:
-        return False, error.response.status_code
+    oauth_object = exchange_code(code)
+    Oauth(oauth_code=code,
+          access_token=oauth_object['access_token'],
+          token_type=oauth_object['token_type'],
+          expires_in=oauth_object['expires_in'],
+          refresh_token=oauth_object['refresh_token'],
+          scope=oauth_object['scope']).save()
+    return oauth_object['access_token']
 
 
 def api_call(uri, code, tag):
-    status, token = get_token(code)
-    headers = {
-        'Authorization': 'Bearer %s' % token
-    }
+    try:
+        token = get_token(code)
+    except HTTPError as error:
+        return Response({'error': error.response.status_code})
+
+    headers = {'Authorization': 'Bearer %s' % token}
 
     try:
-        if status:
-            r = requests.get('%s%s' % (API_BASE_URL, uri), headers=headers)
-            r.raise_for_status()
-            return Response({tag: r.json()})
-        else:
-            return Response({'error': token})
+        r = requests.get('%s%s' % (API_BASE_URL, uri), headers=headers)
+        r.raise_for_status()
+        return Response({tag: r.json()})
     except requests.exceptions.HTTPError as error:
         return Response({'error': error.response.status_code})
 
@@ -79,15 +78,29 @@ def make_session():
 
 
 @api_view(['GET'])
-def get_me(request):
+def user(request):
     code = request.headers["X-Oauth-Code"]
     return api_call('/users/@me', code, 'user')
 
 
-@api_view(['GET'])
-def get_me_guilds(request):
+@api_view(['GET', 'POST', 'PUT'])
+def guilds(request):
+    # Authentication check
     code = request.headers["X-Oauth-Code"]
-    return api_call('/users/@me/guilds', code, 'guilds')
+    if not Oauth.objects.filter(oauth_code=code).exists():
+        raise PermissionDenied
+
+    if request.method == 'GET':
+        return api_call('/users/@me/guilds', code, 'guilds')
+
+    if request.method in ['PUT', 'POST']:
+        guild = request.data['guild']
+        print(request.data)
+        guild_id = guild['id']
+        Guild(id=guild_id, prefix='!').save()
+        guild = Guild.objects.get(id=guild_id)
+        return Response({'guild': json.dumps(guild)})
+
 
 
 @api_view(['GET'])
@@ -101,12 +114,15 @@ def get_user(request, user_id):
 
 @api_view(['GET'])
 def get_guild(request, guild_id):
-    discord = make_session()
-    if discord.authorized:
-        guild, created = Guild.objects.get_or_create(id=guild_id)
-        return Response({'guild': json.dumps(guild), 'plugins': get_guild_plugins(guild_id)})
-    else:
+    code = request.headers["X-Oauth-Code"]
+    if not Oauth.objects.filter(oauth_code=code).exists():
         return Response({'error': 'not authorized'})
+
+    if Guild.objects.filter(id=guild_id).exists():
+        guild = Guild.objects.get(id=guild_id)
+        return Response({'guild': json.dumps(guild)})
+    else:
+        return HttpResponseNotFound('<h1>Guild not found</h1>')
 
 
 @api_view(['GET'])

@@ -1,6 +1,7 @@
 import json
 import os
 import requests
+from django.core import serializers
 
 from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin, Oauth
 
@@ -101,12 +102,18 @@ def get_user(request, user_id):
 
 @api_view(['GET'])
 def get_guild(request, guild_id):
-    discord = make_session()
-    if discord.authorized:
-        guild, created = Guild.objects.get_or_create(id=guild_id)
-        return Response({'guild': json.dumps(guild), 'plugins': get_guild_plugins(guild_id)})
-    else:
-        return Response({'error': 'not authorized'})
+    guild, created = Guild.objects.get_or_create(id=guild_id)
+    return Response({'guild': serializers.serialize('json', [guild]), 'plugins': get_guild_plugins(guild_id)})
+    #else:
+    #    return Response({'error': 'not authorized'})
+
+
+# Maybe this can be merged with get_guild?
+@api_view(['GET'])
+def get_guild_list(request):
+    guild_id_list = request.data.get('guild_id_list')
+    guild_list = Guild.objects.get(id=guild_id_list)
+    return Response({'guilds': serializers.serialize('json', guild_list), 'plugins': get_guild_plugins(None)})
 
 
 @api_view(['GET'])
@@ -127,7 +134,7 @@ def get_plugin(request, guild_id, plugin_name):
             # Fetch plugin data again, already fetched on guild dashboard (?)
             plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(
                 url_ending=plugin_name).get()
-            from django.core import serializers
+
             data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
 
             return Response({'plugin': {'model': data[0]['model'],
@@ -177,7 +184,6 @@ def get_guild_plugins(guild_id):
 
     # Fetching plugins
     plugin_list = []
-    from django.core import serializers
     for plugin_obj in real_plugins:
         plugin_list.append(json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]])))
 

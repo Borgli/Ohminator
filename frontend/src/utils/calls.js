@@ -18,14 +18,14 @@ export function* fetchGuilds(oauthCode) {
         (error) => ({type: 'SET_DISCORD_GUILDS_FAILURE', error}),
         '/api/guilds');
 
-    const discordGuilds = yield select(getDiscordGuilds)
-    for (const guild of discordGuilds) {
-        yield fetchApi(oauthCode,
-            (response) => ({type: 'SET_BOT_GUILD_SUCCESS', guild: response.guild}),
-            (error) => ({type: 'SET_BOT_GUILD_FAILURE', error: error}),
-            `/api/guilds/${guild.id}`
-        );
-    }
+    const discordGuilds = yield select(getDiscordGuilds);
+    const guildIdList = discordGuilds.map((guild) => guild.id);
+    yield fetchApi(oauthCode,
+      (response) => ({type: 'SET_BOT_GUILD_SUCCESS', guilds: response.guilds}),
+      (error) => ({type: 'SET_BOT_GUILD_FAILURE', error: error}),
+      '/api/guilds/list',
+      {guildIdList: guildIdList}
+      );
 }
 
 export function* fetchGuildPlugins(id, oauthCode) {
@@ -37,12 +37,14 @@ export function* fetchGuildPlugins(id, oauthCode) {
 }
 
 
-export function* fetchApi(oauthCode, successAction, errorAction, uri) {
+export function* fetchApi(oauthCode, successAction, errorAction, uri, body={}) {
     let headers = {'Content-Type': 'application/json'};
     headers['X-Oauth-Code'] = oauthCode;
 
     try {
-        const response = yield fetch(config.endpoint + uri, {headers})
+        const response = yield fetch(config.endpoint + uri, {
+            headers, body: JSON.stringify(body)
+        })
             .then(response => response.json());
         yield put(successAction(response));
     } catch (error) {

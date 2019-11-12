@@ -22,8 +22,9 @@ const discordGuilds = (state = initialState, action) => {
 
 export const getDiscordGuilds = state => state.discordGuilds.guilds;
 export const getCurrentDiscordGuild = state => {
-    const currentGuildId = getCurrentGuild(state)
-    return state.discordGuilds.guilds.find(guild => guild.id === currentGuildId)
+    const currentGuildId = getCurrentGuild(state);
+     const currentGuild = state.discordGuilds.guilds.find(guild => guild.id === currentGuildId);
+    return currentGuild ? currentGuild : initialState;
 }
 
 export default discordGuilds;

@@ -23,7 +23,8 @@ const botGuilds = (state = initialState, action) => {
 export const getBotGuilds = state => state.botGuilds.guilds;
 export const getCurrentBotGuild = state => {
     const currentGuildId = getCurrentGuild(state)
-    return state.botGuilds.guilds.find(guild => guild.id === currentGuildId)
+    const currentGuild =  state.botGuilds.guilds.find(guild => guild.id === currentGuildId)
+    return currentGuild ? currentGuild : initialState
 }
 
 export default botGuilds;

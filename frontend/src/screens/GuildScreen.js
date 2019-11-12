@@ -9,12 +9,12 @@ import {getCurrentDiscordGuild} from "../reducers/discordGuilds";
 
 const GuildScreen = ({discordGuild, botGuild}) => {
     const [prefixTemp, setPrefixTemp] = useState(botGuild.prefix);
+
     useEffect(() => {
-        if (!botGuild.plugins)
-           console.log('eeh')
-
+        // TODO
+        // if (!botGuild.plugins)
     });
-
+    // TODO Fix icon for guilds without avatar
     return (
         <div id="guild-screen">
             <section className="section">

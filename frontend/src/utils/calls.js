@@ -57,7 +57,6 @@ export function* fetchApi(oauthCode, successAction, errorAction, uri) {
             .then(response => response.json());
         yield put(successAction(response));
     } catch (error) {
-        console.log(error)
         yield put(errorAction(error));
     }
 }
@@ -74,7 +73,6 @@ export function* postGuild(id, oauthCode) {
 export function* postApi(oauthCode, successAction, errorAction, uri, data) {
     let headers = {'Content-Type': 'application/json'};
     headers['X-Oauth-Code'] = oauthCode;
-    console.log(data)
 
     try {
         const response = yield fetch(

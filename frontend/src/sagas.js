@@ -18,7 +18,7 @@ function* getGuilds() {
 
 function* registerGuild(action) {
     const oauthCode = yield select(getOauthCode);
-    console.log(action)
+
     if (oauthCode)
         yield postGuild(action.id, oauthCode)
 

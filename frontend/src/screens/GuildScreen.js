@@ -3,26 +3,28 @@ import {connect} from 'react-redux';
 import {getGuildPlugins} from "../utils/calls";
 import LoadingIcon from "../components/icons/LoadingIcon";
 import PluginCard from "../components/cards/PluginCard";
+import {getCurrentBotGuild} from "../reducers/botGuilds";
+import {getCurrentDiscordGuild} from "../reducers/discordGuilds";
 
 
-const GuildScreen = ({prefix}) => {
-    const [prefixTemp, setPrefixTemp] = useState(prefix);
+const GuildScreen = ({discordGuild, botGuild}) => {
+    const [prefixTemp, setPrefixTemp] = useState(botGuild.prefix);
     useEffect(() => {
-        if (!discord.plugins)
-            getGuildPlugins(discord.selected_guild);
+        if (!botGuild.plugins)
+           console.log('eeh')
 
     });
-    const guild = discord.selected_guild;
+
     return (
         <div id="guild-screen">
             <section className="section">
                 <div className="container guild is-fluid has-text-centered">
                     <figure className="image is-128x128 is-flex is-centered" >
                         <img className="is-rounded"
-                             src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}/>
+                             src={`https://cdn.discordapp.com/icons/${discordGuild.id}/${discordGuild.icon}.png`}/>
                     </figure>
                     <p className="title is-1">
-                        {guild.name}
+                        {discordGuild.name}
                     </p>
                 </div>
             </section>
@@ -48,8 +50,8 @@ const GuildScreen = ({prefix}) => {
                 </div>
                 <div className="columns is-multiline is-centered">
                     {
-                       discord.plugins ?
-                           discord.plugins.map((plugin, i) =>
+                       botGuild.plugins ?
+                           botGuild.plugins.map((plugin, i) =>
                                <PluginCard key={i}/>
                            )
                            :
@@ -63,7 +65,8 @@ const GuildScreen = ({prefix}) => {
 
 const mapStateToProps = (state) => {
     return {
-        prefix: state.botGuilds.prefix,
+        botGuild: getCurrentBotGuild(state),
+        discordGuild: getCurrentDiscordGuild(state)
     }
 };
 

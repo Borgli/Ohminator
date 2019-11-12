@@ -1,3 +1,5 @@
+import {SET_GUILD} from "./actions";
+
 const initialState = {
     id: '',
     permissions: '',
@@ -10,7 +12,7 @@ const initialState = {
 
 const discordGuild = (state = initialState, action) => {
     switch(action.type){
-        case 'SET_GUILD':
+        case SET_GUILD:
             return {
                 ...state,
                 ...action.guild

@@ -1,3 +1,5 @@
+import {LOGOUT, SET_USER_SUCCESS} from "./actions";
+
 const initialState = {
     username: '',
     email: '',
@@ -12,13 +14,13 @@ const initialState = {
 
 const user = (state = initialState, action) => {
     switch (action.type) {
-        case "SET_USER_SUCCESS": {
+        case SET_USER_SUCCESS: {
             return {
                 ...state,
                 ...action.user
             }
         }
-        case 'LOGOUT':
+        case LOGOUT:
             return initialState;
         default:
             return state;

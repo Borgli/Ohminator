@@ -2,6 +2,7 @@ import {takeLeading, select, all, takeEvery} from 'redux-saga/effects'
 import {REHYDRATE} from 'redux-persist/lib/constants';
 import {getOauthCode} from "./reducers/client";
 import {fetchGuilds, fetchUser, postGuild} from "./utils/calls";
+import {FETCH_USER, REGISTER_GUILD, SET_USER_SUCCESS} from "./reducers/actions";
 
 function* getUser() {
     const oauthCode = yield select(getOauthCode);
@@ -27,8 +28,8 @@ function* registerGuild(action) {
 export default function* rootSaga() {
     yield all([
         yield takeLeading(REHYDRATE, getUser),
-        yield takeEvery('FETCH_USER', getUser),
-        yield takeEvery('SET_USER_SUCCESS', getGuilds),
-        yield takeEvery('REGISTER_GUILD', registerGuild)
+        yield takeEvery(FETCH_USER, getUser),
+        yield takeEvery(SET_USER_SUCCESS, getGuilds),
+        yield takeEvery(REGISTER_GUILD, registerGuild)
     ])
 }

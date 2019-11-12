@@ -5,10 +5,11 @@ import {Link} from "react-router-dom";
 import {getOauthGuildUri} from "../utils/utils";
 import {getDiscordGuilds} from "../reducers/discordGuilds";
 import {getBotGuilds} from "../reducers/botGuilds";
+import {SET_CURRENT_GUILD} from "../reducers/actions";
 
 const GUILD_PERMISSIONS_NEEDED = 2147483647;
 
-const GuildSelectionScreen = ({username, discordGuilds, botGuilds}) => {
+const GuildSelectionScreen = ({username, discordGuilds, botGuilds, setCurrentGuild}) => {
 
     return (
         <div id="guild-selection-screen">
@@ -32,6 +33,7 @@ const GuildSelectionScreen = ({username, discordGuilds, botGuilds}) => {
                                 icon={guild.icon}
                                 key={i}
                                 botGuilds={botGuilds}
+                                setCurrentGuild={setCurrentGuild}
                             />
                     })}
                 </div>
@@ -40,11 +42,14 @@ const GuildSelectionScreen = ({username, discordGuilds, botGuilds}) => {
     );
 };
 
-const GuildIcon = ({id, name, icon, botGuilds}) => {
+const GuildIcon = ({id, name, icon, botGuilds, setCurrentGuild}) => {
     return (
         <div className="column guild is-flex is-one-third has-text-centered">
             {botGuilds.some(guild => guild.id === id) ?
-                <Link to={`/guild/${id}`}>
+                <Link to={ location => {
+                    setCurrentGuild(id)
+                    return {...location, pathname: `/guilds/${id}`}
+                }}>
                     <figure className="image is-128x128">
                         <img className="is-rounded"
                              src={`https://cdn.discordapp.com/icons/${id}/${icon}.png`}
@@ -75,4 +80,8 @@ const mapStateToProps = state => ({
     botGuilds: getBotGuilds(state),
 });
 
-export default connect(mapStateToProps)(GuildSelectionScreen);
+const mapDispatchToProps = dispatch => ({
+    setCurrentGuild: (id) => dispatch({type: SET_CURRENT_GUILD, id})
+})
+
+export default connect(mapStateToProps, mapDispatchToProps)(GuildSelectionScreen);

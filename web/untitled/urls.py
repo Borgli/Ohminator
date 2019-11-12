@@ -17,20 +17,16 @@ from django.contrib import admin
 from django.urls import path
 
 from web.ohminator_web.views import get_plugin, plugins_status, get_plugins, \
-    user, guilds, get_user, get_guild, get_guild_list, \
-    get_client, get_oauth_bot_uri, get_oauth_user_uri
+    user, discord_guilds, bot_guilds, get_user, bot_guild
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/user', user),
-    path('api/guilds', guilds),
-    path('api/guilds/list', get_guild_list),
-    path('api/guilds/<int:guild_id>', get_guild),
+    path('api/user', user), # TODO Refactor to api/discord/user
+    path('api/user/<int:user_id>', get_user), # TODO Refactor to api/bot/user
+    path('api/discord/guilds', discord_guilds),
+    path('api/bot/guilds', bot_guilds),
+    path('api/bot/guilds/<str:guild_id>', bot_guild),
     path('api/plugins/<int:guild_id>/', get_plugins),
     path('api/plugins/<int:guild_id>/<str:plugin_name>', get_plugin),
     path('api/plugins/<int:guild_id>/plugins_status', plugins_status),
-    path('api/user/<int:user_id>', get_user),
-    path('api/client', get_client),
-    path('api/oauth_bot_uri', get_oauth_bot_uri),
-    path('api/oauth_user_uri', get_oauth_user_uri)
 ]

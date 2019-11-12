@@ -8,7 +8,7 @@ import {getOauthCode} from "../reducers/client";
 import {connect} from "react-redux";
 import {Link} from "react-router-dom";
 
-const LandingScreen = ({oauthCode, setUser}) => {
+const LandingScreen = ({oauthCode}) => {
     const oauthUri = getOauthUserUri()
 
     return (

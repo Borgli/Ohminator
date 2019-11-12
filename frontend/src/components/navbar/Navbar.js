@@ -27,7 +27,6 @@ const Navbar = (props) =>
         </nav>
 
 const NavbarAvatarItem = ({id, avatar, username, discriminator, logout}) => {
-    console.log(logout)
     const avatarSource = username ? avatar ?
         `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`
         :

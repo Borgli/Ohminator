@@ -2,8 +2,8 @@ import json
 import os
 import requests
 from django.core import serializers
-from django.http import HttpResponseNotFound, Http404
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.http import HttpResponseNotFound
+from django.core.exceptions import PermissionDenied
 from requests.exceptions import HTTPError
 
 from ohminator_web.models import Guild, User, Plugin, Intro, IntroPlugin, Oauth
@@ -14,11 +14,8 @@ from rest_framework.response import Response
 OAUTH2_CLIENT_ID = '639373877381693463'
 OAUTH2_CLIENT_SECRET = 'ZMjOzpysTgwlukG1EjbccN5n9A6MW75o'
 OAUTH2_REDIRECT_URI = 'https://localhost:8000/api/login'
-GUILD_REDIRECT_URI = 'http://localhost:8000/api/bot_joined'
 
 API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
-AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
-TOKEN_URL = API_BASE_URL + '/oauth2/token'
 
 if 'http://' in OAUTH2_REDIRECT_URI:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
@@ -78,123 +75,107 @@ def make_session():
     return None
 
 
+def is_authorized(request):
+    code = request.headers["X-Oauth-Code"]
+    if not Oauth.objects.filter(oauth_code=code).exists():
+        raise PermissionDenied
+
+
 @api_view(['GET'])
 def user(request):
     code = request.headers["X-Oauth-Code"]
     return api_call('/users/@me', code, 'user')
 
 
-@api_view(['GET', 'POST', 'PUT'])
-def guilds(request):
-    # Authentication check
+@api_view(['GET'])
+def discord_guilds(request):
     code = request.headers["X-Oauth-Code"]
-    if not Oauth.objects.filter(oauth_code=code).exists():
-        raise PermissionDenied
+    return api_call('/users/@me/guilds', code, 'guilds')
+
+
+@api_view(['GET', 'POST'])
+def bot_guilds(request):
+    is_authorized(request)
 
     if request.method == 'GET':
-        return api_call('/users/@me/guilds', code, 'guilds')
+        guild_ids_query = request.query_params.get('guild_ids')
 
-    if request.method in ['PUT', 'POST']:
-        guild = request.data['guild']
-        print(request.data)
+        # api/bot/guilds?guild_ids=id1, ..., idN
+        if guild_ids_query:
+            guild_ids = guild_ids_query.split(',')
+            guilds = []
+
+            for guild_id in guild_ids:
+                if Guild.objects.filter(id=guild_id).exists():
+                    guilds.append(Guild.objects.get(id=guild_id))
+
+            if not guilds:
+                return HttpResponseNotFound()
+
+            return Response({'guilds': json.loads(serializers.serialize('json', guilds))})
+
+        return Response({'guilds': json.loads(serializers.serialize('json', Guild.objects.all()))})
+
+    if request.method == 'POST':
+        guild = request.data.get('guild')
         guild_id = guild['id']
+
         Guild(id=guild_id, prefix='!').save()
         guild = Guild.objects.get(id=guild_id)
-        return Response({'guild': json.dumps(guild)})
+        return Response({'guild': json.loads(serializers.serialize('json', [guild]))})
 
 
-
+# TODO User information related to usage patterns
 @api_view(['GET'])
 def get_user(request, user_id):
-    discord = make_session()
-    if discord.authorized:
-        return Response({'user': discord.get(API_BASE_URL + '/users/' + user_id).json()})
-    else:
-        return Response({'error': 'not authorized'})
+    return None
 
 
-@api_view(['GET'])
-def get_guild(request, guild_id):
-    code = request.headers["X-Oauth-Code"]
-    if not Oauth.objects.filter(oauth_code=code).exists():
-        return Response({'error': 'not authorized'})
+@api_view(['GET', 'PATCH', 'PUT'])
+def bot_guild(request, guild_id):
+    is_authorized(request)
 
-    if Guild.objects.filter(id=guild_id).exists():
-        guild = Guild.objects.get(id=guild_id)
-        return Response({'guild': serializers.serialize('json', [guild])})
-    else:
-        return HttpResponseNotFound('<h1>Guild not found</h1>')
-
-
-# Maybe this can be merged with get_guild?
-@api_view(['GET'])
-def get_guild_list(request):
-    guild_id_list = request.data.get('guild_id_list')
-    guild_list = Guild.objects.get(id=guild_id_list)
-    return Response({'guilds': serializers.serialize('json', guild_list), 'plugins': get_guild_plugins(None)})
+    if request.method == 'GET':
+        if Guild.objects.filter(id=guild_id).exists():
+            return Response({'guild': serializers.serialize('json')})
+        return HttpResponseNotFound()
 
 
 @api_view(['GET'])
 def get_plugins(request, guild_id):
-    discord = make_session()
-    if discord.authorized:
-        plugins = get_guild_plugins(guild_id)
-        return Response({'plugins': plugins})
-    else:
-        return Response({'error': 'not authorized'})
+    is_authorized(request)
+
+    plugins = get_guild_plugins(guild_id)
+    return Response({'plugins': plugins})
 
 
 @api_view(['GET'])
 def get_plugin(request, guild_id, plugin_name):
-    discord = make_session()
-    if discord.authorized:
-        try:
-            # Fetch plugin data again, already fetched on guild dashboard (?)
-            plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(
-                url_ending=plugin_name).get()
+    is_authorized(request)
+    try:
+        # Fetch plugin data again, already fetched on guild dashboard (?)
+        plugin_obj = Plugin.objects.filter(guild=Guild.objects.get(pk=guild_id)).filter(
+            url_ending=plugin_name).get()
 
-            data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
+        data = json.loads(serializers.serialize('json', [*[plugin_obj], *[plugin_obj.plugin_ptr]]))
 
-            return Response({'plugin': {'model': data[0]['model'],
-                                        'fields': {**data[1]['fields'],
-                                                   **data[0]['fields']}}})
-        except Exception:
-            return Response({'error': 'exception occurred'})
-    else:
-        return Response({'error': 'not authorized'})
+        return Response({'plugin': {'model': data[0]['model'],
+                                    'fields': {**data[1]['fields'],
+                                               **data[0]['fields']}}})
+    except Exception:
+        return Response({'error': 'exception occurred'})
 
 
 @api_view(['GET'])
 def plugins_status(request, guild_id):
-    discord = make_session()
-    if discord.authorized:
-        status_plugins = []
-        plugins = Plugin.objects.all()
-        for plugin in plugins:
-            status_plugins.append({plugin.name, plugin.enabled})
+    is_authorized(request)
 
-        return Response({'plugins': json.dumps(status_plugins)})
-    else:
-        return Response({'error': 'not authorized'})
+    status_plugins = []
+    plugins = Plugin.objects.all()
+    for plugin in plugins:
+        status_plugins.append({plugin.name, plugin.enabled})
 
-
-@api_view(['GET'])
-def get_client(request):
-    return Response({'clientID': OAUTH2_CLIENT_ID})
-
-
-@api_view(['GET'])
-def get_oauth_bot_uri(request):
-    return Response({'oauthUri': "https://discordapp.com/oauth2/authorize?client_id=" +
-                                 OAUTH2_CLIENT_ID +
-                                 "&scope=bot&permissions=2146958591"})
-
-
-@api_view(['GET'])
-def get_oauth_user_uri(request):
-    return Response({'oauthUri': "https://discordapp.com/oauth2/authorize?client_id=" +
-                                 OAUTH2_CLIENT_ID +
-                                 "&scope=identify%20email%20guilds"})
+    return Response({'plugins': json.dumps(status_plugins)})
 
 
 def get_guild_plugins(guild_id):

@@ -1,3 +1,5 @@
+import React from 'react'
+
 const LoadingIcon = () => {
     return (
         <div className="lds-ripple">

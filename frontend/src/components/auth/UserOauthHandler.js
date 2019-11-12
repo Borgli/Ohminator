@@ -20,7 +20,7 @@ const UserOauthHandler = ({path, setOauthCode, fetchUser}) => {
 
 const mapDispatchToProps = (dispatch) => ({
     setOauthCode: oauthCode => dispatch({type: 'SET_OAUTH_CODE', oauthCode}),
-    fetchUser: () => dispatch({type: 'FETCH_USER'})
+    fetchUser: () => dispatch({type: 'FETCH_USER'}),
 });
 
 export default connect(null, mapDispatchToProps)(UserOauthHandler);

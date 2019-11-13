@@ -16,12 +16,12 @@ from ohminator.plugins.intro import IntroManager
 
 
 class Server:
-    def __init__(self, discord_server: discord.Guild, client: discord.Client, db):
+    def __init__(self, guild: discord.Guild, client: discord.Client, db):
         # Initialize everything that is not persistent
-        self.name = discord_server.name
-        self.id = discord_server.id
-        self.server_loc = '{}'.format(discord_server.id)
-        self.discord_server = discord_server
+        self.name = guild.name
+        self.id = guild.id
+        self.server_loc = str(guild.id)
+        self.guild = guild
         self.db = db
         self.client = client
 
@@ -70,20 +70,20 @@ class Server:
         create_if_not_exists(join(server_dir, 'members'))
 
         # Initialize members
-        for member in discord_server.members:
+        for member in guild.members:
             self.member_list.append(Member(client, self, member))
 
         # Create channels folder if it doesn't exist
         create_if_not_exists(join(server_dir, 'channels'))
 
         # Initialize channels
-        for channel in discord_server.channels:
+        for channel in guild.channels:
             self.channel_list.append(Channel(client, self, channel))
 
         # Create default intros folder if it doesn't exist
         create_if_not_exists(join(server_dir, 'default_intros'))
 
-        self.playlist = Playlist(client, self)
+        self.playlist = Playlist(client, self, guild)
         self.intro_manager = IntroManager(client, self)
         client.loop.create_task(self.check_for_birthdays())
 
@@ -115,10 +115,10 @@ class Server:
         first = True
         for entry in self.split_list:
             if first:
-                print_line += '{}'.format(entry.name)
+                print_line += str(entry.name)
                 first = False
             else:
-                print_line += ', {}'.format(entry.name)
+                print_line += f', {entry.name}'
         return print_line
 
     async def check_for_birthdays(self):

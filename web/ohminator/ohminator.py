@@ -51,7 +51,7 @@ class Ohminator(discord.Client):
             # Normal commands can be awaited and are therefore in their own functions
             for key in commands:
                 if message.content.lower().split()[0] == guild.prefix + key:
-                    await commands[key](message, self, None)
+                    await commands[key](message, self, guild, None)
                     return
 
 
@@ -88,8 +88,8 @@ class RegisterCommand:
             commands[command] = func
 
         @wraps(func)
-        async def wrapped(message, client, plugin):
-            return await func(message, client, plugin)
+        async def wrapped(message, client, guild, plugin):
+            return await func(message, client, guild, plugin)
 
         return wrapped
 

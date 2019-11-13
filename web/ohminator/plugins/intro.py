@@ -43,7 +43,7 @@ class IntroManager:
 
 
 @RegisterCommand("introstop", "stopintro", "is")
-async def introstop(message, bot_channel, client):
+async def introstop(message, client, plugin):
     await message.delete()
     server = utils.get_server(message.server)
     if server.intro_player is None or not server.intro_player.is_playing():
@@ -54,7 +54,7 @@ async def introstop(message, bot_channel, client):
 
 
 @RegisterCommand("intro", "i")
-async def intro(message, bot_channel, client):
+async def intro(message, client, plugin):
     await message.delete()
     server = utils.get_server(message.server)
     if message.author.voice_channel is None or message.author.voice.is_afk:

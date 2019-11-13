@@ -1,19 +1,20 @@
 import React, {useState, useEffect} from "react";
 import {connect} from 'react-redux';
-import {getGuildPlugins} from "../utils/calls";
 import LoadingIcon from "../components/icons/LoadingIcon";
 import PluginCard from "../components/cards/PluginCard";
 import {getCurrentBotGuild} from "../reducers/botGuilds";
 import {getCurrentDiscordGuild} from "../reducers/discordGuilds";
+import {SET_CURRENT_GUILD} from "../reducers/actions";
+import GeneralSettingsCard from "../components/cards/GeneralSettingsCard";
 
 
-const GuildScreen = ({discordGuild, botGuild}) => {
-    const [prefixTemp, setPrefixTemp] = useState(botGuild.prefix);
-
+const GuildScreen = ({discordGuild, botGuild, setCurrentGuild, match}) => {
     useEffect(() => {
-        // TODO
+        setCurrentGuild(match.params.id)
+        // TOD
         // if (!botGuild.plugins)
-    });
+    }, []);
+
     // TODO Fix icon for guilds without avatar
     return (
         <div id="guild-screen">
@@ -28,22 +29,9 @@ const GuildScreen = ({discordGuild, botGuild}) => {
                     </p>
                 </div>
             </section>
-            <section id="general-settings" className="section">
-                <div className="card">
-                    <header className="card-header">
-                        <p className="card-header-title">
-                            General settings
-                        </p>
-                    </header>
-                    <div className="card-content">
-                        <div className="content">
-                            <div className="field">
-                                <input className="input" type="text" placeholder={prefixTemp}/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <GeneralSettingsCard
+                prefix={botGuild.prefix}
+            />
             <section id="plugins" className="section">
                 <div className="title has-text-centered">
                     Plugins
@@ -70,4 +58,8 @@ const mapStateToProps = (state) => {
     }
 };
 
-export default connect(mapStateToProps)(GuildScreen);
+const mapDispatchToProps = dispatch => ({
+    setCurrentGuild: (id) => dispatch({type: SET_CURRENT_GUILD, id})
+})
+
+export default connect(mapStateToProps, mapDispatchToProps)(GuildScreen);

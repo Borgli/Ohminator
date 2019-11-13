@@ -11,3 +11,15 @@
   display: flex;
   justify-content: center;
 }
+
+#prefix {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 60%;
+}
+
+#prefix-input {
+  justify-content: flex-start;
+  margin-left: 15px;
+}

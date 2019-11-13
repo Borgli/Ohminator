@@ -36,19 +36,19 @@ class Ohminator(discord.Client):
                 new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', guild.channels)
                 # If channel does not exist - create it
                 if new_server.bot_channel is None:
-                    new_server.bot_channel = await guild.create_channel(guild, 'bot-spam')
+                    new_server.bot_channel = await guild.create_text_channel('bot-spam')
                 # Change the topic of the channel if not already set
                 with open('resources/bot_channel_topic.txt') as f:
                     topic = f.read()
                 if new_server.bot_channel.topic != topic:
-                    await guild.edit_channel(new_server.bot_channel, topic=topic)
+                    await new_server.bot_channel.edit(topic=topic)
             print('Done!')
             running = True
 
     async def on_message(self, message):
         if message.content.strip() and message.guild:
             guild = Guild.objects.get(pk=message.guild.id)
-            # Normal commands can be awaited and is therefore in their own functions
+            # Normal commands can be awaited and are therefore in their own functions
             for key in commands:
                 if message.content.lower().split()[0] == guild.prefix + key:
                     await commands[key](message, self, None)
@@ -59,7 +59,7 @@ def run_ohminator():
     client = Ohminator()
 
     # Reads token
-    with open("token.txt", 'r') as f:
+    with open("web/token.txt", 'r') as f:
         token = f.read().strip()
 
     # Starts the execution of the bot

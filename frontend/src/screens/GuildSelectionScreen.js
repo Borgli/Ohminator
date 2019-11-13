@@ -9,7 +9,7 @@ import {SET_CURRENT_GUILD} from "../reducers/actions";
 
 const GUILD_PERMISSIONS_NEEDED = 2147483647;
 
-const GuildSelectionScreen = ({username, discordGuilds, botGuilds, setCurrentGuild}) => {
+const GuildSelectionScreen = ({username, discordGuilds, botGuilds}) => {
 
     return (
         <div id="guild-selection-screen">
@@ -19,7 +19,7 @@ const GuildSelectionScreen = ({username, discordGuilds, botGuilds, setCurrentGui
                         Welcome {username}!
                     </p>
                     <p className="subtitle is-4">
-                        Select a server
+                        Select a guild
                     </p>
                 </div>
             </section>
@@ -33,7 +33,6 @@ const GuildSelectionScreen = ({username, discordGuilds, botGuilds, setCurrentGui
                                 icon={guild.icon}
                                 key={i}
                                 botGuilds={botGuilds}
-                                setCurrentGuild={setCurrentGuild}
                             />
                     })}
                 </div>
@@ -42,14 +41,11 @@ const GuildSelectionScreen = ({username, discordGuilds, botGuilds, setCurrentGui
     );
 };
 
-const GuildIcon = ({id, name, icon, botGuilds, setCurrentGuild}) => {
+const GuildIcon = ({id, name, icon, botGuilds}) => {
     return (
         <div className="column guild is-flex is-one-third has-text-centered">
             {botGuilds.some(guild => guild.id === id) ?
-                <Link to={ location => {
-                    setCurrentGuild(id)
-                    return {...location, pathname: `/guilds/${id}`}
-                }}>
+                <Link to={`/guilds/${id}`}>
                     <figure className="image is-128x128">
                         <img className="is-rounded"
                              src={`https://cdn.discordapp.com/icons/${id}/${icon}.png`}
@@ -80,8 +76,4 @@ const mapStateToProps = state => ({
     botGuilds: getBotGuilds(state),
 });
 
-const mapDispatchToProps = dispatch => ({
-    setCurrentGuild: (id) => dispatch({type: SET_CURRENT_GUILD, id})
-})
-
-export default connect(mapStateToProps, mapDispatchToProps)(GuildSelectionScreen);
+export default connect(mapStateToProps)(GuildSelectionScreen);

@@ -181,12 +181,12 @@ async def on_server_join(server):
     new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', server.channels)
     # If channel does not exist - create it
     if new_server.bot_channel is None:
-        new_server.bot_channel = await client.create_channel(server, 'bot-spam')
+        new_server.bot_channel = await client.create_text_channel('bot-spam')
     # Change the topic of the channel if not already set
     with open('resources/bot_channel_topic.txt') as f:
         topic = f.read()
     if new_server.bot_channel.topic != topic:
-        await client.edit_channel(new_server.bot_channel, topic=topic)
+        await new_server.bot_channel.edit(topic=topic)
 
 
 async def on_server_remove(server):

@@ -91,7 +91,7 @@ async def on_reaction_add(reaction, user):
 
     if server.queue_pages is not None:
         if reaction.message.id == server.queue_pages.message.id:
-            await server.queue_pages.print_next_page(client)
+            await server.queue_pages.print_next_page(client, reaction.message.channel)
 
 
 async def on_voice_state_update(before, after):

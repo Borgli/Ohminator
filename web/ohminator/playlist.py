@@ -5,6 +5,9 @@ import pickle
 import re
 from os.path import exists
 from os import remove, mkdir
+
+from discord.player import AudioPlayer
+
 import ohminator.server
 import youtube_dl
 import functools
@@ -260,15 +263,15 @@ class Playlist:
 
         return playlist_element
 
-    def after_yt(self):
-        if self.server.active_player.error:
-            print(self.server.active_player.error)
+    def after_yt(self, error):
+        if error:
+            print(error)
             traceback.print_exc()
         self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
         self.client.loop.call_soon_threadsafe(self.play_next.set)
 
     async def play_next_yt(self):
-        while not self.client.is_closed:
+        while not self.client.is_closed():
             await self.play_next.wait()
             await self.playlist_lock.acquire()
             try:
@@ -296,7 +299,7 @@ class Playlist:
                 self.playlist_lock.release()
 
     async def should_clear_now_playing(self):
-        while not self.client.is_closed:
+        while not self.client.is_closed():
             await self.clear_now_playing.wait()
             self.now_playing = ""
             self.clear_now_playing.clear()
@@ -329,12 +332,14 @@ ytdl_format_options = {
 }
 
 ffmpeg_options = {
-    'options': '-vn'
+    'options': '-vn',
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
 }
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
+# TODO: Use ytdl / info object from outside.
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.25):
         super().__init__(source, volume)
@@ -392,9 +397,13 @@ class PlaylistElement:
                 self.webpage_url = link
 
     async def get_new_player(self):
-        player = await YTDLSource.from_url(self.webpage_url, stream=True)
+        audio_source = await YTDLSource.from_url(self.webpage_url, stream=True)
+        player = AudioPlayer(audio_source, self.guild.voice_client, after=self.after_yt)
         self.player = player
-        self.title = player.title
+        self.title = audio_source.title
+        # TODO: Fix this hack!
+        player.title = audio_source.title
+        player.is_done = lambda: player._end.is_set()
         #self.duration = player.duration
         #if self.duration:
         #    self.duration = int(self.duration)

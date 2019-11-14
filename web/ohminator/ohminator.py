@@ -90,10 +90,3 @@ class RegisterCommand:
         @wraps(func)
         async def wrapped(message, client, guild, plugin):
             return await func(message, client, guild, plugin)
-
-        return wrapped
-
-
-#@RegisterCommand('info', 'help', 'commands', plugin=None)
-#async def info(message, client, plugin):
-#    await message.channel.send('Halla balla!')

@@ -15,6 +15,12 @@ from ohminator.utils import *
 from ohminator.plugins.intro import IntroManager
 
 
+class Guild(discord.guild.Guild):
+    def __init__(self, discord_guild):
+        self.id = discord_guild.id
+        self.name = discord_guild.name
+
+
 class Server:
     def __init__(self, guild: discord.Guild, client: discord.Client, db):
         # Initialize everything that is not persistent
@@ -49,21 +55,6 @@ class Server:
         self.poll_time = 30
 
         create_if_not_exists(join('servers', self.server_loc))
-
-        # Handle server document
-        #self.server_doc = db.Servers.find_one({"_id": discord_server.id})
-        #if self.server_doc is None:
-        #    self.server_doc = {
-        #        "_id": discord_server.id,
-        #    }
-        #    db.Servers.insert_one(self.server_doc)
-
-        # Handle server settings
-        #self.settings = ServerSettings()
-        #if 'settings' in self.server_doc:
-        #    self.change_settings(self.server_doc['settings'])
-        #else:
-        #    self.change_settings(dict())
 
         server_dir = join('servers', self.server_loc)
         # Create members folder if it doesn't exist

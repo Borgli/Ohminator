@@ -20,7 +20,6 @@ class Guild(models.Model):
 
 class Plugin(PolymorphicModel):
     name = models.CharField(max_length=50, null=False)
-    url_ending = models.CharField(max_length=50, null=False)
     communication = models.CharField(max_length=2, choices=(('DM', 'Direct Message'), ('CH', Channel),
                                                             ('U', "Respond to user channel"), ("M", "Muted")),
                                      default='U')
@@ -35,7 +34,7 @@ class IntroPlugin(Plugin):
     pass
 
 
-class YoutubePlugin(Plugin):
+class AudioPlugin(Plugin):
     pass
 
 

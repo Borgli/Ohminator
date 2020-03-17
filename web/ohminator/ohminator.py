@@ -33,6 +33,7 @@ class Ohminator(discord.Client):
             for guild in self.guilds:
                 new_server = Server(guild, self, None)
                 utils.server_list.append(new_server)
+                db_guild = Guild.objects.get_or_create(pk=guild.id)
                 new_server.bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', guild.channels)
                 # If channel does not exist - create it
                 if new_server.bot_channel is None:

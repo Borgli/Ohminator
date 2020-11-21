@@ -7,6 +7,7 @@ import discord
 
 server_list = list()
 commands = dict()
+playlists = dict()
 
 
 # Registers new commands
@@ -50,14 +51,14 @@ def create_now_playing_embed(now_playing):
     embed = discord.Embed()
     embed.title = "Now playing:"
     embed.colour = discord.Colour.dark_green()
-    embed.description = "[{}]({})\n{}".format(now_playing.title, now_playing.webpage_url,
-                                              'It is {} seconds long'.format(now_playing.duration))
-    if now_playing.thumbnail:
-        low_res_thumbnail = now_playing.thumbnail
-        url_splitted = low_res_thumbnail.split('/')
-        url_splitted[-1] = 'mqdefault.jpg'
-        high_res_thumbnail = '/'.join(url_splitted)
-        embed.set_thumbnail(url=high_res_thumbnail)
+    embed.description = f'[{now_playing["title"]}]({now_playing["url"]})\n' \
+                        f'It is {now_playing["duration"]} seconds long.'
+    if now_playing["thumbnail"]:
+        #low_res_thumbnail = now_playing["thumbnail"]
+        #url_splitted = low_res_thumbnail.split('/')
+        #url_splitted[-1] = 'mqdefault.jpg'
+        #high_res_thumbnail = '/'.join(url_splitted)
+        embed.set_thumbnail(url=now_playing["thumbnail"])
     return embed
 
 

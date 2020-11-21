@@ -172,15 +172,14 @@ async def joined(message, bot_channel, client):
 
 
 @register_command("roll")
-async def roll(message, bot_channel, client):
-    await client.delete_message(message)
+async def roll(message, bot_channel, client, guild):
+    await message.delete()
     try:
         options = message.content.split()
         rand = randint(int(options[1]), int(options[2]))
-        await client.send_message(bot_channel, '{}: You rolled {}!'.format(message.author.name, rand))
+        await bot_channel.send_message('{}: You rolled {}!'.format(message.author.name, rand))
     except:
-        await client.send_message(bot_channel,
-                                  '{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
+        await bot_channel.send_message('{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
 
 
 @register_command("setbirthday")

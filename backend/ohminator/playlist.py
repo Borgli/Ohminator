@@ -8,21 +8,19 @@ from os import remove, mkdir
 
 from discord.player import AudioPlayer
 
-import ohminator.server
 import youtube_dl
 import functools
 import logging
 import traceback
 import time
 import math
-import ohminator.utils
+import utils
 from datetime import datetime
 
 
 class Playlist:
-    def __init__(self, client, server, guild):
+    def __init__(self, client, guild, guild_ref):
         self.client = client
-        self.server = server
         self.guild = guild
         self.yt_playlist = list()
         self.queue_exists = None
@@ -40,125 +38,8 @@ class Playlist:
         logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
 
         self.task_list = list()
-        # self.task_list.append(client.loop.create_task(self.manage_pinned_messages()))
         self.task_list.append(client.loop.create_task(self.play_next_yt()))
         self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
-
-    async def manage_pinned_messages(self):
-        await self.client.wait_until_ready()
-        await asyncio.sleep(1, loop=self.client.loop)
-        while not self.client.is_closed:
-            # Constructing the queue string
-            cnt = 1
-            queue = str()
-            for play in self.yt_playlist:
-                if cnt > 10:
-                    break
-                votes = ''
-                if len(play.vote_list) > 0:
-                    votes = f' **[{len(play.vote_list)}]**'
-                queue += f"**{cnt}**: {play.title}{votes}\n"
-                cnt += 1
-
-            # Filter on channels with pinned playlists enabled.
-            # Bot-spam channel will always have pinned playlists enabled.
-            for channel in filter(lambda channel: channel.type == discord.ChannelType.text and
-                                  channel.list_settings()['pin_yt_playlists'] == "True" or
-                                  channel.name == 'bot-spam', self.server.channel_list):
-
-                pickle_loc = f'servers/{self.server.server_loc}/channels/{channel.channel_loc}/pinned_message.pickle'
-                try:
-                    # Check if a pinned message pickle file exists
-                    if exists(pickle_loc):
-                        # Open the file to read
-                        with open(pickle_loc, 'r+b') as f:
-                            pinned_message = pickle.load(f)
-
-                    else:
-                        # If it doesn't exist we must create a new one
-                        pinned_message = await self.client.send_message(self.server.discord_server.get_channel(channel.id),
-                                                                        'Setting up pinned message...')
-                        # Write the new message to file
-                        with open(pickle_loc, 'w+b') as f:
-                            pickle.dump(pinned_message, f)
-
-                    # Remove previously pinned messages
-                    pinned_messages = await self.client.pins_from(self.server.discord_server.get_channel(channel.id))
-                    for message in pinned_messages:
-                        if message.id != pinned_message.id and message.author.id == self.client.user.id:
-                            await self.client.delete_message(message)
-
-                    # Pin the message
-                    await self.client.pin_message(pinned_message)
-
-                    player = self.server.active_playlist_element
-                    # Edit the content of the message with the current playlist info
-                    if self.server.active_player is not None and not self.server.active_player.is_playing() \
-                            and not self.server.active_player.is_done():
-                        await self.client.edit_message(pinned_message, f':pause_button: '
-                                                       f'**Paused:** {self.now_playing}\n'
-                                                       f'**Current queue:**\n{queue.strip()}\n')
-                    else:
-                        if player is None or not self.server.active_player or self.server.active_player.is_done():
-                            await self.client.edit_message(pinned_message, f'**Now playing:** {self.now_playing}\n'
-                                                                           f'**Current queue:**\n{queue.strip()}\n')
-                        else:
-                            # Check if duration is available
-                            if player.duration:
-                                # Create duration bar
-                                current_time = int((time.time() - player.start_time))
-                                end_time = player.duration
-                                progress_step = int(math.ceil((((current_time / end_time) * 100) / 10)))
-                                white_space = "<" + ('=' * (10 - progress_step))
-                                progress_bar = "" + ('=' * progress_step) + ">" + white_space + ""
-                                m, s = divmod(current_time, 60)
-                                h, m = divmod(m, 60)
-                                current_time = f"{h}:{m}:{s}" if h != 0 else f"{m}:{s if s > 9 else '0' + str(s)}"
-                                m, s = divmod(end_time, 60)
-                                h, m = divmod(m, 60)
-                                end_time = f"{h}:{m}:{s}" if h != 0 else f"{m}:{s if s > 9 else '0' + str(s)}"
-
-                                await self.client.edit_message(pinned_message,
-                                                               f'`[{current_time}][{progress_bar}][{end_time}]`\n'
-                                                               f'**Now playing:** {self.now_playing}\n'
-                                                               f'**Current queue:**\n{queue.strip()}\n')
-                            else:
-                                await self.client.edit_message(pinned_message,
-                                                               f'**Now playing:** {self.now_playing}\n'
-                                                               f'**Current queue:**\n{queue.strip()}\n')
-
-                except (ValueError, AttributeError, discord.errors.NotFound) as f:
-                    remove(pickle_loc)
-                    traceback.print_exc()
-                    return
-                except discord.errors.Forbidden as f:
-                    print(f"Missing privilege to post to channel {channel.name} on server {self.server.name}")
-                    return
-                except discord.errors.HTTPException as f:
-                    if f.response.status == 400:
-                        remove(pickle_loc)
-                        traceback.print_exc()
-                    elif f.response.status == 500:
-                        # INTERNAL SERVER ERROR
-                        print(f"Internal server error on server {self.server.name}")
-                        await asyncio.sleep(30, loop=self.client.loop)
-                    elif f.response.status == 524:
-                        print(f"Discord overloaded on server {self.server.name}")
-                        await asyncio.sleep(30, loop=self.client.loop)
-                    else:
-                        traceback.print_exc()
-                        return
-                except asyncio.TimeoutError as f:
-                    print(f"Pinned messages had a timeout error on server {self.server.name}")
-                    await asyncio.sleep(60, loop=self.client.loop)
-                except:
-                    logging.error(f'Manage pinned messages on server {self.server.name} had an exception:\n',
-                                  exc_info=True)
-                    traceback.print_exc()
-                    return
-
-            # 10 second intervals as Discord seems to be limited to edits every 10 seconds.
-            await asyncio.sleep(5, loop=self.client.loop)
 
     @staticmethod
     def get_options(link):
@@ -282,7 +163,7 @@ class Playlist:
                             break
                         player = self.yt_playlist.pop(0)
                         try:
-                            self.server.active_player = await player.get_new_player()
+                            self.guild.active_player = await player.get_new_player()
                         except:
                             continue
                         self.server.active_playlist_element = player
@@ -291,7 +172,7 @@ class Playlist:
                             break
                     if something_to_play:
                         self.now_playing = self.server.active_player.title
-                        await self.output_channel.send(embed=ohminator.utils.create_now_playing_embed(
+                        await self.output_channel.send(embed=utils.create_now_playing_embed(
                                                            self.server.active_playlist_element))
                         self.server.active_player.start()
             finally:
@@ -396,19 +277,19 @@ class PlaylistElement:
             elif not self.webpage_url:
                 self.webpage_url = link
 
-    async def get_new_player(self):
+    async def get_new_audio_source(self):
         audio_source = await YTDLSource.from_url(self.webpage_url, stream=True)
-        player = AudioPlayer(audio_source, self.guild.voice_client, after=self.after_yt)
-        self.player = player
+        #player = AudioPlayer(audio_source, self.guild.voice_client, after=self.after_yt)
+        #self.player = player
         self.title = audio_source.title
         # TODO: Fix this hack!
-        player.title = audio_source.title
-        player.is_done = lambda: player._end.is_set()
+        #player.title = audio_source.title
+        #player.is_done = lambda: player._end.is_set()
         #self.duration = player.duration
         #if self.duration:
         #    self.duration = int(self.duration)
         #self.start_time = time.time()
-        return player
+        return audio_source
 
     def __repr__(self):
         return self.title

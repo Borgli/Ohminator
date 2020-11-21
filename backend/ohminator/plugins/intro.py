@@ -7,8 +7,7 @@ import traceback
 import urllib.request
 import asyncio
 
-from ohminator.utils import RegisterCommand
-import ohminator.utils as utils
+from utils import RegisterCommand
 
 
 class IntroManager:

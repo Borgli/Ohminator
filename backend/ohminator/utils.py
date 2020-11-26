@@ -35,24 +35,12 @@ def create_if_not_exists(path):
         mkdir(path)
 
 
-def get_server(discord_server):
-    for server in server_list:
-        if server.id == discord_server.id:
-            return server
-
-
-def get_bot_channel(message_server):
-    if message_server is None:
-        return None
-    return get_server(message_server).bot_channel
-
-
 def create_now_playing_embed(now_playing):
     embed = discord.Embed()
     embed.title = "Now playing:"
     embed.colour = discord.Colour.dark_green()
     embed.description = f'[{now_playing["title"]}]({now_playing["url"]})\n' \
-                        f'It is {now_playing["duration"]} seconds long.'
+                        f'It is {int(now_playing["duration"])} seconds long.'
     if now_playing["thumbnail"]:
         #low_res_thumbnail = now_playing["thumbnail"]
         #url_splitted = low_res_thumbnail.split('/')
@@ -60,6 +48,17 @@ def create_now_playing_embed(now_playing):
         #high_res_thumbnail = '/'.join(url_splitted)
         embed.set_thumbnail(url=now_playing["thumbnail"])
     return embed
+
+
+def update_active_player(audio_source, guilds_ref, user):
+    active_player = {
+        "title": audio_source.title, "volume": audio_source.volume,
+        "thumbnail": audio_source.data["thumbnail"], "extractor": audio_source.data["extractor"],
+        "duration": audio_source.data["duration"], "url": audio_source.data["webpage_url"],
+        "type": "youtube-dl", "status": "playing", "user": user
+    }
+    guilds_ref.update({"active_player": active_player})
+    return active_player
 
 
 class NoChannelFoundError(BaseException):
@@ -72,4 +71,4 @@ class NoMemberFoundError(BaseException):
 
 class CommandAlreadyExistsError(BaseException):
     def __init__(self, command):
-        super(CommandAlreadyExistsError, self).__init__("Command '{}' already exists!".format(command))
+        super(CommandAlreadyExistsError, self).__init__(f"Command '{command}' already exists!")

@@ -7,19 +7,11 @@ from tempfile import mkstemp
 
 import youtube_dl
 from gtts import gTTS
-from utils import RegisterCommand, get_server
+from utils import RegisterCommand
 
 import utils
 import discord
 import asyncio
-
-
-async def connect_to_voice_channel(message, client, db_guild, plugin, voice_channel=None):
-    channel = voice_channel if voice_channel else message.author.voice_channel
-    voice_client = client.voice_client_in(message.author.server)
-    if voice_client:
-        await voice_client.disconnect()
-    voice_client = await client.join_voice_channel(channel)
 
 
 @RegisterCommand("summon", "lock", "acquire")
@@ -67,44 +59,6 @@ async def unsummon(message, client, db_guild, plugin):
 
 
 
-
-
-
-
-
-
-
-@RegisterCommand("vote", "v")
-async def vote(message, client, db_guild, plugin):
-    await message.delete()
-    server = ohminator.utils.get_server(message.guild)
-    parameters = message.content.split()
-    try:
-        index = int(parameters[1]) - 1
-    except ValueError:
-        await message.channel.send(f'{message.author.name}: Please give a numeric value!')
-        return
-    except IndexError:
-        await message.channel.send(f'{message.author.name}: Please give an index to vote for!')
-        return
-
-    try:
-        playlist_element = server.playlist.yt_playlist[index]
-        if message.author.id in playlist_element.vote_list:
-            await message.channel.send(f'{message.author.name}: You can only vote once on one entry!')
-            return
-        playlist_element.vote_list.append(message.author.id)
-        for element in server.playlist.yt_playlist:
-            if len(element.vote_list) < len(playlist_element.vote_list):
-                server.playlist.yt_playlist.remove(playlist_element)
-                server.playlist.yt_playlist.insert(server.playlist.yt_playlist.index(element), playlist_element)
-                break
-        await message.channel.send(f'{message.author.name}: {playlist_element.title} has been voted for!')
-
-    except IndexError:
-        await message.channel.send(f'{message.author.name}: Index {index+1} is out of queue bounds!')
-
-
 @RegisterCommand("playbuttons")
 async def playbuttons(message, client, db_guild, plugin):
     await message.delete()
@@ -124,91 +78,6 @@ async def playbuttons(message, client, db_guild, plugin):
         server.playbuttons = PlayButtons(play, pause, stop, next, volume_up, volume_down, queue)
     finally:
         lock.release()
-
-
-@RegisterCommand("queue", "q", "queuepage")
-async def queue_page(message, client, db_guild, plugin):
-    await message.delete()
-    server = ohminator.utils.get_server(message.guild)
-    if len(server.playlist.yt_playlist) == 0:
-        await message.channel.send(f'{message.author.name}: There is nothing in the queue!')
-        return
-    parameters = message.content.split()
-    try:
-        index = int(parameters[1]) - 1
-        if not 0 <= index < len(server.playlist.yt_playlist):
-            await message.channel.send(f'{message.author.name}: Index {index + 1} is out of queue bounds!')
-        else:
-            await print_from_index(index, server, message, client)
-    except ValueError:
-        await message.channel.send(f'{message.author.name}: Please give a numeric value!')
-    except IndexError:
-        server.queue_pages = QueuePage(server)
-        await server.queue_pages.print_next_page(client, message.channel)
-
-
-@RegisterCommand("yttop", "playtop", "pt")
-async def play_on_top(message, client, db_guild, plugin):
-    server = ohminator.utils.get_server(message.guild)
-    await play_from_internet(message, client, db_guild, plugin=plugin)
-    # If the queue is not empty, the last entry must be what was added last.
-    # It should not be a race condition as we're not awaiting anything.
-    if server.playlist.yt_playlist:
-        server.playlist.yt_playlist.insert(0, server.playlist.yt_playlist.pop())
-
-
-
-
-
-async def print_from_index(index, server, message, client):
-    play = server.playlist.yt_playlist
-    queue = str()
-    try:
-        for i in range(index, index + 30, 1):
-            votes = ''
-            if len(play[i].vote_list) > 0:
-                votes = f' **[{len(play[i].vote_list)}]**'
-            queue += f"{i + 1}: {play[i].title}{votes}\n"
-        queue += f"Total entries: {len(play)}\n"
-    except IndexError:
-        queue += "End of queue!"
-    await message.channel.send(message.channel.send(f'{message.author.name}: '
-                                                   f'Here is the current queue from index {index+1}:\n{queue.strip()}'))
-
-
-class QueuePage:
-    def __init__(self, server):
-        self.page_num = 0
-        self.server = server
-        self.message = None
-        self.end = False
-
-    async def print_next_page(self, client, channel):
-        if self.end:
-            return
-        play = self.server.playlist.yt_playlist
-        queue = str()
-        try:
-            for i in range(self.page_num*30, (self.page_num*30)+30, 1):
-                votes = ''
-                if len(play[i].vote_list) > 0:
-                    votes = f' **[{len(play[i].vote_list)}]**'
-                queue += f"{i+1}: {play[i].title}{votes}\n"
-
-            pages_left = math.ceil((len(play)-((self.page_num*30)+29))/30)
-            queue += f"Total entries: {len(play)}\n"
-            if pages_left > 0:
-                queue += f"There {pages_left == 1 and 'is' or 'are'} {pages_left} " \
-                         f"{pages_left == 1 and 'page' or 'pages'} left"
-        except IndexError:
-            queue += "End of queue!"
-            self.end = True
-
-        self.page_num += 1
-        if self.message is None:
-            self.message = await channel.send(f'Here is the current queue:\n{queue.strip()}')
-        else:
-            await self.message.edit(f'Here is the current queue:\n{queue.strip()}')
 
 
 class PlayButtons:

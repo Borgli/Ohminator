@@ -1,12 +1,15 @@
+import math
+import random
 import time
 import traceback
 
 import youtube_dl
 
 from playlist import Playlist
-from utils import RegisterCommand, playlists, create_now_playing_embed
+from utils import RegisterCommand, playlists, create_now_playing_embed, update_active_player
 
 from firebase_admin import db
+
 
 @RegisterCommand("yt", "play", "p")
 async def play_from_internet(message, bot_channel, client, guild_ref):
@@ -32,9 +35,9 @@ async def play_from_internet(message, bot_channel, client, guild_ref):
         if message.author.voice.channel == summoned_channel:
             voice_channel = summoned_channel
         else:
-            await output_channel.send_message(f'{message.author.name}: '
-                                              f'The bot is locked to channel {summoned_channel.name}. '
-                                              'Please join that channel to make Ohminator play audio.')
+            await output_channel.send(f'{message.author.name}: '
+                                      f'The bot is locked to channel {summoned_channel.name}. '
+                                      'Please join that channel to make Ohminator play audio.')
             return
     else:
         voice_channel = message.author.voice.channel
@@ -56,41 +59,42 @@ async def play_from_internet(message, bot_channel, client, guild_ref):
     await playlist.playlist_lock.acquire()
 
     guilds_ref = db.reference("guilds").child(f"{guild.id}")
+    current_active_player = guilds_ref.child("active_player").get()
+    if not current_active_player:
+        current_active_player = {}
 
     async def start_player():
-        player = await playlist.add_to_playlist(link_or_phrase, False, message.author.name, output_channel)
-        audio_source = await player.get_new_audio_source()
+        audio_source = await playlist.add_to_playlist(link_or_phrase, False, message.author.name,
+                                                      output_channel, message.author.name)
         playlist.now_playing = audio_source.title
-        active_player = {
-            "title": audio_source.title, "volume": audio_source.volume,
-            "thumbnail": audio_source.data["thumbnail"], "extractor": audio_source.data["extractor"],
-            "duration": audio_source.data["duration"], "url": audio_source.data["webpage_url"],
-            "type": "youtube-dl", "status": "playing"
-        }
-        guilds_ref.update({"active_player": active_player})
-        await output_channel.send(f'{message.author.name}:', embed=create_now_playing_embed(active_player))
-        message.guild.voice_client.play(audio_source)
+        await output_channel.send(f'{message.author.name}:',
+                                  embed=create_now_playing_embed(
+                                      update_active_player(audio_source, db.reference(f"guilds/{guild.id}"),
+                                                           message.author.name))
+                                  )
+        playlist.active_audio_source = audio_source
+        message.guild.voice_client.play(audio_source, after=playlist.after_yt)
 
     try:
         # Must check if intro is already playing
-        if server.intro_player is not None and server.intro_player.is_playing():
+        if current_active_player and current_active_player["type"] == "intro" \
+                and current_active_player["status"] == "playing":
             # Check if there's something in the playlist
-            if len(server.playlist.yt_playlist) > 0:
-                player = await server.playlist.add_to_playlist(link_or_phrase, True, message.author.name, output_channel)
+            if current_active_player.get("queue"):
+                await playlist.add_to_playlist(link_or_phrase, True, message.author.name,
+                                               output_channel, message.author.name)
             else:
                 await start_player()
-                server.active_player.pause()
+                message.guild.voice_client.pause()
 
-        elif server.active_player is not None and (
-                not server.active_player.is_done() or server.active_player.is_playing()) \
-                or len(server.playlist.yt_playlist) > 0:
-            player = await server.playlist.add_to_playlist(link_or_phrase, True, message.author.name, output_channel)
+        elif current_active_player and message.guild.voice_client.is_playing() or current_active_player.get("queue"):
+            await playlist.add_to_playlist(link_or_phrase, True, message.author.name,
+                                           output_channel, message.author.name)
         else:
             # Move to the user's voice channel
             if message.guild.voice_client.channel != voice_channel:
                 await message.guild.voice_client.move_to(voice_channel)
-
-        await start_player()
+            await start_player()
 
     except youtube_dl.utils.UnsupportedError:
         await output_channel.send(f'{message.author.name}: Unsupported URL: That URL is not supported! :slight_frown:')
@@ -111,24 +115,36 @@ async def play_from_internet(message, bot_channel, client, guild_ref):
 
 
 @RegisterCommand("repeat", "again", "a")
-async def repeat(message, client, db_guild, plugin):
+async def repeat(message, bot_channel, client, guild_ref):
     await message.delete()
-    if server.active_player is None or not server.active_player.is_playing():
+    voice_client = message.guild.voice_client
+    if voice_client is None or (not voice_client.is_paused() and not voice_client.is_playing()):
         await message.channel.send(f'{message.author.name}: Nothing to repeat!')
     else:
-        await message.channel.send(f':repeat: {message.author.name} repeated {server.active_playlist_element.title}.')
-        server.playlist.yt_playlist.insert(0, server.active_playlist_element)
+        active_player_ref = db.reference(f"guilds/{message.guild.id}/active_player")
+        current_active_player = active_player_ref.get()
+        await message.channel.send(f':repeat: {message.author.name} repeated {current_active_player["title"]}.')
+        queue = current_active_player.get('queue', [])
+        queue.insert(0, {"title": current_active_player["title"], "link": current_active_player["link"],
+                         "duration": current_active_player["duration"],
+                         "thumbnail": current_active_player["thumbnail"], "user": current_active_player["user"]})
+        active_player_ref.update({"queue": queue})
 
 
 @RegisterCommand("shuffle", "sh")
-async def shuffle(message, client, db_guild, plugin):
+async def shuffle(message, bot_channel, client, guild_ref):
     await message.delete()
-    if server.active_player is None or not server.active_player.is_playing():
+    voice_client = message.guild.voice_client
+    if voice_client is None or (not voice_client.is_paused() and not voice_client.is_playing()):
         await message.channel.send(f'{message.author.name}: Nothing to shuffle!')
     else:
         await message.channel.send(f':twisted_rightwards_arrows: {message.author.name} shuffled the list.')
-        random.shuffle(server.playlist.yt_playlist)
-        server.playlist.yt_playlist.sort(key=lambda element: len(element.vote_list), reverse=True)
+        active_player_ref = db.reference(f"guilds/{message.guild.id}/active_player")
+        current_active_player = active_player_ref.get()
+        queue = current_active_player.get("queue", [])
+        random.shuffle(queue)
+        queue.sort(key=lambda element: len(element.get('vote_list', [])), reverse=True)
+        active_player_ref.update({"queue": queue})
 
 
 @RegisterCommand("pause", "pa")
@@ -136,11 +152,11 @@ async def pause(message, bot_channel, client, guild_ref):
     await message.delete()
     voice_client = message.guild.voice_client
     if voice_client is None or (not voice_client.is_paused() and not voice_client.is_playing()):
-        await message.channel.send(f'{message.author.name}: Nothing to pause!')
+        await bot_channel.send(f'{message.author.name}: Nothing to pause!')
     elif voice_client.is_paused():
-        await message.channel.send(f'{message.author.name}: The player is already paused!')
+        await bot_channel.send(f'{message.author.name}: The player is already paused!')
     else:
-        await message.channel.send(f':pause_button:: {message.author.name} paused the player!')
+        await bot_channel.send(f':pause_button:: {message.author.name} paused the player!')
         #server.active_playlist_element.pause_time = time.time()
         voice_client.pause()
         db.reference(f"guilds/{message.guild.id}/active_player").update({"status": "paused"})
@@ -151,9 +167,9 @@ async def resume(message, bot_channel, client, guild_ref):
     await message.delete()
     voice_client = message.guild.voice_client
     if voice_client is None or (not voice_client.is_paused() and not voice_client.is_playing()):
-        await message.channel.send(f'{message.author.name}: Nothing to resume!')
+        await bot_channel.send(f'{message.author.name}: Nothing to resume!')
     else:
-        await message.channel.send(f':arrow_forward:: {message.author.name} resumed the player!')
+        await bot_channel.send(f':arrow_forward:: {message.author.name} resumed the player!')
         #server.active_playlist_element.start_time += (server.active_playlist_element.pause_time-server.active_playlist_element.start_time)
         voice_client.resume()
         db.reference(f"guilds/{message.guild.id}/active_player").update({"status": "playing"})
@@ -164,7 +180,7 @@ async def volume(message, bot_channel, client, guild_ref):
     await message.delete()
     voice_client = message.guild.voice_client
     if voice_client is None or (not voice_client.is_paused() and not voice_client.is_playing()):
-        await message.channel.send(f'{message.author.name}: Nothing is playing!')
+        await bot_channel.send(f'{message.author.name}: Nothing is playing!')
     else:
         parameters = message.content.split()
         if len(parameters) < 2:
@@ -173,7 +189,7 @@ async def volume(message, bot_channel, client, guild_ref):
             try:
                 current_volume = float(parameters[1])/2/100.0
             except ValueError:
-                await message.channel.send(f'{message.author.name}: Please give a numeric value!')
+                await bot_channel.send(f'{message.author.name}: Please give a numeric value!')
                 return
 
         if current_volume <= 0.0:
@@ -186,17 +202,17 @@ async def volume(message, bot_channel, client, guild_ref):
             icon = ':loud_sound:'
 
         if len(parameters) < 2:
-            await message.channel.send(f'{icon}: {message.author.name}, '
+            await bot_channel.send(f'{icon}: {message.author.name}, '
                                        f'the volume for the current track is {int(current_volume*2*100.0)}%!')
         elif parameters[1] == current_volume:
-            await message.channel.send(f'{icon}: {message.author.name}, the volume is already the given value!')
+            await bot_channel.send(f'{icon}: {message.author.name}, the volume is already the given value!')
         else:
             if current_volume < 0.0:
                 current_volume = 0.0
             elif current_volume > 0.5:
                 current_volume = 0.5
 
-            await message.channel.send(f'{icon}: {message.author.name}, the volume was changed from '
+            await bot_channel.send(f'{icon}: {message.author.name}, the volume was changed from '
                                        f'{int(voice_client.source.volume*2*100.0)}% to '
                                        f'{int(current_volume*2*100.0)}%!')
             voice_client.source.volume = current_volume
@@ -204,7 +220,7 @@ async def volume(message, bot_channel, client, guild_ref):
 
 
 @RegisterCommand("delete", "d", "remove")
-async def delete(message, client, db_guild, plugin):
+async def delete(message, bot_channel, client, guild_ref):
     await message.delete()
     parameters = message.content.split()
     try:
@@ -217,35 +233,49 @@ async def delete(message, client, db_guild, plugin):
         return
 
     try:
-        playlist_element = server.playlist.yt_playlist[index]
-        server.playlist.yt_playlist.remove(playlist_element)
-        await message.channel.send(f"{message.author.name}: Entry \'{playlist_element.title}\' "
+        queue = db.reference(f"guilds/{message.guild.id}/active_player/queue").get()
+        title = queue[index]['title']
+        del queue[index]
+        db.reference(f"guilds/{message.guild.id}/active_player").update({"queue": queue})
+        await message.channel.send(f"{message.author.name}: Entry \'{title}\' "
                                    f"with index {index+1} was deleted from the queue.")
     except IndexError:
         await message.channel.send(f'{message.author.name}: Index {index+1} is out of queue bounds!')
 
 
 @RegisterCommand("skip", "sk")
-async def skip(message, client, db_guild, plugin):
+async def skip(message, bot_channel, client, guild_ref):
     await message.delete()
-    await server.playlist.playlist_lock.acquire()
+    if str(message.guild.id) not in playlists:
+        playlists[str(message.guild.id)] = Playlist(client, message.guild, guild_ref)
+
+    playlist = playlists[str(message.guild.id)]
+
+    voice_client = message.guild.voice_client
+
+    await playlist.playlist_lock.acquire()
+    guilds_ref = db.reference("guilds").child(f"{message.guild.id}")
+    current_active_player = guilds_ref.child("active_player").get()
     try:
-        if server.active_player is None and len(server.playlist.yt_playlist) > 0:
-            await message.channel.send(f'{message.author.name}: Nothing to skip!')
+        if voice_client is None or (not voice_client.is_paused() and not voice_client.is_playing()) \
+                and current_active_player and not current_active_player.get("queue"):
+            await bot_channel.send(f'{message.author.name}: Nothing to skip!')
         else:
-            await message.channel.send(f':track_next:: {message.author.name} skipped the song!')
-            server.active_player.stop()
+            await bot_channel.send(f':track_next:: {message.author.name} skipped the song!')
+            voice_client.stop()
     finally:
-        server.playlist.playlist_lock.release()
+        playlist.playlist_lock.release()
 
 
 @RegisterCommand("next", "n")
 async def next(message, client, db_guild, plugin):
     await message.delete()
-    if len(server.playlist.yt_playlist) > 0:
-        await message.channel.send(f'{message.author.name}: The next song is {server.playlist.yt_playlist[0].title}')
+    queue = db.reference(f"guilds/{message.guild.id}/active_player/queue")
+    if queue:
+        await message.channel.send(f'{message.author.name}: The next song is {queue[0]["title"]}.')
     else:
         await message.channel.send(f'{message.author.name}: There is no next song as the queue is empty!')
+
 
 @RegisterCommand("stop", "s", "stahp", "stap")
 async def stop(message, bot_channel, client, guild_ref):
@@ -253,7 +283,124 @@ async def stop(message, bot_channel, client, guild_ref):
     voice_client = message.guild.voice_client
     if voice_client and voice_client.is_playing() and not voice_client.is_paused():
         voice_client.stop()
-        playlists[str(message.guild.id)].yt_playlist.clear()
-        await message.channel.send(f':stop_button:: {message.author.name} stopped the player and cleared the queue!')
+        db.reference(f"guilds/{message.guild.id}/active_player").delete()
+        await bot_channel.send(f':stop_button:: {message.author.name} stopped the player and cleared the queue!')
     else:
-        await message.channel.send(f'{message.author.name}: No active player to stop!')
+        await bot_channel.send(f'{message.author.name}: No active player to stop!')
+
+
+@RegisterCommand("yttop", "playtop", "pt")
+async def play_on_top(message, bot_channel, client, guild_ref):
+    await play_from_internet(message, bot_channel, client, guild_ref)
+    # If the queue is not empty, the last entry must be what was added last.
+    # It should not be a race condition as we're not awaiting anything.
+    queue = db.reference(f"guilds/{message.guild.id}/active_player/queue").get()
+    if queue:
+        queue.insert(0, queue[-1])
+        db.reference(f"guilds/{message.guild.id}/active_player").update({"queue": queue})
+
+
+@RegisterCommand("queue", "q", "queuepage")
+async def queue_page(message, bot_channel, client, guild_ref):
+    await message.delete()
+    queue = db.reference(f"guilds/{message.guild.id}/active_player/queue").get()
+    if not queue:
+        await bot_channel.send(f'{message.author.name}: There is nothing in the queue!')
+        return
+
+    parameters = message.content.split()
+    try:
+        index = int(parameters[1]) - 1
+        if not 0 <= index < len(queue):
+            await bot_channel.send(f'{message.author.name}: Index {index + 1} is out of queue bounds!')
+        else:
+            await print_from_index(index, message, client)
+    except ValueError:
+        await bot_channel.send(f'{message.author.name}: Please give a numeric value!')
+    except IndexError:
+        queue_pages = QueuePage()
+        await queue_pages.print_next_page(client, message.channel)
+
+
+async def print_from_index(index, message, client):
+    queue = db.reference(f"guilds/{message.guild.id}/active_player/queue").get()
+    queue_str = str()
+    try:
+        for i in range(index, index + 30, 1):
+            votes = ''
+            if len(queue[i].get("vote_list", [])) > 0:
+                votes = f' **[{len(queue[i].get("vote_list", []))}]**'
+            queue_str += f"{i + 1}: {queue[i]['title']}{votes}\n"
+        queue_str += f"Total entries: {len(queue)}\n"
+    except IndexError:
+        queue_str += "End of queue!"
+    await message.channel.send(f'{message.author.name}: '
+                               f'Here is the current queue from index {index+1}:\n{queue_str.strip()}')
+
+
+class QueuePage:
+    def __init__(self):
+        self.page_num = 0
+        self.message = None
+        self.end = False
+
+    async def print_next_page(self, client, channel):
+        if self.end:
+            return
+        queue = db.reference(f"guilds/{channel.guild}/active_player/queue").get()
+        queue_str = str()
+        try:
+            for i in range(self.page_num*30, (self.page_num*30)+30, 1):
+                votes = ''
+                if len(queue[i].get("vote_list", [])) > 0:
+                    votes = f' **[{len(queue[i].get("vote_list", []))}]**'
+                queue_str += f"{i+1}: {queue[i]['title']}{votes}\n"
+
+            pages_left = math.ceil((len(queue)-((self.page_num*30)+29))/30)
+            queue_str += f"Total entries: {len(queue)}\n"
+            if pages_left > 0:
+                queue_str += f"There {pages_left == 1 and 'is' or 'are'} {pages_left} " \
+                             f"{pages_left == 1 and 'page' or 'pages'} left"
+        except IndexError:
+            queue_str += "End of queue!"
+            self.end = True
+
+        self.page_num += 1
+        if self.message is None:
+            self.message = await channel.send(f'Here is the current queue:\n{queue_str.strip()}')
+        else:
+            await self.message.edit(f'Here is the current queue:\n{queue_str.strip()}')
+
+
+@RegisterCommand("vote", "v")
+async def vote(message, bot_channel, client, guild_ref):
+    await message.delete()
+    parameters = message.content.split()
+    try:
+        index = int(parameters[1]) - 1
+    except ValueError:
+        await message.channel.send(f'{message.author.name}: Please give a numeric value!')
+        return
+    except IndexError:
+        await message.channel.send(f'{message.author.name}: Please give an index to vote for!')
+        return
+
+    try:
+        queue = db.reference(f"guilds/{message.guild.id}/active_player/queue").get()
+        queue_element = queue[index]
+        vote_list = queue_element.get('vote_list', [])
+        if message.author.id in vote_list:
+            await message.channel.send(f'{message.author.name}: You can only vote once on one entry!')
+            return
+        vote_list.append(message.author.id)
+        queue[index]['vote_list'] = vote_list
+        for element in queue:
+            if len(element.get(vote_list, [])) < len(vote_list):
+                queue.remove(queue_element)
+                queue.insert(queue.index(element), queue_element)
+                break
+        db.reference(f"guilds/{message.guild.id}/active_player").update({"queue": queue})
+        await message.channel.send(f'{message.author.name}: {queue_element["title"]} has been voted for!')
+
+    except IndexError:
+        await message.channel.send(f'{message.author.name}: Index {index+1} is out of queue bounds!')

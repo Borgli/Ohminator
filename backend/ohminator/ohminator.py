@@ -1,4 +1,5 @@
 import os
+import signal
 import sys
 import time
 
@@ -8,11 +9,11 @@ import utils
 from functools import wraps
 
 import firebase_admin
-from firebase_admin import credentials, db
+from firebase_admin import credentials, db, storage
 
 from utils import RegisterCommand
 
-import plugins.audio_player
+from plugins import audio_player, intro
 
 running = False
 
@@ -31,11 +32,15 @@ class Ohminator(discord.Client):
         print('------')
         global running
         if not running:
-            print('[{}]: Setting up data structures...'.format(time.strftime('%a, %H:%M:%S')))
+            print(f"[{time.strftime('%a, %H:%M:%S')}]: Setting up data structures...")
             # sync guilds
             guilds_ref = db.reference('guilds')
             guilds_snapshot = guilds_ref.order_by_key().get()
             for guild in self.guilds:
+                # clean up active_player
+                db.reference(f"guilds/{guild.id}/active_player").delete()
+
+                # find bot_channel
                 if guilds_snapshot is None or str(guild.id) not in guilds_snapshot:
                     bot_channel = discord.utils.find(lambda c: c.name == 'bot-spam', guild.channels)
                     # If channel does not exist - create it
@@ -63,13 +68,16 @@ class Ohminator(discord.Client):
                     await commands[key](message, message.guild.get_channel(guild_ref["bot_channel"]), self, guild_ref)
                     return
 
+    async def on_voice_state_update(self, message, before, after):
+        await intro.on_voice_state_update(self, message, before, after)
+
 
 def run_ohminator():
     # Initializes firebase
-
     cred = credentials.Certificate("../firebase_key.json")
     default_app = firebase_admin.initialize_app(cred, {
-        'databaseURL': 'https://ohminator-1337.firebaseio.com/'
+        'databaseURL': 'https://ohminator-1337.firebaseio.com/',
+        'storageBucket': 'ohminator-1337.appspot.com'
     })
 
     # Initializes bot
@@ -90,20 +98,19 @@ def run_ohminator():
 
 class CommandAlreadyExistsError(BaseException):
     def __init__(self, command):
-        super(CommandAlreadyExistsError, self).__init__("Command '{}' already exists!".format(command))
+        super(CommandAlreadyExistsError, self).__init__(f"Command '{command}' already exists!")
 
 
 @RegisterCommand("ping")
 async def ping(message, bot_channel, client):
-    await client.delete_message(message)
-    await client.send_message(bot_channel, 'Pong!')
+    await message.delete()
+    await bot_channel.send('Pong!')
 
 
 @RegisterCommand("joined")
 async def joined(message, bot_channel, client):
-    await client.delete_message(message)
-    await client.send_message(bot_channel, '{}: You joined the Ohm server {}!'.format(message.author.name,
-                                                                                      message.author.joined_at))
+    await message.delete()
+    await bot_channel.send(f'{message.author.name}: You joined the Ohm server {message.author.joined_at}!')
 
 
 @RegisterCommand("roll")
@@ -113,15 +120,11 @@ async def roll(message, bot_channel, client, guild):
         options = message.content.split()
         from random import randint
         rand = randint(int(options[1]), int(options[2]))
-        await bot_channel.send('{}: You rolled {}!'.format(message.author.name, rand))
+        await bot_channel.send(f'{message.author.name}: You rolled {rand}!')
     except:
-        await bot_channel.send('{}: USAGE: !roll [lowest] [highest]'.format(message.author.name))
-
-
+        await bot_channel.send(f'{message.author.name}: USAGE: !roll [lowest] [highest]')
 
 commands = utils.commands
 
 if __name__ == '__main__':
     run_ohminator()
-
-

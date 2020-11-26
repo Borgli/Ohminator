@@ -14,15 +14,17 @@ import logging
 import traceback
 import time
 import math
-import utils
 from datetime import datetime
+
+from firebase_admin import db
+from utils import create_now_playing_embed, update_active_player
 
 
 class Playlist:
-    def __init__(self, client, guild, guild_ref):
+    def __init__(self, client, guild):
         self.client = client
         self.guild = guild
-        self.yt_playlist = list()
+        #self.yt_playlist = list()
         self.queue_exists = None
         self.pinned_message_bot_spam = None
         self.pinned_message_ohm = None
@@ -32,14 +34,11 @@ class Playlist:
         self.after_yt_lock = asyncio.Lock()
         self.playlist_lock = asyncio.Lock()
         self.summoned_channel = None
+        self.active_audio_source = None
 
         if not exists("logs"):
             mkdir("logs")
         logging.basicConfig(filename='logs/ohminator.log', level=logging.ERROR)
-
-        self.task_list = list()
-        self.task_list.append(client.loop.create_task(self.play_next_yt()))
-        self.task_list.append(client.loop.create_task(self.should_clear_now_playing()))
 
     @staticmethod
     def get_options(link):
@@ -69,10 +68,28 @@ class Playlist:
         except:
             return None
 
-    async def add_to_playlist(self, link, append, name, output_channel):
-        # temporary
-        self.output_channel = output_channel
+    @staticmethod
+    def extract_info(entry, link):
+        title = entry.get("title")
+        duration = entry.get("duration")
+        if duration:
+            duration = int(duration)
+        description = entry.get("description")
 
+        def is_yt_link():
+            return link.startswith("ytsearch") or link.startswith("https://www.youtube.com/")
+        thumbnail = entry.get("thumbnail")
+        if not thumbnail and is_yt_link():
+            thumbnail = f"https://i.ytimg.com/vi/{entry.get('url')}/mqdefault.jpg"
+        webpage_url = entry.get("webpage_url")
+        if not webpage_url and is_yt_link():
+            webpage_url = f"https://www.youtube.com/watch?v={entry.get('url')}"
+        elif not webpage_url:
+            webpage_url = link
+        return {"title": title, "duration": duration, "description": description,
+                "thumbnail": thumbnail, "webpage_url": webpage_url}
+
+    async def add_to_playlist(self, link, append, name, output_channel, user=None):
         option = self.get_options(link)
         opts = {
             'format': 'webm[abr>0]/bestaudio/best',
@@ -108,82 +125,94 @@ class Playlist:
                     pass
                 raise
 
-        playlist_element = None
+        active_player_ref = db.reference(f"guilds/{self.guild.id}/active_player")
+        active_player = active_player_ref.get()
+        if not active_player:
+            active_player = {}
+        active_player["queue"] = active_player.get("queue", [])
         if "entries" in info:
             entries = list(info.get("entries"))
             if len(entries) > 1:
                 # PLAYLIST
-                playlist_element = self.add_to_queue(option, entries, append)
+                link = self.add_to_queue(option, entries, append, user)
                 await output_channel.send(f'{name}: The playlist {info["title"]} has been added to the queue.')
             else:
                 entry = entries[0]
-                playlist_element = PlaylistElement(link, self.guild, self.client, option, self.after_yt, entry)
+                info = self.extract_info(entry, link)
                 if append:
-                    self.yt_playlist.append(playlist_element)
-                    await output_channel.send(f'{name}: {entry["title"]} has been added to the queue.')
+                    active_player["queue"].append({
+                        "title": info["title"], "link": info["webpage_url"], "duration": info["duration"],
+                        "thumbnail": info["thumbnail"], "user": user
+                    })
+                    active_player_ref.update({"queue": active_player["queue"]})
+                    await output_channel.send(f'{name}: {info["title"]} has been added to the queue.')
         else:
             # NORMAL
-            playlist_element = PlaylistElement(link, self.guild, self.client, option, self.after_yt, info)
+            info = self.extract_info(info, link)
             if append:
-                self.yt_playlist.append(playlist_element)
-                await output_channel.send(f'{name}: {info.get("title")} has been added to the queue.')
-        return playlist_element
+                active_player["queue"].append({
+                    "title": info["title"], "link": info["webpage_url"], "duration": info["duration"],
+                    "thumbnail": info["thumbnail"], "user": user
+                })
+                active_player_ref.update({"queue": active_player["queue"]})
+                await output_channel.send(f'{name}: {info["title"]} has been added to the queue.')
+        return await YTDLSource.from_url(link, stream=True, start=option)
 
-    def add_to_queue(self, option, entries, append):
+    def add_to_queue(self, option, entries, append, user):
         entry = entries.pop(0)
-        playlist_element = PlaylistElement(entry["url"], self.guild, self.client, option, self.after_yt, entry)
-        if append and not (playlist_element.title == '[Deleted video]' or playlist_element.title == '[Private video]'):
-            self.yt_playlist.append(playlist_element)
+        active_player_ref = db.reference(f"guilds/{self.guild.id}/active_player")
+        active_player = active_player_ref.get()
+        active_player["queue"] = active_player.get("queue", [])
+        if append and not (entry.get("title") == '[Deleted video]' or entry.get("title") == '[Private video]'):
+            info = self.extract_info(entry, entry["url"])
+            active_player["queue"].append({
+                "title": info["title"], "link": info["webpage_url"], "duration": info["duration"],
+                "thumbnail": info["thumbnail"], "user": user
+            })
 
         for entry in entries:
-            p_e = PlaylistElement(entry["url"], self.guild, self.client, option, self.after_yt, entry)
             title = entry.get('title')
             if title == '[Deleted video]' or title == '[Private video]':
                 continue
-            self.yt_playlist.append(p_e)
+            info = self.extract_info(entry, entry["url"])
+            active_player["queue"].append({
+                "title": info["title"], "link": info["webpage_url"], "duration": info["duration"],
+                "thumbnail": info["thumbnail"], "user": user
+            })
 
-        return playlist_element
+        active_player_ref.update({"queue": active_player["queue"]})
+        return entry["url"]
 
     def after_yt(self, error):
         if error:
             print(error)
             traceback.print_exc()
-        self.client.loop.call_soon_threadsafe(self.clear_now_playing.set)
-        self.client.loop.call_soon_threadsafe(self.play_next.set)
 
-    async def play_next_yt(self):
-        while not self.client.is_closed():
-            await self.play_next.wait()
-            await self.playlist_lock.acquire()
+        queue = db.reference(f"guilds/{self.guild.id}/active_player/queue").get()
+        output_channel = self.guild.get_channel(db.reference(f"guilds/{self.guild.id}/bot_channel").get())
+        if queue:
+            next_song = queue.pop()
+            fut = asyncio.run_coroutine_threadsafe(YTDLSource.from_url(next_song["link"], stream=True), self.client.loop)
             try:
-                if len(self.yt_playlist) > 0:
-                    something_to_play = False
-                    while True:
-                        if len(self.yt_playlist) <= 0:
-                            break
-                        player = self.yt_playlist.pop(0)
-                        try:
-                            self.guild.active_player = await player.get_new_player()
-                        except:
-                            continue
-                        self.server.active_playlist_element = player
-                        if self.server.active_player is not None:
-                            something_to_play = True
-                            break
-                    if something_to_play:
-                        self.now_playing = self.server.active_player.title
-                        await self.output_channel.send(embed=utils.create_now_playing_embed(
-                                                           self.server.active_playlist_element))
-                        self.server.active_player.start()
-            finally:
-                self.play_next.clear()
-                self.playlist_lock.release()
-
-    async def should_clear_now_playing(self):
-        while not self.client.is_closed():
-            await self.clear_now_playing.wait()
-            self.now_playing = ""
-            self.clear_now_playing.clear()
+                audio_source = fut.result()
+                coro = output_channel.send(f'{next_song["user"]}:',
+                                           embed=create_now_playing_embed(
+                                               update_active_player(audio_source,
+                                                                    db.reference(f"guilds/{self.guild.id}"),
+                                                                    next_song["user"]))
+                                           )
+                fut = asyncio.run_coroutine_threadsafe(coro, self.client.loop)
+                fut.result()
+                self.active_audio_source = audio_source
+                self.guild.voice_client.play(audio_source, after=self.after_yt)
+            except:
+                traceback.print_exc()
+            db.reference(f"guilds/{self.guild.id}/active_player/").update({
+                "queue": queue
+            })
+        else:
+            db.reference(f"guilds/{self.guild.id}/active_player").delete()
+            self.active_audio_source = None
 
 
 # The sole purpose of this class is to suppress output from youtube-dl
@@ -213,7 +242,7 @@ ytdl_format_options = {
 }
 
 ffmpeg_options = {
-    'options': '-vn',
+    'options': '-vn -loglevel quiet',
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
 }
 
@@ -231,7 +260,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.url = data.get('url')
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
+    async def from_url(cls, url, *, loop=None, stream=False, start=None):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
@@ -240,6 +269,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
+        if start:
+            ffmpeg_options['before_options'] += " " + start
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
@@ -259,6 +290,7 @@ class PlaylistElement:
         self.start_time = 0
         self.pause_time = 0
         self.player = None
+        self.audio_source = None
         if entry:
             self.title = entry.get("title")
             self.duration = entry.get("duration")
@@ -289,6 +321,7 @@ class PlaylistElement:
         #if self.duration:
         #    self.duration = int(self.duration)
         #self.start_time = time.time()
+        self.audio_source = audio_source
         return audio_source
 
     def __repr__(self):

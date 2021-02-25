@@ -17,6 +17,13 @@ import {
 
 const config = require('config');
 
+export function* fetchLogin(oauthCode) {
+    yield fetchApi(oauthCode,
+        (response) => ({type: SET_USER_SUCCESS, user: response.user}),
+        (error) => ({type: SET_USER_FAILURE, error}),
+        '/api/user');
+}
+
 export function* fetchUser(oauthCode) {
     yield fetchApi(oauthCode,
         (response) => ({type: SET_USER_SUCCESS, user: response.user}),
@@ -48,12 +55,22 @@ export function* fetchGuildPlugins(id, oauthCode) {
     );
 }
 
+export function* login(oauthCode, successAction, errorAction, uri) {
+    try {
+        const response = yield fetch(config.endpoint + uri + "/" + oauthCode)
+            .then(response => response.json());
+        yield put(successAction(response));
+    } catch (error) {
+        yield put(errorAction(error));
+    }
+}
+
 export function* fetchApi(oauthCode, successAction, errorAction, uri) {
-    let headers = {'Content-Type': 'application/json'};
+    let headers = {'Content-Type': 'text/plain'};
     headers['X-Oauth-Code'] = oauthCode;
 
     try {
-        const response = yield fetch(config.endpoint + uri, {headers})
+        const response = yield fetch(config.endpoint + uri, {headers, method: "GET"})
             .then(response => response.json());
         yield put(successAction(response));
     } catch (error) {

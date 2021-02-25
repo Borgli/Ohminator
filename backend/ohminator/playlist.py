@@ -162,6 +162,8 @@ class Playlist:
         entry = entries.pop(0)
         active_player_ref = db.reference(f"guilds/{self.guild.id}/active_player")
         active_player = active_player_ref.get()
+        if not active_player:
+            active_player = {}
         active_player["queue"] = active_player.get("queue", [])
         if append and not (entry.get("title") == '[Deleted video]' or entry.get("title") == '[Private video]'):
             info = self.extract_info(entry, entry["url"])
@@ -191,7 +193,8 @@ class Playlist:
         queue = db.reference(f"guilds/{self.guild.id}/active_player/queue").get()
         output_channel = self.guild.get_channel(db.reference(f"guilds/{self.guild.id}/bot_channel").get())
         if queue:
-            next_song = queue.pop()
+            next_song = queue[0]
+            del queue[0]
             fut = asyncio.run_coroutine_threadsafe(YTDLSource.from_url(next_song["link"], stream=True), self.client.loop)
             try:
                 audio_source = fut.result()

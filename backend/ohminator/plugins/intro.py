@@ -86,7 +86,7 @@ async def intro(message, bot_channel, client, guild_ref):
         finally:
             pass
     else:
-        await client.send_message(bot_channel, f'{message.author.name}: You dont have an intro!')
+        await bot_channel.send(f'{message.author.name}: You dont have an intro!')
 
 
 async def on_voice_state_update(self, member, before, after):
@@ -94,6 +94,9 @@ async def on_voice_state_update(self, member, before, after):
         return
 
     if after is None or after.channel is None or after.afk or before is after:
+        return
+
+    if before.channel == after.channel:
         return
 
     bucket = storage.bucket()

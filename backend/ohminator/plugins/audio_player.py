@@ -52,7 +52,7 @@ async def play_from_internet(message, bot_channel, client, guild_ref):
     # Case two: Something is already playing, so we queue the requested songs
     # Case three: Nothing is playing, so we just start playing the song
     if str(guild.id) not in playlists:
-        playlists[str(guild.id)] = Playlist(client, guild, guild_ref)
+        playlists[str(guild.id)] = Playlist(client, guild)
 
     playlist = playlists[str(guild.id)]
 
@@ -268,7 +268,7 @@ async def skip(message, bot_channel, client, guild_ref):
 
 
 @RegisterCommand("next", "n")
-async def next(message, client, db_guild, plugin):
+async def next(message, bot_channel, client, guild_ref):
     await message.delete()
     queue = db.reference(f"guilds/{message.guild.id}/active_player/queue")
     if queue:

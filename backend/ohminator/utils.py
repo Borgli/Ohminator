@@ -53,8 +53,8 @@ def create_now_playing_embed(now_playing):
 def update_active_player(audio_source, guilds_ref, user):
     active_player = {
         "title": audio_source.title, "volume": audio_source.volume,
-        "thumbnail": audio_source.data["thumbnail"], "extractor": audio_source.data["extractor"],
-        "duration": audio_source.data["duration"], "url": audio_source.data["webpage_url"],
+        "thumbnail": audio_source.data.get("thumbnail", ""), "extractor": audio_source.data["extractor"],
+        "duration": audio_source.data.get("duration", 0), "url": audio_source.data["webpage_url"],
         "type": "youtube-dl", "status": "playing", "user": user
     }
     guilds_ref.update({"active_player": active_player})
